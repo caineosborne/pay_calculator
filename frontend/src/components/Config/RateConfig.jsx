@@ -71,8 +71,8 @@ export function RateConfig() {
                         <button
                             onClick={() => handleWorkerTypeChange('shift')}
                             className={`px-3 py-1 rounded-md text-xs font-medium transition-colors border-2 ${state.config.workerType === 'shift'
-                                ? 'bg-white dark:bg-gray-600 text-gray-800 dark:text-gray-100 border-blue-600'
-                                : 'bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 border-transparent'
+                                ? 'bg-blue-500 text-white border-blue-600'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border-transparent'
                                 }`}
                         >
                             Shift Worker
@@ -80,8 +80,8 @@ export function RateConfig() {
                         <button
                             onClick={() => handleWorkerTypeChange('day')}
                             className={`px-3 py-1 rounded-md text-xs font-medium transition-colors border-2 ${state.config.workerType === 'day'
-                                ? 'bg-white dark:bg-gray-600 text-gray-800 dark:text-gray-100 border-blue-600'
-                                : 'bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 border-transparent'
+                                ? 'bg-blue-500 text-white border-blue-600'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border-transparent'
                                 }`}
                         >
                             Day Worker
