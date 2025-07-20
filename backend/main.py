@@ -25,6 +25,9 @@ app = FastAPI(
     version="1.0.0"
 )
 
+print("✅ Received a request from frontend")
+
+
 
 # // Local development CORS settings
 # app.add_middleware(
@@ -37,11 +40,12 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://pay-calculator-s0bv.onrender.com"],  # <-- your frontend domain
+    allow_origins=["https://pay-calculator-s0bv.onrender.com"],  # Your frontend domain
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 @app.post("/calculate", response_model=PayResponse)
 def calculate_pay(data: PayRequest) -> PayResponse:
