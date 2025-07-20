@@ -77,6 +77,27 @@ export default function ShiftTable() {
      * @param {string|number} value - New value or action (increment/decrement)
      * @param {boolean} isInput - True if direct input, false if button
      */
+    // Helper function to format time display
+    const formatTimeDisplay = (value) => {
+        if (!value && value !== 0) return '';
+        const numValue = parseInt(value);
+        if (isNaN(numValue)) return '';
+        return numValue.toString();
+    };
+
+    // Helper function to parse time input
+    const parseTimeInput = (value) => {
+        if (!value && value !== 0) return null;
+        const parsed = parseInt(value);
+        if (!isNaN(parsed)) {
+            // Allow values 0-30 (up to 6am next day)
+            if (parsed >= 0 && parsed <= 30) {
+                return parsed.toString();
+            }
+        }
+        return null;
+    };
+
     const handleTimeChange = (idx, field, value, isInput = false) => {
         let newValue;
         const shift = state.shifts[idx];
@@ -85,8 +106,16 @@ export default function ShiftTable() {
             newValue = value === '' ? shift.break_duration :
                 Math.max(0, Math.min(24, parseFloat(value) || 0)).toString();
         } else if (isInput) {
-            newValue = value === '' ? shift[field] :
-                Math.min(23, Math.max(0, parseInt(value) || 0)).toString();
+            // Handle direct input
+            const parsedValue = parseTimeInput(value);
+            if (parsedValue === null) {
+                newValue = shift[field];
+            } else {
+                const intValue = parseInt(parsedValue);
+                // For next-day times (>24), keep the actual value for API
+                newValue = intValue > 24 ? intValue.toString() :
+                    Math.min(field === 'end' ? 30 : 24, Math.max(0, intValue || 0)).toString();
+            }
         } else {
             const currentValue = parseInt(shift[field]);
             if (value === 'increment') {
@@ -99,7 +128,8 @@ export default function ShiftTable() {
                         newValue = field === 'end' ? '17' : '9'; // Default to 17 for end time, 9 for start time
                     }
                 } else {
-                    newValue = Math.min(23, currentValue + 1).toString();
+                    const maxValue = field === 'end' ? 30 : 24;
+                    newValue = Math.min(maxValue, currentValue + 1).toString();
                 }
             } else if (value === 'decrement') {
                 newValue = Math.max(0, (currentValue || 0) - 1).toString();
@@ -181,12 +211,10 @@ export default function ShiftTable() {
                                 <div className="flex items-center space-x-1">
                                     <button onClick={() => handleTimeChange(idx, 'start', 'decrement')} className="p-1 text-gray-500 hover:text-gray-700">-</button>
                                     <input
-                                        type="number"
-                                        value={shift.start}
+                                        type="text"
+                                        value={formatTimeDisplay(shift.start)}
                                         onChange={(e) => handleTimeChange(idx, 'start', e.target.value, true)}
                                         className="w-16 p-1 text-center border rounded"
-                                        min="0"
-                                        max="23"
                                     />
                                     <button onClick={() => handleTimeChange(idx, 'start', 'increment')} className="p-1 text-gray-500 hover:text-gray-700">+</button>
                                 </div>
@@ -196,12 +224,10 @@ export default function ShiftTable() {
                                 <div className="flex items-center space-x-1">
                                     <button onClick={() => handleTimeChange(idx, 'end', 'decrement')} className="p-1 text-gray-500 hover:text-gray-700">-</button>
                                     <input
-                                        type="number"
-                                        value={shift.end}
+                                        type="text"
+                                        value={formatTimeDisplay(shift.end)}
                                         onChange={(e) => handleTimeChange(idx, 'end', e.target.value, true)}
                                         className="w-16 p-1 text-center border rounded"
-                                        min="0"
-                                        max="23"
                                     />
                                     <button onClick={() => handleTimeChange(idx, 'end', 'increment')} className="p-1 text-gray-500 hover:text-gray-700">+</button>
                                 </div>

@@ -41,55 +41,64 @@ class PayCalculator:
         self.ordered_days = []
 
     def calculate_daily_hours(self, shift: Shift) -> dict:
-        """Calculate hours breakdown for a single shift."""
-        if not (shift.start is not None and shift.end is not None and shift.end > shift.start):
+        """Calculate hours breakdown for a single shift.
+        
+        This follows a three-phase calculation:
+        1. Detect if hours are overtime (span, daily limit, weekly limit, or weekend for day workers)
+        2. Calculate overtime rates (2x on Sunday, 1.5x otherwise)
+        3. For remaining ordinary hours, calculate penalties for shift workers on weekends
+        """
+        if not (shift.start is not None and shift.end is not None):
             return self._get_empty_day_breakdown()
 
         break_duration = shift.break_duration if shift.break_duration is not None else PayRules.DEFAULT_BREAK
-        daily_hours = max(0, (shift.end - shift.start) - break_duration)
+        end_time = shift.end if shift.end > shift.start else shift.end + 24
+        daily_hours = max(0, (end_time - shift.start) - break_duration)
         
         applied_rules = []
         
-        # Calculate span overtime (after 6pm for day workers)
-        span_overtime = PayRules.calculate_span_overtime(shift.start, shift.end, daily_hours, self.worker_type)
-        if span_overtime > 0:
-            applied_rules.append("Span Overtime")
-        remaining_hours = daily_hours - span_overtime
+        # Phase 1: Detect overtime conditions
+        overtime_hours = 0
+        ordinary_hours = daily_hours
         
-        # Get daily ordinary hours limit based on worker type
-        daily_limit = PayRules.get_ordinary_hours_daily_limit(self.worker_type)
-        daily_ordinary_hours = min(remaining_hours, daily_limit)
-        daily_ot = max(remaining_hours - daily_limit, 0)
-        if daily_ot > 0:
-            applied_rules.append("Daily Overtime")
-        daily_overtime = span_overtime + daily_ot
-        
-        # Get weekend rates based on worker type
-        weekend_rules = PayRules.get_weekend_rate(shift.day, self.worker_type)
-        
-        # Initialize penalty hours to 0
-        penalty_hours = 0
-        
-        # Handle weekend work differently for day workers (overtime) vs shift workers (penalties)
-        if weekend_rules['is_overtime']:
-            # For day workers, weekend work counts as overtime with specific rates
-            daily_overtime += daily_ordinary_hours
-            daily_ordinary_hours = 0
+        # 1a. Day workers: All weekend hours are overtime
+        if PayRules.is_overtime_day(shift.day, self.worker_type):
+            overtime_hours = daily_hours
+            ordinary_hours = 0
             applied_rules.append(f"{shift.day} Overtime")
         else:
-            # For shift workers, apply penalty rates to ordinary hours
-            penalty_rate = weekend_rules['penalty_rate']
-            if penalty_rate > 0:
-                penalty_hours = daily_ordinary_hours
-                applied_rules.append(f"{shift.day} Penalty ({int(penalty_rate * 100)}%)")
+            # 1b. Check for span overtime (after 6pm for day workers)
+            span_ot = PayRules.calculate_span_overtime(shift.start, shift.end, daily_hours, self.worker_type)
+            if span_ot > 0:
+                overtime_hours += span_ot
+                ordinary_hours -= span_ot
+                applied_rules.append("Span Overtime")
             
+            # 1c. Check daily hours limit
+            daily_limit = PayRules.get_ordinary_hours_daily_limit(self.worker_type)
+            if ordinary_hours > daily_limit:
+                daily_ot = ordinary_hours - daily_limit
+                overtime_hours += daily_ot
+                ordinary_hours = daily_limit
+                applied_rules.append("Daily Overtime")
+        
+        # Phase 2: Apply appropriate overtime rate
+        # Note: Weekly overtime is handled in process_weekly_overtime
+        overtime_rate = PayRules.get_overtime_rate(shift.day) if overtime_hours > 0 else 0
+        
+        # Phase 3: For shift workers, calculate penalties on ordinary hours
+        penalty_rate = PayRules.get_penalty_rate(shift.day, self.worker_type)
+        penalty_hours = ordinary_hours if penalty_rate > 0 else 0
+        if penalty_hours > 0:
+            applied_rules.append(f"{shift.day} Penalty ({int(penalty_rate * 100)}%)")
+        
         return {
             'total': daily_hours,
-            'ordinary': daily_ordinary_hours,
-            'overtime': daily_overtime,
+            'ordinary': ordinary_hours,
+            'overtime': overtime_hours,
             'penalty': penalty_hours,
-            'penalty_rate': weekend_rules.get('penalty_rate', 0),
-            'overtime_rate': weekend_rules.get('rate', PayRules.OVERTIME_RATE),
+            'penalty_rate': penalty_rate,
+            'overtime_rate': overtime_rate,
             'break': break_duration,
             'applied_rules': applied_rules
         }
@@ -116,6 +125,10 @@ class PayCalculator:
         
         Adjusts daily breakdowns to account for weekly overtime limits,
         working backwards from the end of the week.
+        
+        When hours are converted from ordinary to overtime:
+        1. They lose any penalty rates they had (penalty hours are reduced)
+        2. They get the appropriate overtime rate for that day (1.5x or 2x)
         """
         weekly_limit = PayRules.DAY_WORKER_ORDINARY_HOURS_WEEKLY if self.worker_type == 'day' else PayRules.ORDINARY_HOURS_LIMIT_WEEKLY
         weekly_overtime_remaining = max(self.total_ordinary_hours - weekly_limit, 0)
@@ -128,6 +141,14 @@ class PayCalculator:
                 if overtime_from_ordinary > 0:
                     self.breakdown[day]['ordinary'] -= overtime_from_ordinary
                     self.breakdown[day]['overtime'] += overtime_from_ordinary
+                    
+                    # Remove these hours from penalty if they were getting penalties
+                    if self.breakdown[day]['penalty'] > 0:
+                        self.breakdown[day]['penalty'] -= overtime_from_ordinary
+                    
+                    # Set the overtime rate for the day (2x for Sunday, 1.5x otherwise)
+                    self.breakdown[day]['overtime_rate'] = PayRules.get_overtime_rate(day)
+                    
                     if 'Period Overtime' not in self.breakdown[day]['applied_rules']:
                         self.breakdown[day]['applied_rules'].append('Period Overtime')
                     weekly_overtime_remaining -= overtime_from_ordinary
@@ -171,14 +192,14 @@ class PayCalculator:
         
         # Calculate overtime pay using day-specific rates
         overtime_pay = sum(
-            self.breakdown[day]['overtime'] * self.data.hourly_rate * self.breakdown[day].get('overtime_rate', PayRules.OVERTIME_RATE)
+            self.breakdown[day]['overtime'] * self.data.hourly_rate * self.breakdown[day].get('overtime_rate', PayRules.STANDARD_OVERTIME_RATE)
             for day in self.breakdown
         )
         overtime_pay = round(overtime_pay, 2)
         
         # Calculate penalty pay (only applies to shift workers)
         penalty_pay = sum(
-            self.breakdown[day]['penalty'] * self.data.hourly_rate * self.breakdown[day]['penalty_rate']
+            self.breakdown[day].get('penalty', 0) * self.data.hourly_rate * self.breakdown[day].get('penalty_rate', 1.0)
             for day in self.breakdown
         )
         penalty_pay = round(penalty_pay, 2)
@@ -202,7 +223,7 @@ class PayCalculator:
         penalty_rate = hours.get('penalty_rate', 0)
         
         ordinary_pay = hours['ordinary'] * base_rate
-        overtime_pay = hours['overtime'] * base_rate * PayRules.OVERTIME_RATE
+        overtime_pay = hours['overtime'] * base_rate * PayRules.STANDARD_OVERTIME_RATE
         penalty_pay = hours['penalty'] * base_rate * penalty_rate
         
         return {

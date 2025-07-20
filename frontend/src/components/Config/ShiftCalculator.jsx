@@ -45,7 +45,11 @@ export function ShiftCalculator({ children }) {
 
             // Filter out shifts that don't have both start and end times
             // state.shifts comes from PayContext, originally set by initialShifts in shifts.js
-            const validShifts = state.shifts.filter(shift => shift.start && shift.end);
+            const validShifts = state.shifts.filter(shift => {
+                const hasStart = shift.start !== '' && shift.start !== null && shift.start !== undefined;
+                const hasEnd = shift.end !== '' && shift.end !== null && shift.end !== undefined;
+                return hasStart && hasEnd;
+            });
 
             // If no hourly rate or no valid shifts, skip calculation
             if (!state.config.hourlyRate || validShifts.length === 0) {
@@ -54,42 +58,50 @@ export function ShiftCalculator({ children }) {
             }
 
             try {
+                // Helper function to convert time strings to numbers
+                const parseTimeValue = (value) => {
+                    if (!value && value !== 0) return null;
+
+                    // If it ends with 'n', it's a next-day time
+                    if (value.toString().endsWith('n')) {
+                        const baseHour = parseInt(value);
+                        return !isNaN(baseHour) && baseHour >= 0 && baseHour <= 23 ? baseHour + 24 : null;
+                    }
+
+                    // For regular numbers
+                    const parsed = parseInt(value);
+                    return !isNaN(parsed) && parsed >= 0 && parsed <= 30 ? parsed : null;
+                };
+
+                // Prepare the payload with parsed values
+                const payload = {
+                    hourly_rate: parseFloat(state.config.hourlyRate),
+                    worker_type: state.config.workerType,
+                    shifts: validShifts.map(shift => ({
+                        day: shift.day,
+                        start: parseTimeValue(shift.start),
+                        end: parseTimeValue(shift.end),
+                        break_duration: parseFloat(shift.break_duration) || 0
+                    }))
+                };
+
+                // Log request payload for debugging
+                console.log('Sending to API:', payload);
+
                 // Send POST request to backend API for calculation
-                // API expects: { hourly_rate, worker_type, shifts }
                 const response = await fetch('http://localhost:8000/calculate', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    //this is the payload sent to the API
-                    body: JSON.stringify({
-                        hourly_rate: parseFloat(state.config.hourlyRate), // From PayContext
-                        worker_type: state.config.workerType, // From PayContext
-                        shifts: validShifts.map(shift => ({
-                            day: shift.day, // From state.shifts
-                            start: shift.start, // From state.shifts
-                            end: shift.end, // From state.shifts
-                            // break_duration: converted to number, from state.shifts
-                            break_duration: parseFloat(shift.break_duration) || 0
-                        }))
-                    })
+                    body: JSON.stringify(payload)
                 });
-
-                // Log request payload for debugging
-                // console.log('Sending to API:', {
-                //     hourly_rate: parseFloat(state.config.hourlyRate),
-                //     worker_type: state.config.workerType,
-                //     shifts: validShifts.map(shift => ({
-                //         day: shift.day,
-                //         start: shift.start,
-                //         end: shift.end,
-                //         break_duration: parseFloat(shift.break_duration) || 0
-                //     }))
-                // });
 
                 // Handle API errors
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    const errorText = await response.text();
+                    console.error('API Error Response:', errorText);
+                    throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
                 }
 
                 // data is what is sent from the API  

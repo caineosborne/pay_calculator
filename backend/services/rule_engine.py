@@ -28,7 +28,8 @@ class PayRules:
     DEFAULT_BREAK = 0.5
 
     # Rate multipliers
-    OVERTIME_RATE = 1.5
+    STANDARD_OVERTIME_RATE = 1.5
+    SUNDAY_OVERTIME_RATE = 2.0
     SATURDAY_PENALTY_RATE = 0.25
     SUNDAY_PENALTY_RATE = 0.50
     SPAN_OVERTIME_HOUR = 18  # 6pm in 24-hour format
@@ -36,14 +37,34 @@ class PayRules:
     # Weekend rules by worker type
     WEEKEND_RULES = {
         'day': {
-            'Saturday': {'is_overtime': True, 'rate': 1.5},  # Overtime on Saturday
-            'Sunday': {'is_overtime': True, 'rate': 2.0}     # Double time on Sunday
+            'Saturday': {'is_overtime': True},  # All hours are overtime
+            'Sunday': {'is_overtime': True}     # All hours are overtime
         },
         'shift': {
-            'Saturday': {'is_overtime': False, 'penalty_rate': 0.25},  # Penalty rate
-            'Sunday': {'is_overtime': False, 'penalty_rate': 0.50}     # Penalty rate
+            'Saturday': {'penalty_rate': 0.25},  # Penalty rate for non-overtime hours
+            'Sunday': {'penalty_rate': 0.50}     # Penalty rate for non-overtime hours
         }
     }
+    
+    @staticmethod
+    def is_overtime_day(day: str, worker_type: str) -> bool:
+        """Determine if all hours on this day are automatically overtime."""
+        if worker_type == 'day' and day in ['Saturday', 'Sunday']:
+            return True
+        return False
+
+    @staticmethod
+    def get_overtime_rate(day: str) -> float:
+        """Get the overtime multiplier for a given day."""
+        return PayRules.SUNDAY_OVERTIME_RATE if day == 'Sunday' else PayRules.STANDARD_OVERTIME_RATE
+
+    @staticmethod
+    def get_penalty_rate(day: str, worker_type: str) -> float:
+        """Get the penalty rate for non-overtime hours on weekends for shift workers."""
+        if worker_type != 'shift' or day not in ['Saturday', 'Sunday']:
+            return 0
+        rules = PayRules.WEEKEND_RULES.get('shift', {}).get(day, {})
+        return rules.get('penalty_rate', 0)
 
     @staticmethod
     def calculate_span_overtime(start_time: float, end_time: float, daily_hours: float, worker_type: str) -> float:
@@ -82,11 +103,21 @@ class PayRules:
             - penalty_rate (float): penalty rate if is_overtime is False
         """
         if day not in ['Saturday', 'Sunday']:
-            return {'is_overtime': False, 'penalty_rate': 0, 'rate': 0}
+            return {'is_overtime': False, 'penalty_rate': 0, 'rate': PayRules.OVERTIME_RATE}
             
         rules = PayRules.WEEKEND_RULES.get(worker_type, {}).get(day, {})
+        
+        # For shift workers, we want both penalty rates and overtime rates
+        if worker_type == 'shift':
+            return {
+                'is_overtime': rules.get('is_overtime', False),
+                'rate': PayRules.OVERTIME_RATE,  # Always use overtime rate for overtime hours
+                'penalty_rate': rules.get('penalty_rate', 0)
+            }
+        
+        # For day workers, use the weekend-specific rates
         return {
             'is_overtime': rules.get('is_overtime', False),
-            'rate': rules.get('rate', 0),
+            'rate': rules.get('rate', PayRules.OVERTIME_RATE),
             'penalty_rate': rules.get('penalty_rate', 0)
         }
