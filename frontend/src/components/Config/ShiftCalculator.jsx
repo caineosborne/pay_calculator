@@ -89,7 +89,9 @@ export function ShiftCalculator({ children }) {
                 console.log('Sending to API:', payload);
 
                 // Send POST request to backend API for calculation
-                const response = await fetch('http://localhost:8000/calculate', {
+                const response = await fetch('https://pay-backend-rnag.onrender.com/calculate', {
+
+                    // const response = await fetch('http://localhost:8000/calculate', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
