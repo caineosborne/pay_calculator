@@ -11,9 +11,9 @@ Dependencies:
 - services.rule_engine: Business rules and constants
 """
 
-from ..models.request_models import PayRequest, Shift
-from ..models.response_models import PayResponse
-from .rule_engine import PayRules
+from models.request_models import PayRequest, Shift
+from models.response_models import PayResponse
+from services.rule_engine import PayRules
 
 class PayCalculator:
     """

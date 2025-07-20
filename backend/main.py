@@ -15,9 +15,9 @@ Dependencies:
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.models.request_models import PayRequest
-from backend.models.response_models import PayResponse
-from backend.services.pay_calculator import PayCalculator
+from models.request_models import PayRequest
+from models.response_models import PayResponse
+from services.pay_calculator import PayCalculator
 
 app = FastAPI(
     title="Pay Calculator API",
