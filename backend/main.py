@@ -38,9 +38,18 @@ print("✅ Received a request from frontend")
 #     allow_headers=["*"],
 # )
 
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=["https://pay-calculator-s0bv.onrender.com"],  # Your frontend domain
+#     allow_credentials=True,
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+# )
+
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://pay-calculator-s0bv.onrender.com"],  # Your frontend domain
+    allow_origins=["*"],  # Allow ANY origin — useful for debugging
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
