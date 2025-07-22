@@ -27,8 +27,12 @@ export function DisplayRules({ showRules }) {
             <div className="space-y-2">
                 {rules.span_hours && (
                     <div>
-                        <span className="text-gray-600 dark:text-gray-300">Span Hours: </span>
-                        <span className="font-medium">Overtime {rules.span_hours.threshold}, paid at {rules.span_hours.rate}</span>
+                        <span className="text-gray-600 dark:text-gray-300">Time of work overtime : </span>
+                        <span className="font-medium">
+                            {rules.span_hours.threshold === 'N/A'
+                                ? 'N/A'
+                                : `Overtime ${rules.span_hours.threshold}, paid at ${rules.span_hours.rate}`}
+                        </span>
                     </div>
                 )}
                 {rules.daily_overtime && (

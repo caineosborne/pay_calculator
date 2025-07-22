@@ -209,16 +209,16 @@ class PayCalculator:
         # Generate ruleset summary based on worker type
         ruleset = RulesetSummary(
             span_hours={
-                'threshold': f"After {PayRules.SPAN_OVERTIME_HOUR}:00",
-                'rate': f"{PayRules.STANDARD_OVERTIME_RATE}x"
+            'threshold': f"After {PayRules.SPAN_OVERTIME_HOUR}:00" if self.worker_type == 'day' else "N/A",
+            'rate': f"{PayRules.STANDARD_OVERTIME_RATE}x" if self.worker_type == 'day' else "N/A"
             },
             daily_overtime={
-                'threshold': PayRules.ORDINARY_HOURS_LIMIT_DAILY if self.worker_type == 'shift' else PayRules.DAY_WORKER_ORDINARY_HOURS_DAILY,
-                'rate': f"{PayRules.STANDARD_OVERTIME_RATE}x"
+            'threshold': PayRules.ORDINARY_HOURS_LIMIT_DAILY if self.worker_type == 'shift' else PayRules.DAY_WORKER_ORDINARY_HOURS_DAILY,
+            'rate': f"{PayRules.STANDARD_OVERTIME_RATE}x"
             },
             weekly_overtime={
-                'threshold': PayRules.ORDINARY_HOURS_LIMIT_WEEKLY if self.worker_type == 'shift' else PayRules.DAY_WORKER_ORDINARY_HOURS_WEEKLY,
-                'rate': f"{PayRules.STANDARD_OVERTIME_RATE}x"
+            'threshold': PayRules.ORDINARY_HOURS_LIMIT_WEEKLY if self.worker_type == 'shift' else PayRules.DAY_WORKER_ORDINARY_HOURS_WEEKLY,
+            'rate': f"{PayRules.STANDARD_OVERTIME_RATE}x"
             },
             saturday_rules=PayRules.WEEKEND_RULES[self.worker_type]['Saturday'],
             sunday_rules=PayRules.WEEKEND_RULES[self.worker_type]['Sunday']

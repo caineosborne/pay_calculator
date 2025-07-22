@@ -23,7 +23,7 @@ class PayRules:
     DEFAULT_BREAK = 0.5
 
     # Time rules for day workers
-    DAY_WORKER_ORDINARY_HOURS_DAILY = 10  # Standard 7.6 hour day
+    DAY_WORKER_ORDINARY_HOURS_DAILY = 8 # Standard 7.6 hour day
     DAY_WORKER_ORDINARY_HOURS_WEEKLY = 38  # Same weekly limit
     DEFAULT_BREAK = 0.5
 

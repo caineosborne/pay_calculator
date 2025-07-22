@@ -35,7 +35,7 @@ const EMPTY_SHIFTS = DEFAULT_SHIFTS.map(({ day }) => ({
     day,
     start: '',
     end: '',
-    break_duration: '0.5'
+    break_duration: ''
 }));
 
 /**
