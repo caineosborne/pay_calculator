@@ -12,7 +12,7 @@
  * When the input value changes, handleRateChange dispatches an UPDATE_HOURLY_RATE action,
  * which updates PayContext and triggers recalculation in ShiftCalculator.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { usePay } from '../../context/PayContext';
 
 export function RateConfig() {
@@ -21,6 +21,70 @@ export function RateConfig() {
     // state.config.workerType: current worker type
     // dispatch: function to update hourly rate and worker type
     const { state, dispatch } = usePay();
+    const [showRules, setShowRules] = useState(false);
+
+    // Format applied rules to be more readable
+    const formatRuleValue = (rule) => {
+        if (typeof rule === 'number') {
+            return rule + ' hours';
+        }
+        if (typeof rule === 'string') {
+            // Format strings like '1.5x' or time strings
+            return rule.includes(':') ? rule : (parseFloat(rule) * 100) + '%';
+        }
+        return rule;
+    };
+
+    const renderRules = () => {
+        if (!state.calculations?.appliedRules) return null;
+
+        const rules = state.calculations.appliedRules;
+        return (
+            <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg text-sm">
+                <h3 className="font-medium mb-2 text-gray-900 dark:text-gray-100">
+                    {state.config.workerType === 'shift' ? 'Shift Worker' : 'Day Worker'} Rules
+                </h3>
+                <div className="space-y-2">
+                    {rules.span_hours && (
+                        <div>
+                            <span className="text-gray-600 dark:text-gray-300">Span Hours: </span>
+                            <span className="font-medium">Overtime {rules.span_hours.threshold}, paid at {rules.span_hours.rate}</span>
+                        </div>
+                    )}
+                    {rules.daily_overtime && (
+                        <div>
+                            <span className="text-gray-600 dark:text-gray-300">Daily Overtime: </span>
+                            <span className="font-medium">After {formatRuleValue(rules.daily_overtime.threshold)}, paid at {rules.daily_overtime.rate}</span>
+                        </div>
+                    )}
+                    {rules.weekly_overtime && (
+                        <div>
+                            <span className="text-gray-600 dark:text-gray-300">Weekly Overtime: </span>
+                            <span className="font-medium">After {formatRuleValue(rules.weekly_overtime.threshold)}, paid at {rules.weekly_overtime.rate}</span>
+                        </div>
+                    )}
+                    {rules.saturday_rules && (
+                        <div>
+                            <span className="text-gray-600 dark:text-gray-300">Saturday: </span>
+                            <span className="font-medium">
+                                {rules.saturday_rules.is_overtime ? 'All hours as overtime' :
+                                    `Penalty rate ${formatRuleValue(rules.saturday_rules.penalty_rate)}`}
+                            </span>
+                        </div>
+                    )}
+                    {rules.sunday_rules && (
+                        <div>
+                            <span className="text-gray-600 dark:text-gray-300">Sunday: </span>
+                            <span className="font-medium">
+                                {rules.sunday_rules.is_overtime ? 'All hours as overtime' :
+                                    `Penalty rate ${formatRuleValue(rules.sunday_rules.penalty_rate)}`}
+                            </span>
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    };
 
     /**
      * Handles changes to the hourly rate input field.
@@ -67,28 +131,41 @@ export function RateConfig() {
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                         Worker Type
                     </label>
-                    <div className="flex bg-gray-50 dark:bg-gray-700 rounded-lg p-1">
+                    <div className="flex flex-col space-y-2">
+                        <div className="flex bg-gray-50 dark:bg-gray-700 rounded-lg p-1">
+                            <button
+                                onClick={() => handleWorkerTypeChange('shift')}
+                                className={`px-3 py-1 rounded-md text-xs font-medium transition-colors border-2 ${state.config.workerType === 'shift'
+                                    ? 'bg-blue-500 text-white border-blue-600'
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border-transparent'
+                                    }`}
+                            >
+                                Shift Worker
+                            </button>
+                            <button
+                                onClick={() => handleWorkerTypeChange('day')}
+                                className={`px-3 py-1 rounded-md text-xs font-medium transition-colors border-2 ${state.config.workerType === 'day'
+                                    ? 'bg-blue-500 text-white border-blue-600'
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border-transparent'
+                                    }`}
+                            >
+                                Day Worker
+                            </button>
+                        </div>
                         <button
-                            onClick={() => handleWorkerTypeChange('shift')}
-                            className={`px-3 py-1 rounded-md text-xs font-medium transition-colors border-2 ${state.config.workerType === 'shift'
-                                ? 'bg-blue-500 text-white border-blue-600'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border-transparent'
+                            onClick={() => setShowRules(!showRules)}
+                            className={`px-3 py-1 rounded-md text-xs font-medium transition-colors border-2
+                                ${showRules
+                                    ? 'bg-green-500 text-white border-green-600'
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border-transparent'
                                 }`}
                         >
-                            Shift Worker
-                        </button>
-                        <button
-                            onClick={() => handleWorkerTypeChange('day')}
-                            className={`px-3 py-1 rounded-md text-xs font-medium transition-colors border-2 ${state.config.workerType === 'day'
-                                ? 'bg-blue-500 text-white border-blue-600'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border-transparent'
-                                }`}
-                        >
-                            Day Worker
+                            {showRules ? 'Hide Rules' : 'Show Rules'}
                         </button>
                     </div>
                 </div>
             </div>
+            {showRules && renderRules()}
         </div>
     );
 }

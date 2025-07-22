@@ -89,9 +89,9 @@ export function ShiftCalculator({ children }) {
                 console.log('Sending to API:', payload);
 
                 // Send POST request to backend API for calculation
-                const response = await fetch('https://pay-backend-rnag.onrender.com/calculate', {
+                // const response = await fetch('https://pay-backend-rnag.onrender.com/calculate', {
 
-                    // const response = await fetch('http://localhost:8000/calculate', {
+                const response = await fetch('http://localhost:8000/calculate', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -138,7 +138,8 @@ export function ShiftCalculator({ children }) {
                             ordinaryHours: Number(data.ordinary_hours || 0).toFixed(2), // From API response
                             overtimeHours: Number(data.overtime_hours || 0).toFixed(2), // From API response
                             totalHours: Number(data.total_hours || 0).toFixed(2), // From API response
-                            dailyBreakdown: formattedDailyBreakdown // Formatted above
+                            dailyBreakdown: formattedDailyBreakdown, // Formatted above
+                            appliedRules: data.applied_rules // Add applied rules to the state
                         },
                         payments: {
                             ordinaryPay: Number(data.ordinary_pay || 0).toFixed(2), // From API response

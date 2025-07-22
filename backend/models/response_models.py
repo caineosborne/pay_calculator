@@ -9,6 +9,23 @@ fields for displaying pay calculation results to the user.
 from pydantic import BaseModel
 from typing import Dict
 
+class RulesetSummary(BaseModel):
+    """
+    Summary of pay rules applied for a worker type.
+    
+    Attributes:
+        span_hours (dict): Rules for span hours overtime
+        daily_overtime (dict): Rules for daily overtime
+        weekly_overtime (dict): Rules for weekly overtime
+        saturday_rules (dict): Rules for Saturday work
+        sunday_rules (dict): Rules for Sunday work
+    """
+    span_hours: dict
+    daily_overtime: dict
+    weekly_overtime: dict
+    saturday_rules: dict
+    sunday_rules: dict
+
 class PayResponse(BaseModel):
     """
     Response containing all pay calculation results.
@@ -31,3 +48,4 @@ class PayResponse(BaseModel):
     ordinary_pay: float
     overtime_pay: float
     penalty_pay: float
+    applied_rules: RulesetSummary

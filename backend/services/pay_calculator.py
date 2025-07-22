@@ -12,7 +12,7 @@ Dependencies:
 """
 
 from models.request_models import PayRequest, Shift
-from models.response_models import PayResponse
+from models.response_models import PayResponse, RulesetSummary
 from services.rule_engine import PayRules
 
 class PayCalculator:
@@ -206,6 +206,24 @@ class PayCalculator:
         
         total_pay = round(ordinary_pay + overtime_pay + penalty_pay, 2)
 
+        # Generate ruleset summary based on worker type
+        ruleset = RulesetSummary(
+            span_hours={
+                'threshold': f"After {PayRules.SPAN_OVERTIME_HOUR}:00",
+                'rate': f"{PayRules.STANDARD_OVERTIME_RATE}x"
+            },
+            daily_overtime={
+                'threshold': PayRules.ORDINARY_HOURS_LIMIT_DAILY if self.worker_type == 'shift' else PayRules.DAY_WORKER_ORDINARY_HOURS_DAILY,
+                'rate': f"{PayRules.STANDARD_OVERTIME_RATE}x"
+            },
+            weekly_overtime={
+                'threshold': PayRules.ORDINARY_HOURS_LIMIT_WEEKLY if self.worker_type == 'shift' else PayRules.DAY_WORKER_ORDINARY_HOURS_WEEKLY,
+                'rate': f"{PayRules.STANDARD_OVERTIME_RATE}x"
+            },
+            saturday_rules=PayRules.WEEKEND_RULES[self.worker_type]['Saturday'],
+            sunday_rules=PayRules.WEEKEND_RULES[self.worker_type]['Sunday']
+        )
+
         return PayResponse(
             total_hours=round(self.total_hours, 2),
             total_pay=total_pay,
@@ -214,7 +232,8 @@ class PayCalculator:
             overtime_hours=total_overtime_hours,
             ordinary_pay=ordinary_pay,
             overtime_pay=overtime_pay,
-            penalty_pay=penalty_pay
+            penalty_pay=penalty_pay,
+            applied_rules=ruleset
         )
 
     def calculate_daily_pay(self, hours: dict) -> dict:

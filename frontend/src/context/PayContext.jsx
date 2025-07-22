@@ -13,7 +13,8 @@ const initialState = {
     calculations: {
         ordinaryHours: 0,
         overtimeHours: 0,
-        totalHours: 0
+        totalHours: 0,
+        appliedRules: null
     },
     payments: {
         ordinaryPay: 0,

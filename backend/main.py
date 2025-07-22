@@ -25,19 +25,19 @@ app = FastAPI(
     version="1.0.0"
 )
 
-print("✅ Received a request from frontend")
 
 
 
 # // Local development CORS settings
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=["http://localhost:5173"],
-#     allow_credentials=True,
-#     allow_methods=["*"],
-#     allow_headers=["*"],
-# )
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
+# \Online `  # CORS settings for production deployment`
 # app.add_middleware(
 #     CORSMiddleware,
 #     allow_origins=["https://pay-calculator-s0bv.onrender.com"],  # Your frontend domain
@@ -47,13 +47,14 @@ print("✅ Received a request from frontend")
 # )
 
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Allow ANY origin — useful for debugging
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Interim online solution - 
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=["*"],  # Allow ANY origin — useful for debugging
+#     allow_credentials=True,
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+# )
 
 
 @app.post("/calculate", response_model=PayResponse)

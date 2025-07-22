@@ -23,7 +23,7 @@ import { usePay } from '../../context/PayContext';
 export default function ShiftTable() {
     const { state, dispatch } = usePay();
 
-    console.log('Shift Table State:', state);
+    // console.log('Shift Table State:', state);
 
     // --- Shift update logic ---
 
