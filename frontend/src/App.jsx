@@ -1,7 +1,7 @@
 import React from 'react';
 import { PayProvider } from './context/PayContext';
 import { Layout } from './components/Layout/Layout';
-import { RateConfig } from './components/Config/RateConfig';
+import { InputDetails } from './components/Config/InputDetails';
 import { ShiftCalculator } from './components/Config/ShiftCalculator';
 import ShiftTable from './components/DisplayTables/ShiftTable';
 import SummaryTable from './components/DisplayTables/SummaryTable';
@@ -12,7 +12,7 @@ function App() {
       <ShiftCalculator>
         <Layout>
           <div className="space-y-6">
-            <RateConfig />
+            <InputDetails />
             <ShiftTable />
             <SummaryTable />
           </div>

@@ -1,6 +1,5 @@
-
 /**
- * RateConfig Component
+ * InputDetails Component
  *
  * This component allows the user to set or update their hourly pay rate.
  * It reads the current hourly rate from PayContext and updates it using dispatch.
@@ -14,77 +13,15 @@
  */
 import React, { useState } from 'react';
 import { usePay } from '../../context/PayContext';
+import { DisplayRules } from './DisplayRules';
 
-export function RateConfig() {
+export function InputDetails() {
     // Access global state and dispatch from PayContext
     // state.config.hourlyRate: current hourly rate
     // state.config.workerType: current worker type
     // dispatch: function to update hourly rate and worker type
     const { state, dispatch } = usePay();
     const [showRules, setShowRules] = useState(false);
-
-    // Format applied rules to be more readable
-    const formatRuleValue = (rule) => {
-        if (typeof rule === 'number') {
-            return rule + ' hours';
-        }
-        if (typeof rule === 'string') {
-            // Format strings like '1.5x' or time strings
-            return rule.includes(':') ? rule : (parseFloat(rule) * 100) + '%';
-        }
-        return rule;
-    };
-
-    const renderRules = () => {
-        if (!state.calculations?.appliedRules) return null;
-
-        const rules = state.calculations.appliedRules;
-        return (
-            <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg text-sm">
-                <h3 className="font-medium mb-2 text-gray-900 dark:text-gray-100">
-                    {state.config.workerType === 'shift' ? 'Shift Worker' : 'Day Worker'} Rules
-                </h3>
-                <div className="space-y-2">
-                    {rules.span_hours && (
-                        <div>
-                            <span className="text-gray-600 dark:text-gray-300">Span Hours: </span>
-                            <span className="font-medium">Overtime {rules.span_hours.threshold}, paid at {rules.span_hours.rate}</span>
-                        </div>
-                    )}
-                    {rules.daily_overtime && (
-                        <div>
-                            <span className="text-gray-600 dark:text-gray-300">Daily Overtime: </span>
-                            <span className="font-medium">After {formatRuleValue(rules.daily_overtime.threshold)}, paid at {rules.daily_overtime.rate}</span>
-                        </div>
-                    )}
-                    {rules.weekly_overtime && (
-                        <div>
-                            <span className="text-gray-600 dark:text-gray-300">Weekly Overtime: </span>
-                            <span className="font-medium">After {formatRuleValue(rules.weekly_overtime.threshold)}, paid at {rules.weekly_overtime.rate}</span>
-                        </div>
-                    )}
-                    {rules.saturday_rules && (
-                        <div>
-                            <span className="text-gray-600 dark:text-gray-300">Saturday: </span>
-                            <span className="font-medium">
-                                {rules.saturday_rules.is_overtime ? 'All hours as overtime' :
-                                    `Penalty rate ${formatRuleValue(rules.saturday_rules.penalty_rate)}`}
-                            </span>
-                        </div>
-                    )}
-                    {rules.sunday_rules && (
-                        <div>
-                            <span className="text-gray-600 dark:text-gray-300">Sunday: </span>
-                            <span className="font-medium">
-                                {rules.sunday_rules.is_overtime ? 'All hours as overtime' :
-                                    `Penalty rate ${formatRuleValue(rules.sunday_rules.penalty_rate)}`}
-                            </span>
-                        </div>
-                    )}
-                </div>
-            </div>
-        );
-    };
 
     /**
      * Handles changes to the hourly rate input field.
@@ -165,7 +102,7 @@ export function RateConfig() {
                     </div>
                 </div>
             </div>
-            {showRules && renderRules()}
+            <DisplayRules showRules={showRules} />
         </div>
     );
 }
