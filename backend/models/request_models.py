@@ -23,6 +23,17 @@ class WorkerType(str, Enum):
     SHIFT = "shift"
     DAY = "day"
 
+class AwardType(str, Enum):
+    """
+    Enum for award types.
+    
+    Values:
+        AGED_CARE: Aged Care Award
+        HOSPITALITY: Hospitality Award
+    """
+    AGED_CARE = "aged_care"
+    HOSPITALITY = "hospitality"
+
 class Shift(BaseModel):
     """
     Represents a single work shift.
@@ -45,8 +56,10 @@ class PayRequest(BaseModel):
     Attributes:
         hourly_rate (float): Base hourly rate
         worker_type (WorkerType): Type of worker (shift or day)
+        award (AwardType): Type of award (aged_care or hospitality)
         shifts (List[Shift]): List of shifts to calculate pay for
     """
     hourly_rate: float = Field(gt=0)
     worker_type: WorkerType = Field(default=WorkerType.SHIFT)
+    award: AwardType = Field(default=AwardType.HOSPITALITY)
     shifts: List[Shift]

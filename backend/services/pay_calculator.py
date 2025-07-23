@@ -29,10 +29,15 @@ class PayCalculator:
         Initialize calculator with request data.
         
         Args:
-            data (PayRequest): Contains hourly rate, worker type, and shifts to process
+            data (PayRequest): Contains hourly rate, worker type, award, and shifts to process
         """
         self.data = data
         self.worker_type = data.worker_type.value if hasattr(data.worker_type, 'value') else data.worker_type
+        
+        # Set the active award rules
+        award = data.award.value if hasattr(data.award, 'value') else data.award
+        PayRules.set_award(award)
+        
         self.total_hours = 0
         self.total_ordinary_hours = 0
         self.total_daily_overtime = 0
@@ -51,7 +56,8 @@ class PayCalculator:
         if not (shift.start is not None and shift.end is not None):
             return self._get_empty_day_breakdown()
 
-        break_duration = shift.break_duration if shift.break_duration is not None else PayRules.DEFAULT_BREAK
+        rules = PayRules.get_active_rules()
+        break_duration = shift.break_duration if shift.break_duration is not None else rules.DEFAULT_BREAK
         end_time = shift.end if shift.end > shift.start else shift.end + 24
         daily_hours = max(0, (end_time - shift.start) - break_duration)
         
@@ -110,12 +116,13 @@ class PayCalculator:
         Returns:
             dict: Default breakdown structure with zero values
         """
+        rules = PayRules.get_active_rules()
         return {
             'total': 0,
             'ordinary': 0,
             'overtime': 0,
             'penalty': 0,
-            'break': PayRules.DEFAULT_BREAK,
+            'break': rules.DEFAULT_BREAK,
             'applied_rules': []
         }
 
@@ -130,7 +137,8 @@ class PayCalculator:
         1. They lose any penalty rates they had (penalty hours are reduced)
         2. They get the appropriate overtime rate for that day (1.5x or 2x)
         """
-        weekly_limit = PayRules.DAY_WORKER_ORDINARY_HOURS_WEEKLY if self.worker_type == 'day' else PayRules.ORDINARY_HOURS_LIMIT_WEEKLY
+        rules = PayRules.get_active_rules()
+        weekly_limit = rules.DAY_WORKER_ORDINARY_HOURS_WEEKLY if self.worker_type == 'day' else rules.ORDINARY_HOURS_LIMIT_WEEKLY
         weekly_overtime_remaining = max(self.total_ordinary_hours - weekly_limit, 0)
         
         if weekly_overtime_remaining > 0:
@@ -184,15 +192,17 @@ class PayCalculator:
 
         # Calculate final totals
         weekly_ordinary_hours = PayRules.calculate_weekly_ordinary_hours(self.total_ordinary_hours, self.worker_type)
-        weekly_limit = PayRules.DAY_WORKER_ORDINARY_HOURS_WEEKLY if self.worker_type == 'day' else PayRules.ORDINARY_HOURS_LIMIT_WEEKLY
+        rules = PayRules.get_active_rules()
+        weekly_limit = rules.DAY_WORKER_ORDINARY_HOURS_WEEKLY if self.worker_type == 'day' else rules.ORDINARY_HOURS_LIMIT_WEEKLY
         total_overtime_hours = self.total_daily_overtime + max(self.total_ordinary_hours - weekly_limit, 0)
 
         # Calculate pay
         ordinary_pay = round(weekly_ordinary_hours * self.data.hourly_rate, 2)
         
         # Calculate overtime pay using day-specific rates
+        rules = PayRules.get_active_rules()
         overtime_pay = sum(
-            self.breakdown[day]['overtime'] * self.data.hourly_rate * self.breakdown[day].get('overtime_rate', PayRules.STANDARD_OVERTIME_RATE)
+            self.breakdown[day]['overtime'] * self.data.hourly_rate * self.breakdown[day].get('overtime_rate', rules.STANDARD_OVERTIME_RATE)
             for day in self.breakdown
         )
         overtime_pay = round(overtime_pay, 2)
@@ -207,21 +217,22 @@ class PayCalculator:
         total_pay = round(ordinary_pay + overtime_pay + penalty_pay, 2)
 
         # Generate ruleset summary based on worker type
+        rules = PayRules.get_active_rules()
         ruleset = RulesetSummary(
             span_hours={
-            'threshold': f"After {PayRules.SPAN_OVERTIME_HOUR}:00" if self.worker_type == 'day' else "N/A",
-            'rate': f"{PayRules.STANDARD_OVERTIME_RATE}x" if self.worker_type == 'day' else "N/A"
+            'threshold': f"After {rules.SPAN_OVERTIME_HOUR}:00" if self.worker_type == 'day' else "N/A",
+            'rate': f"{rules.STANDARD_OVERTIME_RATE}x" if self.worker_type == 'day' else "N/A"
             },
             daily_overtime={
-            'threshold': PayRules.ORDINARY_HOURS_LIMIT_DAILY if self.worker_type == 'shift' else PayRules.DAY_WORKER_ORDINARY_HOURS_DAILY,
-            'rate': f"{PayRules.STANDARD_OVERTIME_RATE}x"
+            'threshold': rules.ORDINARY_HOURS_LIMIT_DAILY if self.worker_type == 'shift' else rules.DAY_WORKER_ORDINARY_HOURS_DAILY,
+            'rate': f"{rules.STANDARD_OVERTIME_RATE}x"
             },
             weekly_overtime={
-            'threshold': PayRules.ORDINARY_HOURS_LIMIT_WEEKLY if self.worker_type == 'shift' else PayRules.DAY_WORKER_ORDINARY_HOURS_WEEKLY,
-            'rate': f"{PayRules.STANDARD_OVERTIME_RATE}x"
+            'threshold': rules.ORDINARY_HOURS_LIMIT_WEEKLY if self.worker_type == 'shift' else rules.DAY_WORKER_ORDINARY_HOURS_WEEKLY,
+            'rate': f"{rules.STANDARD_OVERTIME_RATE}x"
             },
-            saturday_rules=PayRules.WEEKEND_RULES[self.worker_type]['Saturday'],
-            sunday_rules=PayRules.WEEKEND_RULES[self.worker_type]['Sunday']
+            saturday_rules=rules.WEEKEND_RULES[self.worker_type]['Saturday'],
+            sunday_rules=rules.WEEKEND_RULES[self.worker_type]['Sunday']
         )
 
         return PayResponse(
@@ -240,9 +251,10 @@ class PayCalculator:
         """Calculate pay breakdown for a day."""
         base_rate = self.hourly_rate
         penalty_rate = hours.get('penalty_rate', 0)
+        overtime_rate = hours.get('overtime_rate', PayRules.get_active_rules().STANDARD_OVERTIME_RATE)
         
         ordinary_pay = hours['ordinary'] * base_rate
-        overtime_pay = hours['overtime'] * base_rate * PayRules.STANDARD_OVERTIME_RATE
+        overtime_pay = hours['overtime'] * base_rate * overtime_rate
         penalty_pay = hours['penalty'] * base_rate * penalty_rate
         
         return {

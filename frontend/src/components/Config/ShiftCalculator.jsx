@@ -77,6 +77,7 @@ export function ShiftCalculator({ children }) {
                 const payload = {
                     hourly_rate: parseFloat(state.config.hourlyRate),
                     worker_type: state.config.workerType,
+                    award: state.config.award, // Include award in the payload
                     shifts: validShifts.map(shift => ({
                         day: shift.day,
                         start: parseTimeValue(shift.start),
@@ -86,7 +87,7 @@ export function ShiftCalculator({ children }) {
                 };
 
                 // Log request payload for debugging
-                console.log('Sending to API:', payload);
+                console.log('Sending to API: (Shift Calculator)', payload);
 
                 // Send POST request to backend API for calculation
                 // const response = await fetch('https://pay-backend-rnag.onrender.com/calculate', {
@@ -155,9 +156,9 @@ export function ShiftCalculator({ children }) {
             }
         };
 
-        // Run calculation when shifts, hourly rate, or worker type change
+        // Run calculation when shifts, hourly rate, worker type, or award change
         calculateShifts();
-    }, [state.shifts, state.config.hourlyRate, state.config.workerType, dispatch]); // Dependencies: PayContext state
+    }, [state.shifts, state.config.hourlyRate, state.config.workerType, state.config.award, dispatch]); // Dependencies: PayContext state
 
     // Render child components
     return <>{children}</>;

@@ -8,6 +8,7 @@ const initialState = {
     config: {
         hourlyRate: 20, // Set default to 20
         workerType: 'shift', // Default to shift worker ('shift' or 'day')
+        award: 'hospitality', // Default to Hospitality Award
     },
     shifts: initialShifts,
     calculations: {
@@ -44,6 +45,14 @@ function payReducer(state, action) {
                 config: {
                     ...state.config,
                     workerType: action.payload
+                }
+            };
+        case 'UPDATE_AWARD':
+            return {
+                ...state,
+                config: {
+                    ...state.config,
+                    award: action.payload
                 }
             };
         case 'UPDATE_SHIFTS':

@@ -47,6 +47,18 @@ export function InputDetails() {
         });
     };
 
+    /**
+     * Handles changes to the award selection dropdown.
+     * Dispatches UPDATE_AWARD to PayContext, updating global state.
+     * @param {string} award - Selected award: 'hospitality' or 'aged_care'
+     */
+    const handleAwardChange = (award) => {
+        dispatch({
+            type: 'UPDATE_AWARD',
+            payload: award
+        });
+    };
+
     return (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3">
             <div className="flex items-center justify-between gap-4">
@@ -61,6 +73,21 @@ export function InputDetails() {
                         onChange={(e) => handleRateChange(e.target.value)}
                         className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                     />
+                </div>
+
+                {/* Award selection dropdown */}
+                <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                        Award
+                    </label>
+                    <select
+                        value={state.config.award || 'hospitality'}
+                        onChange={(e) => handleAwardChange(e.target.value)}
+                        className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    >
+                        <option value="hospitality">Hospitality Award</option>
+                        <option value="aged_care">Aged Care Award</option>
+                    </select>
                 </div>
 
                 {/* Worker type toggle section */}

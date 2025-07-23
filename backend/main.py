@@ -25,29 +25,19 @@ app = FastAPI(
     version="1.0.0"
 )
 
-
-
-
-# // Local development CORS settings
+# Configure CORS
+# Allow both local development and production origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[
+        "http://localhost:5173",                    # Local development
+        "http://localhost:3000",                    # Alternative local port
+        "https://pay-calculator-s0bv.onrender.com"  # Production frontend
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# \Online `  # CORS settings for production deployment`
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=["https://pay-calculator-s0bv.onrender.com"],  # Your frontend domain
-#     allow_credentials=True,
-#     allow_methods=["*"],
-#     allow_headers=["*"],
-# )
-
-
-# Interim online solution - 
 # app.add_middleware(
 #     CORSMiddleware,
 #     allow_origins=["*"],  # Allow ANY origin — useful for debugging
