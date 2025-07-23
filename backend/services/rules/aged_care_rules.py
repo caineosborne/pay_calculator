@@ -27,25 +27,61 @@ class AgedCareRules:
     
     # Rate multipliers
     STANDARD_OVERTIME_RATE = 1.5
+    EXTENDED_OVERTIME_RATE = 2.5  # Used for extended overtime (keeping consistent with structure)
     SUNDAY_OVERTIME_RATE = 2.5  # Increased to 2.5x for weekends
     SATURDAY_OVERTIME_RATE = 2.5  # Increased to 2.5x for weekends
     SATURDAY_PENALTY_RATE = 0.25
     SUNDAY_PENALTY_RATE = 0.50
+    
+    # Span overtime settings
+    APPLY_SPAN_OVERTIME = True  # Using span overtime for Aged Care
     SPAN_OVERTIME_HOUR = 18  # 6pm in 24-hour format
     
     # Gap penalty rule - specific to Aged Care award
     GAP_PENALTY_HOURS = 10  # Minimum hours required between shifts to avoid gap penalty
     GAP_PENALTY_RATE = 1.0  # 100% penalty rate when shifts are too close together
     
-    # Shift penalties based on start time - specific to Aged Care shift workers
-    SHIFT_PEN_RULES = {
-        'shift': {
-            'first_window': {'start': 10, 'end': 13, 'rate': 0.10},  # 10am to 1pm - 10% penalty
-            'second_window': {'start': 13, 'end': 16, 'rate': 0.125},  # 1pm to 4pm - 12.5% penalty
-            'third_window': {'start': 16, 'end': 24, 'rate': 0.15},  # After 4pm - 15% penalty
+    # Unified penalties structure
+    # Type can be "shift_based" (applies to entire shift based on start time) or "time_based" (applies to specific hours)
+    PENALTIES = {
+        'morning_shift': {
+            'type': 'shift_based',
+            'start': 10,   # 10am
+            'end': 13,     # 1pm
+            'rate': 0.10,  # 10% penalty
+            'description': 'Morning Shift Penalty (10%)',
+            'applies_to': ['shift']  # Only applies to shift workers
         },
-        'day': {}  # Day workers don't receive shift penalties
+        'afternoon_shift': {
+            'type': 'shift_based',
+            'start': 13,   # 1pm
+            'end': 16,     # 4pm
+            'rate': 0.125, # 12.5% penalty
+            'description': 'Afternoon Shift Penalty (12.5%)',
+            'applies_to': ['shift']  # Only applies to shift workers
+        },
+        'evening_shift': {
+            'type': 'shift_based',
+            'start': 16,   # 4pm
+            'end': 24,     # Midnight
+            'rate': 0.15,  # 15% penalty
+            'description': 'Evening Shift Penalty (15%)',
+            'applies_to': ['shift']  # Only applies to shift workers
+        }
     }
+    
+    # Legacy penalty structures (commented out - using unified structure instead)
+    # SHIFT_PEN_RULES = {
+    #     'shift': {
+    #         'first_window': {'start': 10, 'end': 13, 'rate': 0.10},  # 10am to 1pm - 10% penalty
+    #         'second_window': {'start': 13, 'end': 16, 'rate': 0.125},  # 1pm to 4pm - 12.5% penalty
+    #         'third_window': {'start': 16, 'end': 24, 'rate': 0.15},  # After 4pm - 15% penalty
+    #     },
+    #     'day': {}  # Day workers don't receive shift penalties
+    # }
+    
+    # Hourly penalties based on time of day (not used in Aged Care)
+    HOURS_PEN_RULES = {}
     
     # Weekend rules by worker type
     WEEKEND_RULES = {
@@ -58,3 +94,7 @@ class AgedCareRules:
             'Sunday': {'penalty_rate': 0.50}     # Penalty rate for non-overtime hours
         }
     }
+    
+    # Two-tier overtime structure (not used in Aged Care)
+    TWO_TIER_OVERTIME = False
+    TWO_TIER_OVERTIME_THRESHOLD = 0  # Not applicable

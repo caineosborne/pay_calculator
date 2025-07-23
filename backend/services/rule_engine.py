@@ -173,12 +173,13 @@ class PayRules:
         return min(end_time - overtime_start, daily_hours)
     
     @classmethod
-    def get_overtime_rate(cls, day: str) -> float:
+    def get_overtime_rate(cls, day: str, hours_of_overtime: float = 0) -> float:
         """
-        Get the overtime multiplier for a given day.
+        Get the overtime multiplier for a given day and amount of overtime.
         
         Args:
             day: Day of the week ('Monday', 'Tuesday', etc.)
+            hours_of_overtime: Amount of overtime hours already worked (for two-tier overtime)
             
         Returns:
             float: Overtime rate multiplier (e.g., 1.5 for time-and-a-half)
@@ -191,6 +192,11 @@ class PayRules:
         elif day == 'Saturday':
             return rules.SATURDAY_OVERTIME_RATE
             
+        # Check if two-tier overtime is enabled and if we're past the threshold
+        if hasattr(rules, 'TWO_TIER_OVERTIME') and rules.TWO_TIER_OVERTIME:
+            if hours_of_overtime > rules.TWO_TIER_OVERTIME_THRESHOLD:
+                return rules.EXTENDED_OVERTIME_RATE
+                
         # Default to standard overtime rate for weekdays
         return rules.STANDARD_OVERTIME_RATE
 
@@ -408,6 +414,129 @@ class PayRules:
         
         return hours_between_shifts
         
+    @classmethod
+    def calculate_penalties(cls, start_time: float, end_time: float, day: str, worker_type: str) -> list:
+        """
+        Calculate all applicable penalties for a shift using the unified penalty structure.
+        
+        This method processes both shift-based and time-based penalties from the PENALTIES
+        property of the active ruleset. It handles shifts that cross midnight and correctly
+        calculates penalty rates for each segment of the shift.
+        
+        Args:
+            start_time: Start time of the shift (in 24-hour format)
+            end_time: End time of the shift (in 24-hour format)
+            day: Day of the week for the shift
+            worker_type: Type of worker ('shift' or 'day')
+            
+        Returns:
+            List of dicts with keys:
+            - type (str): 'shift_based' or 'time_based'
+            - start (float): Start time of the penalty period (for time-based)
+            - end (float): End time of the penalty period (for time-based)
+            - hours (float): Number of hours in this penalty period
+            - rate (float): Penalty rate for this period
+            - description (str): Description of the penalty for reporting
+        """
+        rules = cls.get_active_rules()
+        
+        # Only apply if the award has unified penalties structure
+        if not hasattr(rules, 'PENALTIES'):
+            # Fall back to legacy methods if PENALTIES not defined
+            penalties = []
+            
+            # Try shift penalties
+            shift_penalty = cls.calculate_shift_start_penalty(start_time, worker_type)
+            if shift_penalty['applies']:
+                penalties.append({
+                    'type': 'shift_based',
+                    'rate': shift_penalty['penalty_rate'],
+                    'description': shift_penalty['description'],
+                    'hours': end_time - start_time if end_time > start_time else (24 - start_time) + end_time
+                })
+                
+            # Try hourly penalties
+            hourly_penalties = cls.calculate_hourly_penalties(start_time, end_time, day)
+            for hp in hourly_penalties:
+                penalties.append({
+                    'type': 'time_based',
+                    'start': hp['start'],
+                    'end': hp['end'],
+                    'rate': hp['rate'],
+                    'description': hp['description'],
+                    'hours': hp['hours']
+                })
+                
+            return penalties
+            
+        # Don't apply penalties on weekends (they have their own penalty rates)
+        if day in ['Saturday', 'Sunday']:
+            return []
+            
+        # Normalize end time (handle shifts that go past midnight)
+        normalized_end_time = end_time
+        if end_time < start_time:
+            normalized_end_time += 24
+            
+        penalties = []
+        
+        # Process each penalty definition
+        for penalty_name, penalty in rules.PENALTIES.items():
+            # Skip if this penalty doesn't apply to this worker type
+            if worker_type not in penalty.get('applies_to', []):
+                continue
+                
+            # Handle shift-based penalties (apply to entire shift based on start time)
+            if penalty['type'] == 'shift_based':
+                window_start = penalty['start']
+                window_end = penalty['end']
+                
+                # Handle windows that cross midnight
+                if window_end < window_start:
+                    window_end += 24
+                    
+                # Check if shift starts within this window
+                if window_start <= start_time < window_end:
+                    total_hours = normalized_end_time - start_time
+                    penalties.append({
+                        'type': 'shift_based',
+                        'rate': penalty['rate'],
+                        'description': penalty['description'],
+                        'hours': total_hours
+                    })
+                    
+            # Handle time-based penalties (apply to specific hours)
+            elif penalty['type'] == 'time_based':
+                window_start = penalty['start']
+                window_end = penalty['end']
+                
+                # Handle windows that cross midnight
+                if window_end < window_start:
+                    window_end += 24
+                    
+                # Calculate overlap with the shift
+                overlap_start = max(start_time, window_start)
+                overlap_end = min(normalized_end_time, window_end)
+                
+                # If there's an overlap, add it to the penalties
+                if overlap_start < overlap_end:
+                    overlap_hours = overlap_end - overlap_start
+                    
+                    # Normalize times back to 0-24 range for display
+                    display_start = overlap_start % 24
+                    display_end = overlap_end % 24
+                    
+                    penalties.append({
+                        'type': 'time_based',
+                        'start': display_start,
+                        'end': display_end,
+                        'rate': penalty['rate'],
+                        'description': penalty['description'],
+                        'hours': overlap_hours
+                    })
+                    
+        return penalties
+    
     @classmethod
     def calculate_hourly_penalties(cls, start_time: float, end_time: float, day: str = None) -> list:
         """

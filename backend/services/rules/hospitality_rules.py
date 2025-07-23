@@ -27,20 +27,55 @@ class HospitalityRules:
     
     # Rate multipliers
     STANDARD_OVERTIME_RATE = 1.5
+    EXTENDED_OVERTIME_RATE = 2.0  # Used for extended overtime (keeping consistent with structure)
     SUNDAY_OVERTIME_RATE = 2.0
     SATURDAY_OVERTIME_RATE = 1.5
     SATURDAY_PENALTY_RATE = 0.25
     SUNDAY_PENALTY_RATE = 0.50
     
-    # No overtime for day workers after 6pm, using hourly penalties instead
-    APPLY_SPAN_OVERTIME = False
+    # Span overtime settings
+    APPLY_SPAN_OVERTIME = False  # No overtime for day workers after 6pm, using hourly penalties instead
     SPAN_OVERTIME_HOUR = 18  # 6pm in 24-hour format - keeping for reference but not applied
     
-    # Hourly penalties based on time of day - applies to all worker types (weekdays only, not on weekends)
-    HOURS_PEN_RULES = {
-        'evening': {'start': 19, 'end': 24, 'rate': 0.20},  # 7pm to midnight - 20% penalty
-        'night': {'start': 0, 'end': 7, 'rate': 0.50},  # Midnight to 7am - 50% penalty
+    # Gap penalty rule (not used in Hospitality)
+    GAP_PENALTY_HOURS = 0  # Not applicable
+    GAP_PENALTY_RATE = 0.0  # Not applicable
+    
+    # Unified penalties structure
+    # Type can be "shift_based" (applies to entire shift based on start time) or "time_based" (applies to specific hours)
+    PENALTIES = {
+        'evening_hours': {
+            'type': 'time_based',
+            'start': 19,  # 7pm
+            'end': 24,    # Midnight
+            'rate': 0.20, # 20% penalty
+            'description': 'Evening Hours Penalty (20%)',
+            'applies_to': ['shift', 'day']  # Applies to both shift and day workers
+        },
+        'night_hours': {
+            'type': 'time_based',
+            'start': 0,   # Midnight
+            'end': 7,     # 7am
+            'rate': 0.50, # 50% penalty
+            'description': 'Night Hours Penalty (50%)',
+            'applies_to': ['shift', 'day']  # Applies to both shift and day workers
+        }
     }
+    
+    # Legacy penalty structures (commented out - using unified structure instead)
+    # SHIFT_PEN_RULES = {
+    #     'shift': {},  # No shift penalties in Hospitality
+    #     'day': {}     # No shift penalties in Hospitality
+    # }
+    
+    # Hourly penalties based on time of day (commented out - using unified structure instead)
+    # HOURS_PEN_RULES = {
+    #     'evening': {'start': 19, 'end': 24, 'rate': 0.20},  # 7pm to midnight - 20% penalty
+    #     'night': {'start': 0, 'end': 7, 'rate': 0.50},  # Midnight to 7am - 50% penalty
+    # }
+    
+    # Define empty HOURS_PEN_RULES (needed for compatibility)
+    HOURS_PEN_RULES = {}
     
     # Weekend rules by worker type
     WEEKEND_RULES = {
@@ -53,3 +88,7 @@ class HospitalityRules:
             'Sunday': {'penalty_rate': 0.50}     # Penalty rate for non-overtime hours
         }
     }
+    
+    # Two-tier overtime structure (not used in Hospitality)
+    TWO_TIER_OVERTIME = False
+    TWO_TIER_OVERTIME_THRESHOLD = 0  # Not applicable
