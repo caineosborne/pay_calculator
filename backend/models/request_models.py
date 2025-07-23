@@ -30,9 +30,11 @@ class AwardType(str, Enum):
     Values:
         AGED_CARE: Aged Care Award
         HOSPITALITY: Hospitality Award
+        CHILD_CARE: Child Care Award
     """
     AGED_CARE = "aged_care"
     HOSPITALITY = "hospitality"
+    CHILD_CARE = "child_care"
 
 class EmploymentType(str, Enum):
     """
