@@ -12,11 +12,18 @@ class AgedCareRules:
     # Time rules for shift workers
     ORDINARY_HOURS_LIMIT_DAILY = 12  # Increased to 12 hours per day
     ORDINARY_HOURS_LIMIT_WEEKLY = 40  # Increased to 40 hours per week
-    DEFAULT_BREAK = 0.5
+    # DEFAULT_BREAK = 1
 
     # Time rules for day workers
     DAY_WORKER_ORDINARY_HOURS_DAILY = 8 
     DAY_WORKER_ORDINARY_HOURS_WEEKLY = 40  # Increased to 40 hours per week
+    
+    # Part time overtime rules
+    USE_CONTRACTED_HOURS_FOR_PT_OVERTIME = False  # If True, part-time employees get overtime after contracted hours
+    
+    # Contracted hours top-up rules
+    PT_EMPLOYEES_ENTITLED_TO_CONTRACTED_TOPUP = True  # If True, part-time employees get top-up to contracted hours
+    FT_EMPLOYEES_ENTITLED_TO_CONTRACTED_TOPUP = True  # If True, full-time employees get top-up to contracted hours
     
     # Rate multipliers
     STANDARD_OVERTIME_RATE = 1.5

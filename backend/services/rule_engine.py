@@ -89,19 +89,29 @@ class PayRules:
         return rules.DAY_WORKER_ORDINARY_HOURS_DAILY if worker_type == 'day' else rules.ORDINARY_HOURS_LIMIT_DAILY
 
     @classmethod
-    def calculate_weekly_ordinary_hours(cls, hours: float, worker_type: str = 'shift') -> float:
+    def calculate_weekly_ordinary_hours(cls, hours: float, worker_type: str = 'shift', employment_type: str = 'full_time', contracted_hours: float = None) -> float:
         """
         Calculate ordinary hours for the week.
         
         Args:
             hours: Total hours worked in the week
             worker_type: Type of worker ('day' or 'shift')
+            employment_type: Type of employment ('full_time', 'part_time', 'casual')
+            contracted_hours: Contracted hours per week for part-time employees
             
         Returns:
             float: Maximum ordinary hours allowed per week (capped at weekly limit)
         """
         rules = cls.get_active_rules()
+        
+        # Get the standard weekly limit based on worker type
         weekly_limit = rules.DAY_WORKER_ORDINARY_HOURS_WEEKLY if worker_type == 'day' else rules.ORDINARY_HOURS_LIMIT_WEEKLY
+        
+        # For part-time employees, use contracted hours if configured in the rules
+        if employment_type == 'part_time' and contracted_hours is not None:
+            if hasattr(rules, 'USE_CONTRACTED_HOURS_FOR_PT_OVERTIME') and rules.USE_CONTRACTED_HOURS_FOR_PT_OVERTIME:
+                weekly_limit = contracted_hours
+                
         return min(hours, weekly_limit)
     
     #

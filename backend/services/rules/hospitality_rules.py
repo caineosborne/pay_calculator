@@ -12,11 +12,18 @@ class HospitalityRules:
     # Time rules for shift workers
     ORDINARY_HOURS_LIMIT_DAILY = 10
     ORDINARY_HOURS_LIMIT_WEEKLY = 38
-    DEFAULT_BREAK = 0.5
+    # DEFAULT_BREAK = 0.5
 
     # Time rules for day workers
     DAY_WORKER_ORDINARY_HOURS_DAILY = 8 # Standard 7.6 hour day
     DAY_WORKER_ORDINARY_HOURS_WEEKLY = 38
+    
+    # Part time overtime rules
+    USE_CONTRACTED_HOURS_FOR_PT_OVERTIME = True  # If True, part-time employees get overtime after contracted hours
+    
+    # Contracted hours top-up rules
+    PT_EMPLOYEES_ENTITLED_TO_CONTRACTED_TOPUP = True  # If True, part-time employees get top-up to contracted hours
+    FT_EMPLOYEES_ENTITLED_TO_CONTRACTED_TOPUP = True  # If True, full-time employees get top-up to contracted hours
     
     # Rate multipliers
     STANDARD_OVERTIME_RATE = 1.5

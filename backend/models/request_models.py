@@ -34,6 +34,19 @@ class AwardType(str, Enum):
     AGED_CARE = "aged_care"
     HOSPITALITY = "hospitality"
 
+class EmploymentType(str, Enum):
+    """
+    Enum for employment types.
+    
+    Values:
+        FULL_TIME: Full-time employment
+        PART_TIME: Part-time employment
+        CASUAL: Casual employment
+    """
+    FULL_TIME = "full_time"
+    PART_TIME = "part_time"
+    CASUAL = "casual"
+
 class Shift(BaseModel):
     """
     Represents a single work shift.
@@ -57,9 +70,13 @@ class PayRequest(BaseModel):
         hourly_rate (float): Base hourly rate
         worker_type (WorkerType): Type of worker (shift or day)
         award (AwardType): Type of award (aged_care or hospitality)
+        employment_type (EmploymentType): Type of employment (full_time, part_time, casual)
+        contracted_hours (Optional[float]): Contracted hours per week (required for part_time)
         shifts (List[Shift]): List of shifts to calculate pay for
     """
     hourly_rate: float = Field(gt=0)
     worker_type: WorkerType = Field(default=WorkerType.SHIFT)
     award: AwardType = Field(default=AwardType.HOSPITALITY)
+    employment_type: EmploymentType = Field(default=EmploymentType.FULL_TIME)
+    contracted_hours: Optional[float] = None
     shifts: List[Shift]

@@ -32,6 +32,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",                    # Local development
         "http://localhost:3000",                    # Alternative local port
+        "http://127.0.0.1:5173",                    # Local development with IP
         "https://pay-calculator-s0bv.onrender.com"  # Production frontend
     ],
     allow_credentials=True,

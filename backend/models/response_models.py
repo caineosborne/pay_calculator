@@ -22,6 +22,9 @@ class RulesetSummary(BaseModel):
         gap_penalty (dict, optional): Rules for minimum break between shifts (Aged Care only)
         shift_start_penalties (dict, optional): Rules for shift start penalties (Aged Care only)
         hourly_penalties (dict, optional): Rules for hourly time-based penalties (Hospitality only)
+        employment_type (str, optional): Type of employment (full_time, part_time, casual)
+        contracted_hours (float, optional): Contracted hours for part-time employees
+        use_contracted_hours_for_overtime (bool, optional): Whether part-time employees get overtime after contracted hours
     """
     span_hours: dict
     daily_overtime: dict
@@ -31,6 +34,11 @@ class RulesetSummary(BaseModel):
     gap_penalty: dict = None
     shift_start_penalties: dict = None
     hourly_penalties: dict = None
+    employment_type: str = None
+    contracted_hours: float | None = None
+    use_contracted_hours_for_overtime: bool = None
+    pt_employees_entitled_to_contracted_topup: bool = None
+    ft_employees_entitled_to_contracted_topup: bool = None
 
 class PayResponse(BaseModel):
     """
@@ -42,8 +50,10 @@ class PayResponse(BaseModel):
         daily_breakdown (Dict[str, dict]): Detailed breakdown per day
         ordinary_hours (float): Regular hours worked
         overtime_hours (float): Overtime hours worked
+        topup_hours (float): Contracted hours top-up
         ordinary_pay (float): Pay at regular rate
         overtime_pay (float): Pay at overtime rate
+        topup_pay (float): Pay for contracted hours top-up
         penalty_pay (float): Additional penalty rate pay
         gap_penalty_pay (float, optional): Pay for gap penalty (Aged Care only)
         shift_penalty_pay (float, optional): Pay for shift start penalties (Aged Care only)
@@ -55,8 +65,10 @@ class PayResponse(BaseModel):
     daily_breakdown: Dict[str, dict]
     ordinary_hours: float
     overtime_hours: float
+    topup_hours: float = 0.0
     ordinary_pay: float
     overtime_pay: float
+    topup_pay: float = 0.0
     penalty_pay: float
     gap_penalty_pay: float = 0.0
     shift_penalty_pay: float = 0.0
