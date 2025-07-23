@@ -24,7 +24,16 @@ class HospitalityRules:
     SATURDAY_OVERTIME_RATE = 1.5
     SATURDAY_PENALTY_RATE = 0.25
     SUNDAY_PENALTY_RATE = 0.50
-    SPAN_OVERTIME_HOUR = 18  # 6pm in 24-hour format
+    
+    # No overtime for day workers after 6pm, using hourly penalties instead
+    APPLY_SPAN_OVERTIME = False
+    SPAN_OVERTIME_HOUR = 18  # 6pm in 24-hour format - keeping for reference but not applied
+    
+    # Hourly penalties based on time of day - applies to all worker types (weekdays only, not on weekends)
+    HOURS_PEN_RULES = {
+        'evening': {'start': 19, 'end': 24, 'rate': 0.20},  # 7pm to midnight - 20% penalty
+        'night': {'start': 0, 'end': 7, 'rate': 0.50},  # Midnight to 7am - 50% penalty
+    }
     
     # Weekend rules by worker type
     WEEKEND_RULES = {

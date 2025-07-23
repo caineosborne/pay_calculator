@@ -47,8 +47,12 @@ class PayRules:
     def is_overtime_day(cls, day: str, worker_type: str) -> bool:
         """Determine if all hours on this day are automatically overtime."""
         rules = cls.get_active_rules()
+        
+        # For day workers, check if the weekend rules specify overtime
         if worker_type == 'day' and day in ['Saturday', 'Sunday']:
-            return True
+            weekend_rules = rules.WEEKEND_RULES.get('day', {}).get(day, {})
+            return weekend_rules.get('is_overtime', True)  # Default to True for compatibility
+            
         return False
 
     @classmethod
@@ -74,6 +78,11 @@ class PayRules:
     def calculate_span_overtime(cls, start_time: float, end_time: float, daily_hours: float, worker_type: str) -> float:
         """Calculate overtime hours for work done after 6pm (day workers only)."""
         rules = cls.get_active_rules()
+        
+        # Check if span overtime should be applied (hospitality doesn't use it)
+        if hasattr(rules, 'APPLY_SPAN_OVERTIME') and not rules.APPLY_SPAN_OVERTIME:
+            return 0
+            
         if worker_type != 'day':
             return 0
             
@@ -193,3 +202,100 @@ class PayRules:
             }
         
         return {'applies': False, 'penalty_rate': 0}
+        
+    @classmethod
+    def calculate_shift_start_penalty(cls, start_time: float, worker_type: str) -> dict:
+        """
+        Calculate penalty rate based on shift start time (Aged Care shift workers only).
+        
+        Args:
+            start_time: Start time of the shift (in 24-hour format)
+            worker_type: Type of worker ('shift' or 'day')
+            
+        Returns:
+            dict with keys:
+            - applies (bool): Whether the shift start penalty applies
+            - penalty_rate (float): The penalty rate to apply
+            - description (str): Description of the penalty for reporting
+        """
+        rules = cls.get_active_rules()
+        
+        # Only Aged Care award has shift start time penalty rules
+        if not hasattr(rules, 'SHIFT_PEN_RULES'):
+            return {'applies': False, 'penalty_rate': 0, 'description': ''}
+            
+        # Get the shift penalty rules for this worker type
+        shift_pen_rules = rules.SHIFT_PEN_RULES.get(worker_type, {})
+        if not shift_pen_rules:
+            return {'applies': False, 'penalty_rate': 0, 'description': ''}
+            
+        # Check if the shift start time falls within any of the penalty windows
+        for window_name, window in shift_pen_rules.items():
+            if window['start'] <= start_time < window['end']:
+                return {
+                    'applies': True,
+                    'penalty_rate': window['rate'],
+                    'description': f"Shift Pen after {window['start']}:00 ({int(window['rate'] * 100)}%)"
+                }
+                
+        return {'applies': False, 'penalty_rate': 0, 'description': ''}
+        
+    @classmethod
+    def calculate_hourly_penalties(cls, start_time: float, end_time: float, day: str = None) -> list:
+        """
+        Calculate hourly penalties for specific time periods (Hospitality award).
+        
+        Args:
+            start_time: Start time of the shift (in 24-hour format)
+            end_time: End time of the shift (in 24-hour format)
+            day: Day of the week for the shift
+            
+        Returns:
+            List of dicts with keys:
+            - start (float): Start time of the penalty period
+            - end (float): End time of the penalty period
+            - hours (float): Number of hours in this penalty period
+            - rate (float): Penalty rate for this period
+            - description (str): Description of the penalty for reporting
+        """
+        rules = cls.get_active_rules()
+        
+        # Only Hospitality award has hourly penalty rules
+        if not hasattr(rules, 'HOURS_PEN_RULES'):
+            return []
+            
+        # Don't apply hourly penalties on weekends
+        if day in ['Saturday', 'Sunday']:
+            return []
+            
+        # Normalize end time (handle shifts that go past midnight)
+        if end_time < start_time:
+            end_time += 24
+            
+        penalty_periods = []
+        
+        # Check each penalty window
+        for window_name, window in rules.HOURS_PEN_RULES.items():
+            window_start = window['start']
+            window_end = window['end']
+            
+            # Handle windows that cross midnight
+            if window_end < window_start:
+                window_end += 24
+                
+            # Calculate overlap with the shift
+            overlap_start = max(start_time, window_start)
+            overlap_end = min(end_time, window_end)
+            
+            # If there's an overlap, add it to the penalty periods
+            if overlap_start < overlap_end:
+                penalty_hours = overlap_end - overlap_start
+                penalty_periods.append({
+                    'start': overlap_start % 24,  # Normalize back to 0-24 range
+                    'end': overlap_end % 24,      # Normalize back to 0-24 range
+                    'hours': penalty_hours,
+                    'rate': window['rate'],
+                    'description': f"Hours Pen {int(window_start)}:00-{int(window_end % 24)}:00 ({int(window['rate'] * 100)}%)"
+                })
+                
+        return penalty_periods
