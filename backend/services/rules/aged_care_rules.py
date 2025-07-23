@@ -26,6 +26,10 @@ class AgedCareRules:
     SUNDAY_PENALTY_RATE = 0.50
     SPAN_OVERTIME_HOUR = 18  # 6pm in 24-hour format
     
+    # Gap penalty rule - specific to Aged Care award
+    GAP_PENALTY_HOURS = 10  # Minimum hours required between shifts to avoid gap penalty
+    GAP_PENALTY_RATE = 1.0  # 100% penalty rate when shifts are too close together
+    
     # Weekend rules by worker type
     WEEKEND_RULES = {
         'day': {

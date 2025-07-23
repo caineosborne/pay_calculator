@@ -130,3 +130,66 @@ class PayRules:
             'rate': weekend_rules.get('rate', cls.get_overtime_rate(day)),
             'penalty_rate': weekend_rules.get('penalty_rate', 0)
         }
+
+    @classmethod
+    def check_shift_gap_penalty(cls, current_shift_start: float, previous_shift_end: float, 
+                               current_day: str = None, previous_day: str = None) -> dict:
+        """
+        Check if a gap penalty should be applied between two shifts.
+        This rule only applies to the Aged Care award.
+        
+        Args:
+            current_shift_start: Start time of the current shift (in hours)
+            previous_shift_end: End time of the previous shift (in hours)
+            current_day: Day of the week for the current shift
+            previous_day: Day of the week for the previous shift
+            
+        Returns:
+            dict with keys:
+            - applies (bool): Whether the gap penalty applies
+            - penalty_rate (float): The penalty rate to apply
+        """
+        rules = cls.get_active_rules()
+        
+        # Only Aged Care award has gap penalty rule
+        if not hasattr(rules, 'GAP_PENALTY_HOURS'):
+            return {'applies': False, 'penalty_rate': 0}
+        
+        # Define the order of days in a week
+        days_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        
+        # If days are different, calculate the hours between shifts properly
+        if current_day and previous_day and current_day != previous_day:
+            # Get indices of days in the week
+            current_day_idx = days_order.index(current_day)
+            previous_day_idx = days_order.index(previous_day)
+            
+            # Calculate days difference (considering circular week)
+            days_diff = (current_day_idx - previous_day_idx) % 7
+            if days_diff == 0:  # Full week difference (same day but a week later)
+                days_diff = 7
+                
+            # Calculate the total hours between shifts
+            if days_diff == 1:  # Consecutive days
+                # For consecutive days: Add the remaining hours of previous day and the hours until current shift
+                hours_between_shifts = (24 - previous_shift_end) + current_shift_start
+            else:
+                # For non-consecutive days: Add hours for all complete days in between plus partial days
+                hours_between_shifts = (24 - previous_shift_end) + current_shift_start + ((days_diff - 1) * 24)
+        else:
+            # If no day information or same day, use direct calculation
+            if current_shift_start >= previous_shift_end:
+                # Shifts on the same day
+                hours_between_shifts = current_shift_start - previous_shift_end
+            else:
+                # Second shift wraps to next day
+                hours_between_shifts = (24 - previous_shift_end) + current_shift_start
+        
+        # Check if the gap penalty applies (shifts less than the required minimum hours apart)
+        if hours_between_shifts < rules.GAP_PENALTY_HOURS:
+            return {
+                'applies': True,
+                'penalty_rate': rules.GAP_PENALTY_RATE
+            }
+        
+        return {'applies': False, 'penalty_rate': 0}

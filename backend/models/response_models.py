@@ -19,12 +19,14 @@ class RulesetSummary(BaseModel):
         weekly_overtime (dict): Rules for weekly overtime
         saturday_rules (dict): Rules for Saturday work
         sunday_rules (dict): Rules for Sunday work
+        gap_penalty (dict, optional): Rules for minimum break between shifts (Aged Care only)
     """
     span_hours: dict
     daily_overtime: dict
     weekly_overtime: dict
     saturday_rules: dict
     sunday_rules: dict
+    gap_penalty: dict = None
 
 class PayResponse(BaseModel):
     """
@@ -39,6 +41,8 @@ class PayResponse(BaseModel):
         ordinary_pay (float): Pay at regular rate
         overtime_pay (float): Pay at overtime rate
         penalty_pay (float): Additional penalty rate pay
+        gap_penalty_pay (float, optional): Pay for gap penalty (Aged Care only)
+        applied_rules (RulesetSummary): Summary of rules applied in calculation
     """
     total_hours: float
     total_pay: float
@@ -48,4 +52,5 @@ class PayResponse(BaseModel):
     ordinary_pay: float
     overtime_pay: float
     penalty_pay: float
+    gap_penalty_pay: float = 0.0
     applied_rules: RulesetSummary

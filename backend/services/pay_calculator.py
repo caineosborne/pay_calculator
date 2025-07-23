@@ -44,6 +44,10 @@ class PayCalculator:
         self.total_penalty_hours = 0
         self.breakdown = {}
         self.ordered_days = []
+        
+        # For tracking the previous shift end time and day (needed for gap penalty)
+        self.previous_shift_end = None
+        self.previous_shift_day = None
 
     def calculate_daily_hours(self, shift: Shift) -> dict:
         """Calculate hours breakdown for a single shift.
@@ -52,6 +56,7 @@ class PayCalculator:
         1. Detect if hours are overtime (span, daily limit, weekly limit, or weekend for day workers)
         2. Calculate overtime rates (2x on Sunday, 1.5x otherwise)
         3. For remaining ordinary hours, calculate penalties for shift workers on weekends
+        4. Apply gap penalty if this shift starts too soon after the previous one (Aged Care award only)
         """
         if not (shift.start is not None and shift.end is not None):
             return self._get_empty_day_breakdown()
@@ -98,6 +103,27 @@ class PayCalculator:
         if penalty_hours > 0:
             applied_rules.append(f"{shift.day} Penalty ({int(penalty_rate * 100)}%)")
         
+        # Phase 4: Check for gap penalty (Aged Care award only)
+        gap_penalty = {'applies': False, 'penalty_rate': 0}
+        if self.previous_shift_end is not None and self.previous_shift_day is not None:
+            gap_penalty = PayRules.check_shift_gap_penalty(
+                shift.start, 
+                self.previous_shift_end,
+                shift.day,
+                self.previous_shift_day
+            )
+            
+        # Store the end time and day of this shift for future gap penalty calculations
+        self.previous_shift_end = end_time
+        self.previous_shift_day = shift.day
+        
+        # Apply gap penalty if applicable
+        gap_penalty_rate = gap_penalty.get('penalty_rate', 0)
+        gap_penalty_hours = ordinary_hours if gap_penalty.get('applies', False) else 0
+        
+        if gap_penalty_hours > 0:
+            applied_rules.append(f"Gap Penalty ({int(gap_penalty_rate * 100)}%)")
+        
         return {
             'total': daily_hours,
             'ordinary': ordinary_hours,
@@ -106,6 +132,8 @@ class PayCalculator:
             'penalty_rate': penalty_rate,
             'overtime_rate': overtime_rate,
             'break': break_duration,
+            'gap_penalty': gap_penalty_hours,
+            'gap_penalty_rate': gap_penalty_rate,
             'applied_rules': applied_rules
         }
 
@@ -122,6 +150,8 @@ class PayCalculator:
             'ordinary': 0,
             'overtime': 0,
             'penalty': 0,
+            'gap_penalty': 0,
+            'gap_penalty_rate': 0,
             'break': rules.DEFAULT_BREAK,
             'applied_rules': []
         }
@@ -183,6 +213,9 @@ class PayCalculator:
                 self.total_ordinary_hours += day_breakdown['ordinary']
                 self.total_daily_overtime += day_breakdown['overtime']
                 self.total_penalty_hours += day_breakdown['penalty']
+                # Add gap penalty hours to penalty hours total if applicable
+                if day_breakdown.get('gap_penalty', 0) > 0:
+                    self.total_penalty_hours += day_breakdown['gap_penalty']
                 self.total_hours += day_breakdown['total']
             
             self.breakdown[shift.day] = day_breakdown
@@ -214,26 +247,43 @@ class PayCalculator:
         )
         penalty_pay = round(penalty_pay, 2)
         
-        total_pay = round(ordinary_pay + overtime_pay + penalty_pay, 2)
+        # Calculate gap penalty pay (Aged Care award only)
+        gap_penalty_pay = sum(
+            self.breakdown[day].get('gap_penalty', 0) * self.data.hourly_rate * self.breakdown[day].get('gap_penalty_rate', 0)
+            for day in self.breakdown
+        )
+        gap_penalty_pay = round(gap_penalty_pay, 2)
+        
+        # Combine regular penalty pay with gap penalty pay for total penalty pay
+        total_penalty_pay = round(penalty_pay + gap_penalty_pay, 2)
+        
+        total_pay = round(ordinary_pay + overtime_pay + total_penalty_pay, 2)
 
         # Generate ruleset summary based on worker type
         rules = PayRules.get_active_rules()
         ruleset = RulesetSummary(
             span_hours={
-            'threshold': f"After {rules.SPAN_OVERTIME_HOUR}:00" if self.worker_type == 'day' else "N/A",
-            'rate': f"{rules.STANDARD_OVERTIME_RATE}x" if self.worker_type == 'day' else "N/A"
+                'threshold': f"After {rules.SPAN_OVERTIME_HOUR}:00" if self.worker_type == 'day' else "N/A",
+                'rate': f"{rules.STANDARD_OVERTIME_RATE}x" if self.worker_type == 'day' else "N/A"
             },
             daily_overtime={
-            'threshold': rules.ORDINARY_HOURS_LIMIT_DAILY if self.worker_type == 'shift' else rules.DAY_WORKER_ORDINARY_HOURS_DAILY,
-            'rate': f"{rules.STANDARD_OVERTIME_RATE}x"
+                'threshold': rules.ORDINARY_HOURS_LIMIT_DAILY if self.worker_type == 'shift' else rules.DAY_WORKER_ORDINARY_HOURS_DAILY,
+                'rate': f"{rules.STANDARD_OVERTIME_RATE}x"
             },
             weekly_overtime={
-            'threshold': rules.ORDINARY_HOURS_LIMIT_WEEKLY if self.worker_type == 'shift' else rules.DAY_WORKER_ORDINARY_HOURS_WEEKLY,
-            'rate': f"{rules.STANDARD_OVERTIME_RATE}x"
+                'threshold': rules.ORDINARY_HOURS_LIMIT_WEEKLY if self.worker_type == 'shift' else rules.DAY_WORKER_ORDINARY_HOURS_WEEKLY,
+                'rate': f"{rules.STANDARD_OVERTIME_RATE}x"
             },
             saturday_rules=rules.WEEKEND_RULES[self.worker_type]['Saturday'],
             sunday_rules=rules.WEEKEND_RULES[self.worker_type]['Sunday']
         )
+        
+        # Add gap penalty rule if applicable (Aged Care award only)
+        if hasattr(rules, 'GAP_PENALTY_HOURS'):
+            ruleset.gap_penalty = {
+                'threshold': f"Less than {rules.GAP_PENALTY_HOURS} hours between shifts",
+                'rate': f"{rules.GAP_PENALTY_RATE}x penalty"
+            }
 
         return PayResponse(
             total_hours=round(self.total_hours, 2),
@@ -243,7 +293,8 @@ class PayCalculator:
             overtime_hours=total_overtime_hours,
             ordinary_pay=ordinary_pay,
             overtime_pay=overtime_pay,
-            penalty_pay=penalty_pay,
+            penalty_pay=total_penalty_pay,  # Use combined penalty pay here
+            gap_penalty_pay=gap_penalty_pay, # Still provide gap penalty pay separately for debugging
             applied_rules=ruleset
         )
 
