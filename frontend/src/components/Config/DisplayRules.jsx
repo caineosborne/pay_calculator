@@ -16,6 +16,111 @@ export function DisplayRules({ showRules }) {
         return rule;
     };
 
+    // Format rule name to be more readable
+    const formatRuleName = (ruleName) => {
+        return ruleName
+            .split('_')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+    };
+
+    // Render rule content based on rule type
+    const renderRuleContent = (ruleName, ruleData) => {
+        // Safety check for null or undefined ruleData
+        if (ruleData === null || ruleData === undefined) {
+            return <span className="font-medium">Not available</span>;
+        }
+
+        // Handle span hours rule
+        if (ruleName === 'span_hours') {
+            if (!ruleData.threshold || !ruleData.rate) {
+                return <span className="font-medium">Not specified</span>;
+            }
+            return (
+                <span className="font-medium">
+                    {ruleData.threshold === 'N/A'
+                        ? 'N/A'
+                        : `Overtime ${ruleData.threshold}, paid at ${ruleData.rate}`}
+                </span>
+            );
+        }
+
+        // Handle daily and weekly overtime rules
+        if (ruleName === 'daily_overtime' || ruleName === 'weekly_overtime') {
+            if (!ruleData.threshold || !ruleData.rate) {
+                return <span className="font-medium">Not specified</span>;
+            }
+            return (
+                <span className="font-medium">
+                    After {formatRuleValue(ruleData.threshold)}, paid at {ruleData.rate}
+                </span>
+            );
+        }
+
+        // Handle day-specific rules (saturday, sunday, etc.)
+        if (ruleName.includes('_rules') && ruleData.hasOwnProperty('is_overtime')) {
+            if (ruleData.is_overtime) {
+                return <span className="font-medium">All hours as overtime</span>;
+            } else if (ruleData.penalty_rate) {
+                return <span className="font-medium">Penalty rate {formatRuleValue(ruleData.penalty_rate)}</span>;
+            } else {
+                return <span className="font-medium">Not specified</span>;
+            }
+        }
+
+        // Handle penalty rules
+        if (ruleName.includes('penalty') || ruleName.includes('allowance')) {
+            // Check if ruleData exists and has the expected properties
+            const rateValue = ruleData?.rate || ruleData?.penalty_rate ||
+                (typeof ruleData === 'string' || typeof ruleData === 'number' ? ruleData : null);
+
+            if (rateValue !== null && rateValue !== undefined) {
+                return (
+                    <span className="font-medium">
+                        {formatRuleValue(rateValue)}
+                    </span>
+                );
+            } else {
+                return (
+                    <span className="font-medium">Not specified</span>
+                );
+            }
+        }
+
+        // Default rendering for other rules
+        try {
+            if (typeof ruleData === 'object' && ruleData !== null) {
+                // Try to extract useful information from complex objects
+                const simpleRepresentation = Object.entries(ruleData)
+                    .filter(([key, value]) => value !== null && value !== undefined)
+                    .map(([key, value]) => {
+                        if (typeof value === 'boolean') {
+                            return value ? key : `not ${key}`;
+                        } else if (typeof value === 'string' || typeof value === 'number') {
+                            return `${key}: ${value}`;
+                        }
+                        return null;
+                    })
+                    .filter(item => item !== null)
+                    .join(', ');
+
+                if (simpleRepresentation) {
+                    return <span className="font-medium">{simpleRepresentation}</span>;
+                }
+            }
+
+            // Fall back to string representation for simple values
+            if (typeof ruleData === 'string' || typeof ruleData === 'number' || typeof ruleData === 'boolean') {
+                return <span className="font-medium">{String(ruleData)}</span>;
+            }
+
+            // Last resort: JSON stringify
+            return <span className="font-medium">{JSON.stringify(ruleData)}</span>;
+        } catch (error) {
+            return <span className="font-medium">Error displaying rule</span>;
+        }
+    };
+
     if (!showRules || !state.calculations?.appliedRules) return null;
 
     const rules = state.calculations.appliedRules;
@@ -25,46 +130,12 @@ export function DisplayRules({ showRules }) {
                 {state.config.workerType === 'shift' ? 'Shift Worker' : 'Day Worker'} Rules
             </h3>
             <div className="space-y-2">
-                {rules.span_hours && (
-                    <div>
-                        <span className="text-gray-600 dark:text-gray-300">Time of work overtime : </span>
-                        <span className="font-medium">
-                            {rules.span_hours.threshold === 'N/A'
-                                ? 'N/A'
-                                : `Overtime ${rules.span_hours.threshold}, paid at ${rules.span_hours.rate}`}
-                        </span>
+                {Object.entries(rules).map(([ruleName, ruleData]) => (
+                    <div key={ruleName}>
+                        <span className="text-gray-600 dark:text-gray-300">{formatRuleName(ruleName)}: </span>
+                        {renderRuleContent(ruleName, ruleData)}
                     </div>
-                )}
-                {rules.daily_overtime && (
-                    <div>
-                        <span className="text-gray-600 dark:text-gray-300">Daily Overtime: </span>
-                        <span className="font-medium">After {formatRuleValue(rules.daily_overtime.threshold)}, paid at {rules.daily_overtime.rate}</span>
-                    </div>
-                )}
-                {rules.weekly_overtime && (
-                    <div>
-                        <span className="text-gray-600 dark:text-gray-300">Weekly Overtime: </span>
-                        <span className="font-medium">After {formatRuleValue(rules.weekly_overtime.threshold)}, paid at {rules.weekly_overtime.rate}</span>
-                    </div>
-                )}
-                {rules.saturday_rules && (
-                    <div>
-                        <span className="text-gray-600 dark:text-gray-300">Saturday: </span>
-                        <span className="font-medium">
-                            {rules.saturday_rules.is_overtime ? 'All hours as overtime' :
-                                `Penalty rate ${formatRuleValue(rules.saturday_rules.penalty_rate)}`}
-                        </span>
-                    </div>
-                )}
-                {rules.sunday_rules && (
-                    <div>
-                        <span className="text-gray-600 dark:text-gray-300">Sunday: </span>
-                        <span className="font-medium">
-                            {rules.sunday_rules.is_overtime ? 'All hours as overtime' :
-                                `Penalty rate ${formatRuleValue(rules.sunday_rules.penalty_rate)}`}
-                        </span>
-                    </div>
-                )}
+                ))}
             </div>
         </div>
     );
