@@ -50,6 +50,19 @@ export function DisplayRules({ showRules }) {
             if (!ruleData.threshold || !ruleData.rate) {
                 return <span className="font-medium">Not specified</span>;
             }
+
+            // For weekly overtime, show additional part-time information if available
+            if (ruleName === 'weekly_overtime' &&
+                state.config.employmentType === 'part_time' &&
+                state.calculations?.appliedRules?.use_contracted_hours_for_overtime) {
+                return (
+                    <span className="font-medium">
+                        After {formatRuleValue(state.config.contractedHours || ruleData.threshold)}, paid at {ruleData.rate}
+                        {' '}<span className="italic text-xs">(Using contracted hours)</span>
+                    </span>
+                );
+            }
+
             return (
                 <span className="font-medium">
                     After {formatRuleValue(ruleData.threshold)}, paid at {ruleData.rate}
@@ -128,8 +141,15 @@ export function DisplayRules({ showRules }) {
         <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg text-sm">
             <h3 className="font-medium mb-2 text-gray-900 dark:text-gray-100">
                 {state.config.workerType === 'shift' ? 'Shift Worker' : 'Day Worker'} Rules
+                {state.config.employmentType && ` (${state.config.employmentType.replace('_', ' ')})`}
             </h3>
             <div className="space-y-2">
+                {state.config.employmentType === 'part_time' && (
+                    <div>
+                        <span className="text-gray-600 dark:text-gray-300">Contracted Hours: </span>
+                        <span className="font-medium">{state.config.contractedHours || 'Not specified'}</span>
+                    </div>
+                )}
                 {Object.entries(rules).map(([ruleName, ruleData]) => (
                     <div key={ruleName}>
                         <span className="text-gray-600 dark:text-gray-300">{formatRuleName(ruleName)}: </span>

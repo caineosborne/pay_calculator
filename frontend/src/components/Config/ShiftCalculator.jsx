@@ -78,6 +78,8 @@ export function ShiftCalculator({ children }) {
                     hourly_rate: parseFloat(state.config.hourlyRate),
                     worker_type: state.config.workerType,
                     award: state.config.award, // Include award in the payload
+                    employment_type: state.config.employmentType, // Include employment type
+                    contracted_hours: state.config.contractedHours, // Include contracted hours if available
                     shifts: validShifts.map(shift => ({
                         day: shift.day,
                         start: parseTimeValue(shift.start),
@@ -109,7 +111,7 @@ export function ShiftCalculator({ children }) {
 
                 // data is what is sent from the API  
                 const data = await response.json();
-                // console.log('API Response:', data);
+                console.log('API Response:', data);
 
                 // Format the daily breakdown to separate hours and pay
                 // data.daily_breakdown: returned from backend API
@@ -119,6 +121,7 @@ export function ShiftCalculator({ children }) {
                         hours: {
                             ordinary: Number(values.ordinary || 0).toFixed(2),
                             overtime: Number(values.overtime || 0).toFixed(2),
+                            topup: Number(values.topup || 0).toFixed(2),  // Add topup hours
                             total: Number(values.total || 0).toFixed(2)
                         },
                         pay: {
@@ -138,6 +141,7 @@ export function ShiftCalculator({ children }) {
                         calculations: {
                             ordinaryHours: Number(data.ordinary_hours || 0).toFixed(2), // From API response
                             overtimeHours: Number(data.overtime_hours || 0).toFixed(2), // From API response
+                            topupHours: Number(data.topup_hours || 0).toFixed(2), // Add topup hours
                             totalHours: Number(data.total_hours || 0).toFixed(2), // From API response
                             dailyBreakdown: formattedDailyBreakdown, // Formatted above
                             appliedRules: data.applied_rules // Add applied rules to the state
@@ -145,6 +149,7 @@ export function ShiftCalculator({ children }) {
                         payments: {
                             ordinaryPay: Number(data.ordinary_pay || 0).toFixed(2), // From API response
                             overtimePay: Number(data.overtime_pay || 0).toFixed(2), // From API response
+                            topupPay: Number(data.topup_pay || 0).toFixed(2), // Add topup pay
                             penaltyPay: Number(data.penalty_pay || 0).toFixed(2), // From API response
                             totalPay: Number(data.total_pay || 0).toFixed(2) // From API response
                         }
@@ -156,9 +161,17 @@ export function ShiftCalculator({ children }) {
             }
         };
 
-        // Run calculation when shifts, hourly rate, worker type, or award change
+        // Run calculation when shifts, hourly rate, worker type, award, or employment details change
         calculateShifts();
-    }, [state.shifts, state.config.hourlyRate, state.config.workerType, state.config.award, dispatch]); // Dependencies: PayContext state
+    }, [
+        state.shifts,
+        state.config.hourlyRate,
+        state.config.workerType,
+        state.config.award,
+        state.config.employmentType,
+        state.config.contractedHours,
+        dispatch
+    ]); // Dependencies: PayContext state
 
     // Render child components
     return <>{children}</>;

@@ -20,62 +20,61 @@
 
 import React from 'react';
 import { usePay } from '../../context/PayContext';
+import { formatCurrency } from '../../utils/formatters';
 
-
-export default function SummaryTable() {
-    // Access calculated results from PayContext global state
+const SummaryTable = () => {
     const { state } = usePay();
-
-    // Check if total hours are zero
-    const isZeroHours = state.calculations.totalHours === 0;
+    const { calculations, payments } = state;
 
     return (
-        <div className="w-full bg-white rounded-lg p-4">
-            {/* Pay summary header */}
-            <h2 className="text-xl font-bold text-gray-900 mb-3">Pay Summary</h2>
-            {/* Grid of pay categories and hours */}
-            <div className="w-full grid grid-cols-4 gap-3">
-                {/* Ordinary pay and hours */}
-                <div className="bg-gray-50 p-3 rounded-lg flex flex-col items-center">
-                    <div className="text-sm text-gray-500">Ordinary</div>
-                    <div className="mt-1 text-xl font-semibold text-blue-600">
-                        ${isZeroHours ? '0.00' : state.payments.ordinaryPay || '0.00'}
-                    </div>
-                    <div className="mt-1 text-sm text-gray-600">
-                        {isZeroHours ? '0.00' : state.calculations.ordinaryHours || '0.00'} hrs
-                    </div>
+        <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+            <h2 className="text-xl font-semibold mb-4">Pay Summary</h2>
+
+            <div className="flex flex-wrap gap-4">
+                {/* Ordinary Box */}
+                <div className="flex-1 bg-gray-50 p-4 rounded-lg text-center">
+                    <div className="text-gray-600 mb-2">Ordinary</div>
+                    <div className="text-blue-500 font-bold text-xl">{formatCurrency(payments?.ordinaryPay || 0)}</div>
+                    <div className="text-gray-500 text-sm">{calculations?.ordinaryHours || '0.00'} hrs</div>
                 </div>
-                {/* Overtime pay and hours */}
-                <div className="bg-gray-50 p-3 rounded-lg flex flex-col items-center">
-                    <div className="text-sm text-gray-500">Overtime</div>
-                    <div className="mt-1 text-xl font-semibold text-blue-600">
-                        ${isZeroHours ? '0.00' : state.payments.overtimePay || '0.00'}
-                    </div>
-                    <div className="mt-1 text-sm text-gray-600">
-                        {isZeroHours ? '0.00' : state.calculations.overtimeHours || '0.00'} hrs
-                    </div>
+
+                {/* Overtime Box */}
+                <div className="flex-1 bg-gray-50 p-4 rounded-lg text-center">
+                    <div className="text-gray-600 mb-2">Overtime</div>
+                    <div className="text-blue-500 font-bold text-xl">{formatCurrency(payments?.overtimePay || 0)}</div>
+                    <div className="text-gray-500 text-sm">{calculations?.overtimeHours || '0.00'} hrs</div>
                 </div>
-                {/* Penalty pay (if any) */}
-                <div className="bg-gray-50 p-3 rounded-lg flex flex-col items-center">
-                    <div className="text-sm text-gray-500">Penalty</div>
-                    <div className="mt-1 text-xl font-semibold text-blue-600">
-                        ${isZeroHours ? '0.00' : state.payments.penaltyPay || '0.00'}
-                    </div>
-                    <div className="mt-1 text-sm text-gray-600">
-                        &nbsp;
-                    </div>
+
+                {/* Penalty Box */}
+                <div className="flex-1 bg-gray-50 p-4 rounded-lg text-center">
+                    <div className="text-gray-600 mb-2">Penalty</div>
+                    <div className="text-blue-500 font-bold text-xl">{formatCurrency(payments?.penaltyPay || 0)}</div>
+                    <div className="text-gray-500 text-sm">&nbsp;</div>
                 </div>
-                {/* Total pay and total hours */}
-                <div className="bg-blue-50 p-3 rounded-lg flex flex-col items-center">
-                    <div className="text-sm text-gray-500">Total</div>
-                    <div className="mt-1 text-xl font-semibold text-blue-600">
-                        ${isZeroHours ? '0.00' : state.payments.totalPay || '0.00'}
+
+                {/* Top-up Box */}
+                <div className="flex-1 bg-gray-50 p-4 rounded-lg text-center">
+                    <div className="text-gray-600 mb-2">Top-up</div>
+                    <div className="text-blue-500 font-bold text-xl">{formatCurrency(payments?.topupPay || 0)}</div>
+                    <div className="text-gray-500 text-sm">{calculations?.topupHours || '0.00'} hrs</div>
+                </div>
+
+                {/* Total Box */}
+                <div className="flex-1 bg-blue-50 p-4 rounded-lg text-center">
+                    <div className="text-gray-600 mb-2">Total</div>
+                    <div className="text-blue-500 font-bold text-xl">
+                        {formatCurrency(
+                            (parseFloat(payments?.ordinaryPay || 0) +
+                                parseFloat(payments?.overtimePay || 0) +
+                                parseFloat(payments?.topupPay || 0) +
+                                parseFloat(payments?.penaltyPay || 0)).toFixed(2)
+                        )}
                     </div>
-                    <div className="mt-1 text-sm text-gray-600">
-                        {isZeroHours ? '0.00' : state.calculations.totalHours || '0.00'} hrs
-                    </div>
+                    <div className="text-gray-500 text-sm">{calculations?.totalHours || '0.00'} hrs</div>
                 </div>
             </div>
         </div>
     );
-}
+};
+
+export default SummaryTable;
