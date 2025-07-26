@@ -1,5 +1,8 @@
 // services/api.js
-const BASE_URL = 'http://localhost:8000';
+// Dynamically determine API URL based on environment
+const BASE_URL = import.meta.env.PROD
+    ? 'https://pay-calculator-api.onrender.com' // Replace with your actual backend URL on Render
+    : 'http://localhost:8000';
 
 export const api = {
     async calculatePay(payload) {
