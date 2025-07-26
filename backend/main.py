@@ -27,18 +27,20 @@ app = FastAPI(
 
 # Configure CORS
 # Allow both local development and production origins
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173",                    # Local development
-        "http://localhost:3000",                    # Alternative local port
-        "http://127.0.0.1:5173",                    # Local development with IP
-        "https://pay-calculator-s0bv.onrender.com"  # Production frontend
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:5173",
+        "https://pay-calculator-s0bv.onrender.com"
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 # app.add_middleware(
 #     CORSMiddleware,
 #     allow_origins=["*"],  # Allow ANY origin — useful for debugging

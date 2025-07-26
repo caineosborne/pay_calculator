@@ -31,10 +31,14 @@ class AwardType(str, Enum):
         AGED_CARE: Aged Care Award
         HOSPITALITY: Hospitality Award
         CHILD_CARE: Child Care Award
+        NURSES_AWARD: Nurses & Midwives Award
+        EB11: Queensland Health EB11
     """
     AGED_CARE = "aged_care"
     HOSPITALITY = "hospitality"
     CHILD_CARE = "child_care"
+    NURSES_AWARD = "nurses_award"
+    EB11 = "eb11"
 
 class EmploymentType(str, Enum):
     """

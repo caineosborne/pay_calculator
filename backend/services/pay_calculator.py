@@ -445,8 +445,14 @@ class PayCalculator:
                 'threshold': weekly_overtime_threshold,
                 'rate': f"{rules.STANDARD_OVERTIME_RATE}x"
             },
-            saturday_rules=rules.WEEKEND_RULES[self.worker_type]['Saturday'],
-            sunday_rules=rules.WEEKEND_RULES[self.worker_type]['Sunday'],
+            # Handle weekend rules structure for older vs. newer rule formats
+            # Some rules have WEEKEND_RULES organized by worker type first, others by day first
+            saturday_rules=(rules.WEEKEND_RULES[self.worker_type]['Saturday'] 
+                          if self.worker_type in rules.WEEKEND_RULES 
+                          else rules.WEEKEND_RULES.get('Saturday', {})),
+            sunday_rules=(rules.WEEKEND_RULES[self.worker_type]['Sunday'] 
+                        if self.worker_type in rules.WEEKEND_RULES 
+                        else rules.WEEKEND_RULES.get('Sunday', {})),
             employment_type=self.employment_type,
             contracted_hours=self.contracted_hours,
             use_contracted_hours_for_overtime=getattr(rules, 'USE_CONTRACTED_HOURS_FOR_PT_OVERTIME', False),

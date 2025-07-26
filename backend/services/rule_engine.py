@@ -134,8 +134,13 @@ class PayRules:
         
         # For day workers, check if the weekend rules specify overtime
         if worker_type == 'day' and day in ['Saturday', 'Sunday']:
-            weekend_rules = rules.WEEKEND_RULES.get('day', {}).get(day, {})
-            return weekend_rules.get('is_overtime', True)  # Default to True for compatibility
+            # Try to get the rules for the specific worker type first, then fall back to direct access
+            if hasattr(rules, 'WEEKEND_RULES'):
+                if worker_type in rules.WEEKEND_RULES:
+                    weekend_rules = rules.WEEKEND_RULES.get(worker_type, {}).get(day, {})
+                else:
+                    weekend_rules = rules.WEEKEND_RULES.get(day, {})
+                return weekend_rules.get('is_overtime', True)  # Default to True for compatibility
             
         return False
 
@@ -223,7 +228,10 @@ class PayRules:
             return 0
             
         # Get weekend rules for this worker type and day
-        weekend_rules = rules.WEEKEND_RULES.get('shift', {}).get(day, {})
+        if worker_type in rules.WEEKEND_RULES:
+            weekend_rules = rules.WEEKEND_RULES.get(worker_type, {}).get(day, {})
+        else:
+            weekend_rules = rules.WEEKEND_RULES.get(day, {})
         return weekend_rules.get('penalty_rate', 0)
     
     @classmethod
@@ -248,7 +256,10 @@ class PayRules:
             return {'is_overtime': False, 'penalty_rate': 0, 'rate': cls.get_overtime_rate(day)}
             
         # Get weekend rules for this worker type and day
-        weekend_rules = rules.WEEKEND_RULES.get(worker_type, {}).get(day, {})
+        if worker_type in rules.WEEKEND_RULES:
+            weekend_rules = rules.WEEKEND_RULES.get(worker_type, {}).get(day, {})
+        else:
+            weekend_rules = rules.WEEKEND_RULES.get(day, {})
         
         # For shift workers, we want both penalty rates and overtime rates
         if worker_type == 'shift':
