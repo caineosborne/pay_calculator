@@ -50,7 +50,7 @@ export function InputDetails() {
     /**
      * Handles changes to the award selection dropdown.
      * Dispatches UPDATE_AWARD to PayContext, updating global state.
-     * @param {string} award - Selected award: 'hospitality', 'aged_care', or 'child_care'
+     * @param {string} award - Selected award: 'hospitality', 'aged_care', 'child_care', 'nurses_award', or 'eb11'
      */
     const handleAwardChange = (award) => {
         dispatch({
@@ -135,6 +135,8 @@ export function InputDetails() {
                             <option value="hospitality">Hospitality Award</option>
                             <option value="aged_care">Aged Care Award</option>
                             <option value="child_care">Child Care Award</option>
+                            <option value="nurses_award">Nurses & Midwives Award</option>
+                            <option value="eb11">Queensland Health EB11</option>
                         </select>
                     </div>
 
