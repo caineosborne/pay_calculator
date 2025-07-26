@@ -10,7 +10,7 @@ export const calculatePay = async (hourlyRate, shifts) => {
 
     // Dynamically determine API URL based on environment
     const apiUrl = import.meta.env.PROD
-        ? 'https://pay-calculator-api.onrender.com/calculate' // Replace with your actual backend URL on Render
+        ? `${import.meta.env.VITE_API_URL}/calculate` // Uses the URL from .env.production
         : 'http://localhost:8000/calculate';
 
     try {

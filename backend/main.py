@@ -31,11 +31,16 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        # Local development
         "http://localhost:5173",
         "http://localhost:3000",
         "http://127.0.0.1:5173",
+        # Production domains
         "https://pay-calculator-s0bv.onrender.com",
-        "https://pay-calculator.onrender.com"  # Add your frontend domain without the -s0bv if needed
+        "https://pay-calculator.onrender.com",  
+        # Add your actual production frontend domain
+        "https://pay-checker-mvp.onrender.com",
+        "https://pay-check.onrender.com"
     ],
     allow_credentials=True,
     allow_methods=["*"],

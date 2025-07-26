@@ -1,7 +1,7 @@
 // services/api.js
 // Dynamically determine API URL based on environment
 const BASE_URL = import.meta.env.PROD
-    ? 'https://pay-calculator-api.onrender.com' // Replace with your actual backend URL on Render
+    ? import.meta.env.VITE_API_URL // Uses the URL from .env.production
     : 'http://localhost:8000';
 
 export const api = {
