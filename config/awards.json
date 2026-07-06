@@ -35,5 +35,11 @@
     "label": "Clerks Private Sector Award",
     "module": "clerks_private_sector_rules",
     "class_name": "ClerksPrivateSectorRules"
+  },
+  {
+    "key": "ma000120",
+    "label": "MA120",
+    "module": "MA120",
+    "class_name": "MA000120Rules"
   }
 ]
