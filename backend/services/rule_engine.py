@@ -16,6 +16,7 @@ Dependencies:
 - rules module for award-specific rule sets
 """
 
+from .award_registry import default_award_key
 from .rules import get_rules_for_award
 
 class PayRules:
@@ -39,7 +40,7 @@ class PayRules:
     """
     
     # Default award if none is specified
-    _DEFAULT_AWARD = 'hospitality'
+    _DEFAULT_AWARD = default_award_key()
     
     # Class variable to store the active rules
     _active_rules = None
@@ -50,7 +51,7 @@ class PayRules:
         Set the active award rules.
         
         Args:
-            award: String identifier for the award ('aged_care' or 'hospitality')
+            award: String identifier for the award
                   If None, uses the default award.
         """
         award = award or cls._DEFAULT_AWARD
@@ -64,7 +65,7 @@ class PayRules:
         If no rules are active, initializes with the default award.
         
         Returns:
-            The active rule class (either AgedCareRules or HospitalityRules)
+            The active rule class for the selected award
         """
         if cls._active_rules is None:
             cls.set_award(cls._DEFAULT_AWARD)

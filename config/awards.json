@@ -1,0 +1,39 @@
+[
+  {
+    "key": "hospitality",
+    "label": "Hospitality Award",
+    "module": "hospitality_rules",
+    "class_name": "HospitalityRules",
+    "default": true
+  },
+  {
+    "key": "aged_care",
+    "label": "Aged Care Award",
+    "module": "aged_care_rules",
+    "class_name": "AgedCareRules"
+  },
+  {
+    "key": "child_care",
+    "label": "Child Care Award",
+    "module": "child_care_rules",
+    "class_name": "ChildCareRules"
+  },
+  {
+    "key": "nurses_award",
+    "label": "Nurses & Midwives Award",
+    "module": "nurses_award_rules",
+    "class_name": "NursesAwardRules"
+  },
+  {
+    "key": "eb11",
+    "label": "Queensland Health EB11",
+    "module": "eb11_rules",
+    "class_name": "EB11Rules"
+  },
+  {
+    "key": "clerks_private_sector",
+    "label": "Clerks Private Sector Award",
+    "module": "clerks_private_sector_rules",
+    "class_name": "ClerksPrivateSectorRules"
+  }
+]

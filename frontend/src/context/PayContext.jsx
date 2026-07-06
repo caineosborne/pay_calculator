@@ -3,12 +3,13 @@ import React, { createContext, useContext, useReducer } from 'react';
 import { initialShifts } from '../components/Config/shifts';
 
 const PayContext = createContext();
+const defaultAward = 'hospitality';
 
 const initialState = {
     config: {
         hourlyRate: 20, // Set default to 20
         workerType: 'shift', // Default to shift worker ('shift' or 'day')
-        award: 'hospitality', // Default to Hospitality Award
+        award: defaultAward, // Default to the configured award
         employmentType: 'full_time', // Default to Full Time ('full_time', 'part_time', 'casual')
         contractedHours: null, // Default to null, will be set based on rules for part-time
     },

@@ -14,6 +14,7 @@
 import React, { useState, useEffect } from 'react';
 import { usePay } from '../../context/PayContext';
 import { DisplayRules } from './DisplayRules';
+import { api } from '../../services/apis';
 
 export function InputDetails() {
     // Access global state and dispatch from PayContext
@@ -22,6 +23,8 @@ export function InputDetails() {
     // dispatch: function to update hourly rate and worker type
     const { state, dispatch } = usePay();
     const [showRules, setShowRules] = useState(false);
+    const [awards, setAwards] = useState([]);
+    const defaultAward = awards.find((award) => award.default)?.key || 'hospitality';
 
     /**
      * Handles changes to the hourly rate input field.
@@ -50,7 +53,7 @@ export function InputDetails() {
     /**
      * Handles changes to the award selection dropdown.
      * Dispatches UPDATE_AWARD to PayContext, updating global state.
-     * @param {string} award - Selected award: 'hospitality', 'aged_care', 'child_care', 'nurses_award', or 'eb11'
+     * @param {string} award - Selected award key
      */
     const handleAwardChange = (award) => {
         dispatch({
@@ -105,6 +108,45 @@ export function InputDetails() {
         }
     }, [state.config.award, state.config.employmentType, state.calculations?.appliedRules, dispatch]);
 
+    useEffect(() => {
+        let isMounted = true;
+
+        const loadAwards = async () => {
+            try {
+                const awardOptions = await api.getAwards();
+                if (!isMounted) {
+                    return;
+                }
+
+                setAwards(awardOptions);
+
+                const currentAwardExists = awardOptions.some(
+                    (award) => award.key === state.config.award
+                );
+                if (!currentAwardExists) {
+                    const configuredDefault =
+                        awardOptions.find((award) => award.default)?.key ||
+                        awardOptions[0]?.key;
+
+                    if (configuredDefault) {
+                        dispatch({
+                            type: 'UPDATE_AWARD',
+                            payload: configuredDefault
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load awards:', error);
+            }
+        };
+
+        loadAwards();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [dispatch]);
+
     return (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3">
             <div className="flex flex-col gap-4">
@@ -128,15 +170,15 @@ export function InputDetails() {
                             Award
                         </label>
                         <select
-                            value={state.config.award || 'hospitality'}
+                            value={state.config.award || defaultAward}
                             onChange={(e) => handleAwardChange(e.target.value)}
                             className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                         >
-                            <option value="hospitality">Hospitality Award</option>
-                            <option value="aged_care">Aged Care Award</option>
-                            <option value="child_care">Child Care Award</option>
-                            <option value="nurses_award">Nurses & Midwives Award</option>
-                            <option value="eb11">Queensland Health EB11</option>
+                            {awards.map((award) => (
+                                <option key={award.key} value={award.key}>
+                                    {award.label}
+                                </option>
+                            ))}
                         </select>
                     </div>
 

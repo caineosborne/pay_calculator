@@ -12,6 +12,8 @@ from pydantic import BaseModel, Field
 from typing import List, Optional
 from enum import Enum
 
+from services.award_registry import default_award_key, award_keys
+
 class WorkerType(str, Enum):
     """
     Enum for worker types.
@@ -23,22 +25,15 @@ class WorkerType(str, Enum):
     SHIFT = "shift"
     DAY = "day"
 
-class AwardType(str, Enum):
-    """
-    Enum for award types.
-    
-    Values:
-        AGED_CARE: Aged Care Award
-        HOSPITALITY: Hospitality Award
-        CHILD_CARE: Child Care Award
-        NURSES_AWARD: Nurses & Midwives Award
-        EB11: Queensland Health EB11
-    """
-    AGED_CARE = "aged_care"
-    HOSPITALITY = "hospitality"
-    CHILD_CARE = "child_care"
-    NURSES_AWARD = "nurses_award"
-    EB11 = "eb11"
+def _enum_name(value: str) -> str:
+    return value.upper().replace("-", "_")
+
+
+AwardType = Enum(
+    "AwardType",
+    {_enum_name(award_key): award_key for award_key in award_keys()},
+    type=str,
+)
 
 class EmploymentType(str, Enum):
     """
@@ -75,14 +70,14 @@ class PayRequest(BaseModel):
     Attributes:
         hourly_rate (float): Base hourly rate
         worker_type (WorkerType): Type of worker (shift or day)
-        award (AwardType): Type of award (aged_care or hospitality)
+        award (AwardType): Type of award
         employment_type (EmploymentType): Type of employment (full_time, part_time, casual)
         contracted_hours (Optional[float]): Contracted hours per week (required for part_time)
         shifts (List[Shift]): List of shifts to calculate pay for
     """
     hourly_rate: float = Field(gt=0)
     worker_type: WorkerType = Field(default=WorkerType.SHIFT)
-    award: AwardType = Field(default=AwardType.HOSPITALITY)
+    award: AwardType = Field(default=AwardType(default_award_key()))
     employment_type: EmploymentType = Field(default=EmploymentType.FULL_TIME)
     contracted_hours: Optional[float] = None
     shifts: List[Shift]

@@ -17,6 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from models.request_models import PayRequest
 from models.response_models import PayResponse
+from services.award_registry import public_awards
 from services.pay_calculator import PayCalculator
 
 app = FastAPI(
@@ -54,6 +55,14 @@ app.add_middleware(
 #     allow_methods=["*"],
 #     allow_headers=["*"],
 # )
+
+
+@app.get("/awards")
+def get_awards() -> list[dict]:
+    """
+    Return the public award registry used by the frontend selector.
+    """
+    return public_awards()
 
 
 @app.post("/calculate", response_model=PayResponse)
