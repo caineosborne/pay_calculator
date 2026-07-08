@@ -22,6 +22,7 @@ class RulesetSummary(BaseModel):
         gap_penalty (dict, optional): Rules for minimum break between shifts (Aged Care only)
         shift_start_penalties (dict, optional): Rules for shift start penalties (Aged Care only)
         hourly_penalties (dict, optional): Rules for hourly time-based penalties (Hospitality only)
+        penalties (dict, optional): Rules from the unified PENALTIES section filtered by worker type
         employment_type (str, optional): Type of employment (full_time, part_time, casual)
         contracted_hours (float, optional): Contracted hours for part-time employees
         use_contracted_hours_for_overtime (bool, optional): Whether part-time employees get overtime after contracted hours
@@ -34,6 +35,7 @@ class RulesetSummary(BaseModel):
     gap_penalty: dict = None
     shift_start_penalties: dict = None
     hourly_penalties: dict = None
+    penalties: dict = None
     employment_type: str = None
     contracted_hours: float | None = None
     use_contracted_hours_for_overtime: bool = None

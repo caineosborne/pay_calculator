@@ -494,6 +494,24 @@ class PayCalculator:
                 
             ruleset.hourly_penalties = hourly_penalties
 
+        if hasattr(rules, 'PENALTIES'):
+            penalties = {}
+
+            for penalty_name, penalty in rules.PENALTIES.items():
+                applies_to = penalty.get('applies_to', [])
+                if self.worker_type not in applies_to:
+                    continue
+
+                penalties[penalty_name] = {
+                    'type': penalty.get('type'),
+                    'basis': penalty.get('basis', penalty.get('match_on', 'start')),
+                    'start': penalty.get('start'),
+                    'end': penalty.get('end'),
+                    'rate': penalty.get('rate'),
+                }
+
+            ruleset.penalties = penalties
+
         return PayResponse(
             total_hours=round(self.total_hours + topup_hours, 2),  # Include topup in total hours
             total_pay=total_pay,

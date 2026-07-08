@@ -41,5 +41,11 @@
     "label": "MA120",
     "module": "MA120",
     "class_name": "MA000120Rules"
+  },
+  {
+    "key": "ma000018",
+    "label": "MA000018",
+    "module": "MA000018_ruleset",
+    "class_name": "MA000018Rules"
   }
 ]

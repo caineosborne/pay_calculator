@@ -26,6 +26,7 @@ class EB11Rules:
     EXTENDED_OVERTIME_RATE = 2.0  # Not used but needed for compatibility
     SUNDAY_OVERTIME_RATE = 2.0
     SATURDAY_OVERTIME_RATE = 2.0
+    EXTENDED_OVERTIME_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
     
     # Span overtime settings
     APPLY_SPAN_OVERTIME = False

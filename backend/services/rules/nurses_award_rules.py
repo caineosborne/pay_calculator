@@ -27,6 +27,7 @@ class NursesAwardRules:
     SUNDAY_OVERTIME_RATE = 2.0
     PUBLIC_HOLIDAY_OVERTIME_RATE = 2.5
     SATURDAY_OVERTIME_RATE = 1.5  # Overtime on Saturday (needed for rule engine)
+    EXTENDED_OVERTIME_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
 
     # Penalty Rates for Ordinary Hours
     SATURDAY_PENALTY_RATE = 0.50  # Time + 50%

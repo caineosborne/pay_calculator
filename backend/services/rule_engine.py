@@ -191,19 +191,30 @@ class PayRules:
             float: Overtime rate multiplier (e.g., 1.5 for time-and-a-half)
         """
         rules = cls.get_active_rules()
-        
-        # Different overtime rates for different days
+
+        extended_overtime_days = getattr(
+            rules,
+            'EXTENDED_OVERTIME_DAYS',
+            ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+        )
+
+        # Use segmented overtime on configured days.
+        if (
+            day in extended_overtime_days
+            and hasattr(rules, 'TWO_TIER_OVERTIME')
+            and rules.TWO_TIER_OVERTIME
+        ):
+            if hours_of_overtime > rules.TWO_TIER_OVERTIME_THRESHOLD:
+                return rules.EXTENDED_OVERTIME_RATE
+            return rules.STANDARD_OVERTIME_RATE
+
+        # Different overtime rates for weekend days or rulesets without segmented overtime.
         if day == 'Sunday':
             return rules.SUNDAY_OVERTIME_RATE
         elif day == 'Saturday':
             return rules.SATURDAY_OVERTIME_RATE
-            
-        # Check if two-tier overtime is enabled and if we're past the threshold
-        if hasattr(rules, 'TWO_TIER_OVERTIME') and rules.TWO_TIER_OVERTIME:
-            if hours_of_overtime > rules.TWO_TIER_OVERTIME_THRESHOLD:
-                return rules.EXTENDED_OVERTIME_RATE
-                
-        # Default to standard overtime rate for weekdays
+
+        # Default to standard overtime rate for weekdays and flat-rate rulesets.
         return rules.STANDARD_OVERTIME_RATE
 
     #

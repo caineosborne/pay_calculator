@@ -30,6 +30,7 @@ class AgedCareRules:
     EXTENDED_OVERTIME_RATE = 2.5  # Used for extended overtime (keeping consistent with structure)
     SUNDAY_OVERTIME_RATE = 2.5  # Increased to 2.5x for weekends
     SATURDAY_OVERTIME_RATE = 2.5  # Increased to 2.5x for weekends
+    EXTENDED_OVERTIME_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
     SATURDAY_PENALTY_RATE = 0.25
     SUNDAY_PENALTY_RATE = 0.50
     

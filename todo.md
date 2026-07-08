@@ -2,7 +2,6 @@
 
 # Split / Extended Overtime - currently only applies Monday to Friday
 
-
 ## Clerks Private Sector Award
 
 - Extend `extended_overtime_rate` so it can apply on weekends for the Clerks Private Sector award only.
@@ -13,3 +12,8 @@
 
 - Confirm that split/extended overtime can apply on any day of the week, including Saturday and Sunday, even though the award is usually worked Monday to Friday.
 - Add a test case for a weekend MA120 shift that exceeds the first overtime tier and verify the second tier still applies.
+
+## Rule Engine
+
+- Core ordinary-hours limit fields currently need numeric values; `ORDINARY_HOURS_LIMIT_DAILY = None` is not supported by the engine.
+- Add optional support for `None` daily limits if we ever need an award with no shift-worker daily cap, while keeping current numeric defaults safe.
