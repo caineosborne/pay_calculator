@@ -81,6 +81,7 @@ export function ShiftCalculator({ children }) {
                     employment_type: state.config.employmentType, // Include employment type
                     contracted_hours: state.config.contractedHours, // Include contracted hours if available
                     shifts: validShifts.map(shift => ({
+                        week: shift.week || 1,
                         day: shift.day,
                         start: parseTimeValue(shift.start),
                         end: parseTimeValue(shift.end),

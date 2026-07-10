@@ -90,7 +90,7 @@ class PayRules:
         return rules.DAY_WORKER_ORDINARY_HOURS_DAILY if worker_type == 'day' else rules.ORDINARY_HOURS_LIMIT_DAILY
 
     @classmethod
-    def calculate_weekly_ordinary_hours(cls, hours: float, worker_type: str = 'shift', employment_type: str = 'full_time', contracted_hours: float = None) -> float:
+    def calculate_weekly_ordinary_hours(cls, hours: float, worker_type: str = 'shift', employment_type: str = 'full_time', contracted_hours: float = None, period_weeks: int = 1) -> float:
         """
         Calculate ordinary hours for the week.
         
@@ -113,7 +113,7 @@ class PayRules:
             if hasattr(rules, 'USE_CONTRACTED_HOURS_FOR_PT_OVERTIME') and rules.USE_CONTRACTED_HOURS_FOR_PT_OVERTIME:
                 weekly_limit = contracted_hours
                 
-        return min(hours, weekly_limit)
+        return min(hours, weekly_limit * period_weeks)
     
     #
     # OVERTIME METHODS - For calculating various types of overtime

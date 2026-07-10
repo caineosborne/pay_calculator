@@ -2,12 +2,16 @@ To start:
 
 Backend:
 
+cd Backend
 uvicorn main:app --reload
+
+
 127.0.0.1:8000
 
 Front End:
 
-run npm dev
+cd frontend
+npm run dev
 
 Localhost:5173 
 

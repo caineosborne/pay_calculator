@@ -59,6 +59,7 @@ class Shift(BaseModel):
         break_duration (Optional[float]): Break duration in hours, defaults to 0.5
     """
     day: str
+    week: int = Field(default=1, ge=1, le=2)
     start: Optional[int] = Field(None, ge=0, le=47)  # Allow times up to 47 (24 + 23) for next day shifts
     end: Optional[int] = Field(None, ge=0, le=47)    # Allow times up to 47 (24 + 23) for next day shifts
     break_duration: Optional[float] = Field(default=0.5, ge=0, le=24)

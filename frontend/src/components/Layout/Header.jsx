@@ -12,26 +12,36 @@
 import React from 'react';
 import { usePay } from '../../context/PayContext';
 
+const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
 /**
  * Default shift template for a 9-5 work schedule
  * Each object represents a day with start time, end time, and break duration
  * Weekend days are left empty by default
  */
 const DEFAULT_SHIFTS = [
-    { day: 'Monday', start: '9', end: '17', break_duration: '0.5' },
-    { day: 'Tuesday', start: '9', end: '17', break_duration: '0.5' },
-    { day: 'Wednesday', start: '9', end: '17', break_duration: '0.5' },
-    { day: 'Thursday', start: '9', end: '17', break_duration: '0.5' },
-    { day: 'Friday', start: '9', end: '17', break_duration: '0.5' },
-    { day: 'Saturday', start: '', end: '', break_duration: '0.5' },
-    { day: 'Sunday', start: '', end: '', break_duration: '0.5' }
+    ...WEEKDAYS.map((day, index) => ({
+        week: 1,
+        day,
+        start: index < 5 ? '9' : '',
+        end: index < 5 ? '17' : '',
+        break_duration: '0.5'
+    })),
+    ...WEEKDAYS.map((day, index) => ({
+        week: 2,
+        day,
+        start: index < 5 ? '9' : '',
+        end: index < 5 ? '17' : '',
+        break_duration: '0.5'
+    }))
 ];
 
 /**
  * Empty shift template for clearing all shifts
  * Maintains day structure but removes all times
  */
-const EMPTY_SHIFTS = DEFAULT_SHIFTS.map(({ day }) => ({
+const EMPTY_SHIFTS = DEFAULT_SHIFTS.map(({ week, day }) => ({
+    week,
     day,
     start: '',
     end: '',
@@ -43,7 +53,7 @@ const EMPTY_SHIFTS = DEFAULT_SHIFTS.map(({ day }) => ({
  * @returns {JSX.Element} Rendered header component
  */
 export default function Header() {
-    const { dispatch } = usePay();
+    const { state, dispatch } = usePay();
 
     /**
      * Resets all shifts to default 9-5 schedule
@@ -85,6 +95,23 @@ export default function Header() {
         });
     };
 
+    const copyPreviousWeek = () => {
+        const previousWeek = state.shifts.slice(0, 7);
+        const newShifts = [...state.shifts];
+
+        previousWeek.forEach((shift, index) => {
+            newShifts[index + 7] = {
+                ...shift,
+                week: 2
+            };
+        });
+
+        dispatch({
+            type: 'UPDATE_SHIFTS',
+            payload: newShifts
+        });
+    };
+
     return (
         <header className="bg-gray-100 shadow">
             <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
@@ -95,12 +122,21 @@ export default function Header() {
                             🧾 Pay Checker
                         </h1>
                         <p className="mt-1 text-sm text-black">
-                            Calculate your weekly earnings
+                            Calculate your fortnightly earnings
                         </p>
                     </div>
 
                     {/* Control buttons section */}
                     <div className="flex space-x-3">
+                        <button
+                            onClick={copyPreviousWeek}
+                            className="inline-flex items-center px-3 py-2 border
+                                     text-sm leading-4 font-medium rounded-md text-black
+                                     bg-grey-400 hover:bg-gray-700 focus:outline-none
+                                     focus:ring-2 focus:ring-offset-2 focus:ring-black"
+                        >
+                            Copy Previous Week
+                        </button>
                         <button
                             onClick={resetToDefault}
                             className="inline-flex items-center px-3 py-2 border  

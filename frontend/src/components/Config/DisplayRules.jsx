@@ -18,6 +18,7 @@ export function DisplayRules({ showRules }) {
 
     // Format rule name to be more readable
     const formatRuleName = (ruleName) => {
+        if (ruleName === 'weekly_overtime') return 'Fortnightly Overtime';
         return ruleName
             .split('_')
             .map(word => word.charAt(0).toUpperCase() + word.slice(1))

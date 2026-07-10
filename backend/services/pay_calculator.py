@@ -41,6 +41,7 @@ class PayCalculator:
         # Get employment type and contracted hours
         self.employment_type = data.employment_type.value if hasattr(data.employment_type, 'value') else data.employment_type
         self.contracted_hours = data.contracted_hours
+        self.period_weeks = 2
         
         self.total_hours = 0
         self.total_ordinary_hours = 0
@@ -214,10 +215,10 @@ class PayCalculator:
 
     def process_weekly_overtime(self) -> None:
         """
-        Process weekly overtime after all daily calculations.
+        Process fortnightly overtime after all daily calculations.
         
-        Adjusts daily breakdowns to account for weekly overtime limits,
-        working backwards from the end of the week.
+        Adjusts daily breakdowns to account for the fortnightly overtime limit,
+        working backwards from the end of the fortnight.
         
         When hours are converted from ordinary to overtime:
         1. They lose any penalty rates they had (penalty hours are reduced)
@@ -230,7 +231,8 @@ class PayCalculator:
             self.total_ordinary_hours, 
             self.worker_type,
             self.employment_type,
-            self.contracted_hours
+            self.contracted_hours,
+            self.period_weeks
         )
         
         weekly_overtime_remaining = max(self.total_ordinary_hours - weekly_limit, 0)
@@ -286,7 +288,7 @@ class PayCalculator:
             ordinary_hours += self.breakdown[day]['ordinary']
             
         # Calculate top-up hours needed
-        topup_hours = max(0, self.contracted_hours - ordinary_hours)
+        topup_hours = max(0, (self.contracted_hours * self.period_weeks) - ordinary_hours)
         if topup_hours <= 0:
             return
             
@@ -299,10 +301,10 @@ class PayCalculator:
                 self.breakdown[last_day]['applied_rules'].append('Contracted Hours Top-up')
         else:
             # If no days worked, create a dummy entry for Monday
-            self.breakdown['Monday'] = self._get_empty_day_breakdown()
-            self.breakdown['Monday']['topup'] = topup_hours
-            self.breakdown['Monday']['applied_rules'].append('Contracted Hours Top-up')
-            self.ordered_days.append('Monday')
+            self.breakdown['Week 1 - Monday'] = self._get_empty_day_breakdown()
+            self.breakdown['Week 1 - Monday']['topup'] = topup_hours
+            self.breakdown['Week 1 - Monday']['applied_rules'].append('Contracted Hours Top-up')
+            self.ordered_days.append('Week 1 - Monday')
             
         # Update total top-up hours
         self.total_topup_hours = topup_hours
@@ -320,9 +322,10 @@ class PayCalculator:
         # Process each shift
         for shift in self.data.shifts:
             day_breakdown = self.calculate_daily_hours(shift)
+            breakdown_key = f"Week {shift.week} - {shift.day}"
             
             if day_breakdown['total'] > 0:
-                self.ordered_days.append(shift.day)
+                self.ordered_days.append(breakdown_key)
                 self.total_ordinary_hours += day_breakdown['ordinary']
                 self.total_daily_overtime += day_breakdown['overtime']
                 self.total_penalty_hours += day_breakdown['penalty']
@@ -331,7 +334,7 @@ class PayCalculator:
                     self.total_penalty_hours += day_breakdown['gap_penalty']
                 self.total_hours += day_breakdown['total']
             
-            self.breakdown[shift.day] = day_breakdown
+            self.breakdown[breakdown_key] = day_breakdown
 
         # Process weekly overtime
         self.process_weekly_overtime()
@@ -344,7 +347,8 @@ class PayCalculator:
             self.total_ordinary_hours, 
             self.worker_type,
             self.employment_type,
-            self.contracted_hours
+            self.contracted_hours,
+            self.period_weeks
         )
         
         # Recalculate ordinary, overtime and topup hours after processing
@@ -421,12 +425,12 @@ class PayCalculator:
             span_rate_display = f"{rules.STANDARD_OVERTIME_RATE}x"
             
         # Determine the appropriate weekly overtime threshold for the ruleset summary
-        weekly_overtime_threshold = rules.ORDINARY_HOURS_LIMIT_WEEKLY
+        weekly_overtime_threshold = rules.ORDINARY_HOURS_LIMIT_WEEKLY * self.period_weeks
         if self.worker_type == 'day':
-            weekly_overtime_threshold = rules.DAY_WORKER_ORDINARY_HOURS_WEEKLY
+            weekly_overtime_threshold = rules.DAY_WORKER_ORDINARY_HOURS_WEEKLY * self.period_weeks
         elif self.employment_type == 'part_time' and self.contracted_hours is not None:
             if hasattr(rules, 'USE_CONTRACTED_HOURS_FOR_PT_OVERTIME') and rules.USE_CONTRACTED_HOURS_FOR_PT_OVERTIME:
-                weekly_overtime_threshold = self.contracted_hours
+                weekly_overtime_threshold = self.contracted_hours * self.period_weeks
             
         # Get the contracted hours top-up settings
         pt_entitled_to_topup = getattr(rules, 'PT_EMPLOYEES_ENTITLED_TO_CONTRACTED_TOPUP', False)

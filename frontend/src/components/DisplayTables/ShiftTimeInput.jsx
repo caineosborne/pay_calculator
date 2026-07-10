@@ -45,14 +45,25 @@ export default function ShiftTimeInput({ renderRow }) {
         if (!value && value !== 0) return '';
         const numValue = parseInt(value);
         if (isNaN(numValue)) return '';
-        return numValue.toString();
+        // Keep the API value as 24-30 for next-day times, but show the
+        // corresponding clock hour (midnight through 6am) in the UI.
+        return (numValue >= 24 ? numValue - 24 : numValue).toString();
     };
 
-    const parseTimeInput = (value) => {
+    const parseTimeInput = (value, currentValue, field) => {
         if (!value && value !== 0) return null;
         const parsed = parseInt(value);
         if (!isNaN(parsed)) {
-            // Allow values 0-30 (up to 6am next day)
+            // If the current value is next-day, interpret displayed 0-6am
+            // values as next-day values while preserving the API contract.
+            const isNextDay = currentValue > 23;
+            const displayMax = field === 'end' ? 6 : 0;
+            if (isNextDay && parsed >= 0 && parsed <= displayMax) {
+                return (parsed + 24).toString();
+            }
+
+            // Also continue to accept the raw next-day values when entered
+            // directly (for example, 25), as before.
             if (parsed >= 0 && parsed <= 30) {
                 return parsed.toString();
             }
@@ -69,7 +80,8 @@ export default function ShiftTimeInput({ renderRow }) {
                 Math.max(0, Math.min(24, parseFloat(value) || 0)).toString();
         } else if (isInput) {
             // Handle direct input
-            const parsedValue = parseTimeInput(value);
+            const currentValue = parseInt(shift[field]);
+            const parsedValue = parseTimeInput(value, currentValue, field);
             if (parsedValue === null) {
                 newValue = shift[field];
             } else {
@@ -140,10 +152,11 @@ export default function ShiftTimeInput({ renderRow }) {
     };
 
     const renderShiftInputs = (shift, idx) => {
+        const isFirstDayOfWeek = idx % 7 === 0;
         return (
             <>
                 <td className="px-2 py-1 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {shift.day}
+                    Week {shift.week || 1} - {shift.day}
                 </td>
                 <td className="px-2 py-1 whitespace-nowrap">
                     <div className="flex items-center space-x-1">
@@ -190,7 +203,7 @@ export default function ShiftTimeInput({ renderRow }) {
                             </button>
                             <button
                                 onClick={() => {
-                                    if (idx > 0) {
+                                    if (idx > 0 && !isFirstDayOfWeek) {
                                         const prevShift = state.shifts[idx - 1];
                                         const newShifts = [...state.shifts];
                                         newShifts[idx] = {
@@ -207,7 +220,7 @@ export default function ShiftTimeInput({ renderRow }) {
                                 }}
                                 className="px-2 py-0.5 bg-blue-100 rounded text-xs hover:bg-blue-200"
                                 title="Copy times from previous day"
-                                disabled={idx === 0}
+                                disabled={isFirstDayOfWeek}
                             >
                                 Copy Prev
                             </button>

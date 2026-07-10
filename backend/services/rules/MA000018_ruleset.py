@@ -4,7 +4,7 @@
 class MA000018Rules:
     """Business rules for award MA000018 pay calculations."""
 
-    ORDINARY_HOURS_LIMIT_DAILY = 10
+    ORDINARY_HOURS_LIMIT_DAILY = 8
     ORDINARY_HOURS_LIMIT_WEEKLY = 38
     DAY_WORKER_ORDINARY_HOURS_DAILY = 8
     DAY_WORKER_ORDINARY_HOURS_WEEKLY = 38
@@ -18,369 +18,336 @@ class MA000018Rules:
     GAP_PENALTY_RATE = 1
     TWO_TIER_OVERTIME = True
     TWO_TIER_OVERTIME_THRESHOLD = 2
-    EXTENDED_OVERTIME_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+    EXTENDED_OVERTIME_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday','Saturday','Sunday']
     USE_CONTRACTED_HOURS_FOR_PT_OVERTIME = True
     PT_EMPLOYEES_ENTITLED_TO_CONTRACTED_TOPUP = True
     FT_EMPLOYEES_ENTITLED_TO_CONTRACTED_TOPUP = True
-    PENALTIES = {'shift_allowance_1000_1300': {'type': 'shift_based',
-                                   'basis': 'start',
-                                   'start': 10,
-                                   'end': 13,
-                                   'rate': 0.1,
-                                   'description': 'Shift allowance for shifts commencing '
-                                                  'between 10:00 and before 13:00.',
-                                   'applies_to': ['shift']},
-     'shift_allowance_1300_1600': {'type': 'shift_based',
-                                   'basis': 'start',
-                                   'start': 13,
-                                   'end': 16,
-                                   'rate': 0.125,
-                                   'description': 'Shift allowance for shifts commencing '
-                                                  'between 13:00 and before 16:00.',
-                                   'applies_to': ['shift']},
-     'shift_allowance_1600_0400': {'type': 'shift_based',
-                                   'basis': 'start',
-                                   'start': 16,
-                                   'end': 4,
-                                   'rate': 0.15,
-                                   'description': 'Shift allowance for shifts commencing '
-                                                  'between 16:00 and before 04:00.',
-                                   'applies_to': ['shift']},
-     'shift_allowance_0400_0600': {'type': 'shift_based',
-                                   'basis': 'start',
-                                   'start': 4,
-                                   'end': 6,
-                                   'rate': 0.1,
-                                   'description': 'Shift allowance for shifts commencing '
-                                                  'between 04:00 and before 06:00.',
-                                   'applies_to': ['shift']}}
+    PENALTIES = {'afternoon_shift': {'type': 'shift_based',
+                         'basis': 'start',
+                         'start': 10,
+                         'end': 13,
+                         'rate': 0.1,
+                         'description': 'Shift allowance for shifts commencing 10:00 to '
+                                        'before 13:00.',
+                         'applies_to': ['day', 'shift']},
+     'afternoon_shift_allowance_125': {'type': 'shift_based',
+                                       'basis': 'start',
+                                       'start': 13,
+                                       'end': 16,
+                                       'rate': 0.125,
+                                       'description': 'Shift allowance for shifts '
+                                                      'commencing 13:00 to before 16:00.',
+                                       'applies_to': ['day', 'shift']},
+     'afternoon_night_shift': {'type': 'shift_based',
+                               'basis': 'start',
+                               'start': 16,
+                               'end': 4,
+                               'rate': 0.15,
+                               'description': 'Shift allowance for shifts commencing 16:00 '
+                                              'to before 04:00.',
+                               'applies_to': ['day', 'shift']},
+     'early_morning_shift': {'type': 'shift_based',
+                             'basis': 'start',
+                             'start': 4,
+                             'end': 6,
+                             'rate': 0.1,
+                             'description': 'Shift allowance for shifts commencing 04:00 '
+                                            'to before 06:00.',
+                             'applies_to': ['day', 'shift']}}
     HOURS_PEN_RULES = {}
     WEEKEND_RULES = {'day': {'Saturday': {'is_overtime': True}, 'Sunday': {'is_overtime': True}},
      'shift': {'Saturday': {'is_overtime': False, 'rate': None, 'penalty_rate': 0.5},
                'Sunday': {'is_overtime': False, 'rate': None, 'penalty_rate': 0.75}}}
     DEFAULT_BREAK = 0.5
 
-    # FIELD_EVIDENCE = {'ordinary_hours_limit_daily': {'status': 'derived',
+    # FIELD_EVIDENCE = {'ordinary_hours_limit_daily': {'status': 'not_found',
     #                                 'source_ruleset_keys': ['overtime_creation'],
-    #                                 'source_rule_ids': ['ordinary-hours-daily-limit-8-hours-day-shift-or-10-hours-night-shift'],
+    #                                 'source_rule_ids': ['all-employees-day-shift-and-night-shift-length-limits'],
     #                                 'clause_references': ['22.1(c)'],
-    #                                 'reasoning_summary': 'The reviewed rules expressly '
-    #                                                      'allow ordinary hours to be '
-    #                                                      'worked as 10 hours on a night '
-    #                                                      'shift. This is the clearest '
-    #                                                      'daily limit for shiftworkers in '
-    #                                                      'the reviewed material.',
-    #                                 'special_case_notes': 'The source frames this as a '
-    #                                                       'day-shift versus night-shift '
-    #                                                       'ordinary-hours choice rather '
-    #                                                       'than a separate universal '
-    #                                                       'shiftworker rule. Used as the '
-    #                                                       'best live shiftworker daily '
-    #                                                       'limit.'},
-    #  'ordinary_hours_limit_weekly': {'status': 'derived',
+    #                                 'reasoning_summary': 'The reviewed rules say '
+    #                                                      'shiftworkers have ordinary-hours '
+    #                                                      'limits of 8 hours for a day '
+    #                                                      'shift and 10 hours for a night '
+    #                                                      'shift, but do not support one '
+    #                                                      'single numeric daily limit '
+    #                                                      'across shiftworker day/night '
+    #                                                      'types.',
+    #                                 'special_case_notes': 'Two different daily limits '
+    #                                                       'exist depending on day shift '
+    #                                                       'versus night shift; the '
+    #                                                       'questionnaire requires a single '
+    #                                                       'live value.'},
+    #  'ordinary_hours_limit_weekly': {'status': 'needs_review',
     #                                  'source_ruleset_keys': ['overtime_creation'],
-    #                                  'source_rule_ids': ['full-time-overtime-beyond-rostered-ordinary-hours',
-    #                                                      'part-time-overtime-over-38-per-week-or-76-per-fortnight',
-    #                                                      'casual-overtime-over-38-per-week-or-76-per-fortnight',
-    #                                                      'ordinary-hours-week-fortnight-and-rostered-cycle-framework'],
-    #                                  'clause_references': ['10.2',
-    #                                                        '10.3(a)',
-    #                                                        '10.4(a)',
-    #                                                        '22.1',
-    #                                                        '22.3'],
-    #                                  'reasoning_summary': 'The reviewed rules state a '
-    #                                                       '38-hour weekly ordinary-hours '
-    #                                                       'benchmark across cohorts, '
-    #                                                       'including shiftwork '
-    #                                                       'arrangements, subject to '
-    #                                                       'roster-cycle and averaging '
-    #                                                       'rules.',
-    #                                  'special_case_notes': 'This is the standard weekly '
-    #                                                        'limit used for the calculator '
-    #                                                        'even though some rules also '
-    #                                                        'refer to fortnightly and '
-    #                                                        'roster-cycle boundaries.'},
-    #  'day_worker_ordinary_hours_daily': {'status': 'derived',
+    #                                  'source_rule_ids': ['all-employees-ordinary-hours-week-fortnight-cycle-and-span',
+    #                                                      'all-employees-day-shift-and-night-shift-length-limits'],
+    #                                  'clause_references': ['22.1', '22.2(a)', '22.1(c)'],
+    #                                  'reasoning_summary': 'The source gives shiftworkers '
+    #                                                       'shift-length caps (8 or 10 '
+    #                                                       'hours) and a general 38-hour '
+    #                                                       'ordinary-hours framework, but '
+    #                                                       'does not clearly state a '
+    #                                                       'distinct weekly shiftworker cap '
+    #                                                       'separate from the general '
+    #                                                       'ordinary-hours rule.',
+    #                                  'special_case_notes': 'Using the general 38-hour '
+    #                                                        'weekly framework as the best '
+    #                                                        'live proxy; the reviewed text '
+    #                                                        'may also operate through '
+    #                                                        'roster/shift-length limits '
+    #                                                        'rather than a distinct '
+    #                                                        'shiftworker weekly cap.'},
+    #  'day_worker_ordinary_hours_daily': {'status': 'not_found',
     #                                      'source_ruleset_keys': ['overtime_creation'],
-    #                                      'source_rule_ids': ['ordinary-hours-daily-limit-8-hours-day-shift-or-10-hours-night-shift'],
-    #                                      'clause_references': ['22.1(c)'],
-    #                                      'reasoning_summary': 'The reviewed rules state '
-    #                                                           'ordinary hours may be '
-    #                                                           'worked as eight hours on a '
-    #                                                           'day shift, with a separate '
-    #                                                           '10-hour night-shift option. '
-    #                                                           'For the standard day-worker '
-    #                                                           'daily live limit, 8 hours '
-    #                                                           'is the clearest default.',
-    #                                      'special_case_notes': 'The source also mentions a '
-    #                                                            '10-hour night-shift '
-    #                                                            'ordinary-hours option, but '
-    #                                                            'the calculator needs one '
-    #                                                            'standard live limit. This '
-    #                                                            'answer uses the day-shift '
-    #                                                            'standard.'},
+    #                                      'source_rule_ids': [],
+    #                                      'clause_references': ['22.2(a)'],
+    #                                      'reasoning_summary': 'The reviewed rules state a '
+    #                                                           'day-worker span of 6.00 am '
+    #                                                           'to 6.00 pm Monday to '
+    #                                                           'Friday, but they do not '
+    #                                                           'clearly isolate a numeric '
+    #                                                           'daily ordinary-hours limit '
+    #                                                           'for day workers in the '
+    #                                                           'supplied JSON.',
+    #                                      'special_case_notes': 'Day-worker span is '
+    #                                                            'provided, but the source '
+    #                                                            'does not clearly state a '
+    #                                                            'separate daily hour cap '
+    #                                                            'for the calculator.'},
     #  'day_worker_ordinary_hours_weekly': {'status': 'derived',
     #                                       'source_ruleset_keys': ['overtime_creation'],
-    #                                       'source_rule_ids': ['full-time-overtime-beyond-rostered-ordinary-hours',
-    #                                                           'part-time-overtime-over-38-per-week-or-76-per-fortnight',
-    #                                                           'casual-overtime-over-38-per-week-or-76-per-fortnight',
-    #                                                           'ordinary-hours-week-fortnight-and-rostered-cycle-framework'],
+    #                                       'source_rule_ids': ['full-time-ordinary-hours-boundary-38-per-week',
+    #                                                           'part-time-38-per-week-or-76-per-fortnight',
+    #                                                           'casual-ordinary-hours-boundary-38-per-week'],
     #                                       'clause_references': ['10.2',
-    #                                                             '10.3(a)',
-    #                                                             '10.4(a)',
     #                                                             '22.1',
-    #                                                             '22.3'],
+    #                                                             '25.1(b)(i)',
+    #                                                             '10.4(a)'],
     #                                       'reasoning_summary': 'The reviewed rules '
-    #                                                            'repeatedly identify 38 '
-    #                                                            'hours per week as the '
-    #                                                            'ordinary-hours weekly '
-    #                                                            'benchmark across cohorts, '
-    #                                                            'with overtime triggered '
-    #                                                            'beyond that boundary.',
-    #                                       'special_case_notes': 'The award also refers to '
-    #                                                             'averaging and '
-    #                                                             'roster-cycle limits in '
-    #                                                             'clause 22.1, but 38 hours '
-    #                                                             'per week is the standard '
-    #                                                             'live weekly benchmark.'},
+    #                                                            'repeatedly set '
+    #                                                            'ordinary-hours boundaries '
+    #                                                            'at 38 hours per week for '
+    #                                                            'full-time and casual '
+    #                                                            'employees, and also '
+    #                                                            'reference 38 hours as a '
+    #                                                            'weekly overtime trigger, '
+    #                                                            'so 38 is the standard '
+    #                                                            'weekly limit.',
+    #                                       'special_case_notes': 'This is the standard '
+    #                                                             'weekly boundary used for '
+    #                                                             'a first-pass calculator, '
+    #                                                             'even though some cohorts '
+    #                                                             'also have separate '
+    #                                                             'daily/rostered triggers.'},
     #  'standard_overtime_rate': {'status': 'derived',
     #                             'source_ruleset_keys': ['overtime_consequence'],
-    #                             'source_rule_ids': ['merged-25-1-a-full-time-overtime-rates',
-    #                                                 'merged-25-1-b-part-time-overtime-rates'],
-    #                             'clause_references': ['25.1(a)(i)',
+    #                             'source_rule_ids': ['full-time-overtime-rates-general',
+    #                                                 'part-time-overtime-rates-general',
+    #                                                 'casual-overtime-rates-general'],
+    #                             'clause_references': ['25.1(a)(i)(A)',
     #                                                   '25.1(b)(i)',
-    #                                                   '25.1(b)(ii)',
-    #                                                   '25.1(b)(iii)'],
-    #                             'reasoning_summary': 'The standard overtime rate for '
-    #                                                  'full-time and part-time employees is '
-    #                                                  '150% for the first two hours, which '
-    #                                                  'is a 0.5 loading above base.',
-    #                             'special_case_notes': 'The source contains higher overtime '
-    #                                                   'tiers after the first two hours. '
-    #                                                   'This field records the standard '
-    #                                                   'initial overtime loading only.'},
+    #                                                   '25.1(c)(i)'],
+    #                             'reasoning_summary': 'Across the reviewed overtime tables, '
+    #                                                  'the standard first-tier overtime '
+    #                                                  'rate is 150% for weekday overtime, '
+    #                                                  'which corresponds to a multiplier of '
+    #                                                  '1.5.',
+    #                             'special_case_notes': 'This is the standard first overtime '
+    #                                                   'tier; some days or thresholds move '
+    #                                                   'straight to higher rates.'},
     #  'extended_overtime_rate': {'status': 'derived',
     #                             'source_ruleset_keys': ['overtime_consequence'],
-    #                             'source_rule_ids': ['merged-25-1-a-full-time-overtime-rates',
-    #                                                 'merged-25-1-b-part-time-overtime-rates',
-    #                                                 'merged-10-4-c-casual-overtime-rates'],
-    #                             'clause_references': ['25.1(a)(i)',
+    #                             'source_rule_ids': ['full-time-overtime-rates-general',
+    #                                                 'part-time-overtime-rates-general',
+    #                                                 'casual-overtime-rates-general'],
+    #                             'clause_references': ['25.1(a)(i)(A)',
+    #                                                   '25.1(a)(i)(B)',
     #                                                   '25.1(b)(i)',
-    #                                                   '25.1(c)(i)',
-    #                                                   '25.1(c)(ii)'],
-    #                             'reasoning_summary': 'The reviewed rules provide a '
-    #                                                  'first-tier overtime rate and a '
-    #                                                  'higher rate thereafter for '
-    #                                                  'full-time, part-time, and casual '
-    #                                                  'overtime in the standard contexts. | '
-    #                                                  'The higher overtime tier is 200% for '
-    #                                                  'full-time and part-time overtime '
-    #                                                  'after the first two hours, which is '
-    #                                                  'a 1.0 loading above base.',
-    #                             'special_case_notes': 'Casual overtime also has a two-tier '
-    #                                                   'structure, but the exact rates '
-    #                                                   'differ by overtime trigger and day '
-    #                                                   'of week. | Casual overtime also has '
-    #                                                   'a 250% tier in some contexts, but '
-    #                                                   'the calculator’s standard higher '
-    #                                                   'tier is 200%.'},
+    #                                                   '25.1(c)(i)'],
+    #                             'reasoning_summary': 'The overtime tables show a first '
+    #                                                  'overtime tier and a higher '
+    #                                                  'subsequent tier for Monday to Friday '
+    #                                                  'overtime. | The reviewed tables '
+    #                                                  'specify 200% after the first two '
+    #                                                  'overtime hours for Monday to Friday '
+    #                                                  'overtime, so the extended multiplier '
+    #                                                  'is 2.0.',
+    #                             'special_case_notes': 'Two-tier overtime applies on '
+    #                                                   'standard weekday overtime tables; '
+    #                                                   'weekend/public holiday rates are '
+    #                                                   'separate fixed rates. | For casual '
+    #                                                   'employees the equivalent higher '
+    #                                                   'rate is 250% because casual loading '
+    #                                                   'is already included; however the '
+    #                                                   'standard higher overtime tier in '
+    #                                                   'the award is 200% for the '
+    #                                                   'non-casual tables.'},
     #  'sunday_overtime_rate': {'status': 'derived',
     #                           'source_ruleset_keys': ['overtime_consequence'],
-    #                           'source_rule_ids': ['merged-25-1-a-full-time-overtime-rates',
-    #                                               'merged-25-1-b-part-time-overtime-rates',
-    #                                               'merged-10-4-c-casual-overtime-rates'],
-    #                           'clause_references': ['25.1(a)(i)',
+    #                           'source_rule_ids': ['full-time-overtime-rates-general',
+    #                                               'part-time-overtime-rates-general',
+    #                                               'casual-overtime-rates-general'],
+    #                           'clause_references': ['25.1(a)(i)(C)',
     #                                                 '25.1(b)(i)',
-    #                                                 '25.1(c)(i)',
-    #                                                 '25.1(c)(ii)'],
-    #                           'reasoning_summary': 'The reviewed overtime rules specify '
-    #                                                '200% on Sunday for full-time and '
-    #                                                'part-time overtime, which is a 1.0 '
-    #                                                'loading above base.',
-    #                           'special_case_notes': 'For casuals, Sunday overtime/penalty '
-    #                                                 'outcomes are handled in the casual '
-    #                                                 'weekend and overtime rules and may '
-    #                                                 'differ by trigger.'},
+    #                                                 '25.1(c)(i)'],
+    #                           'reasoning_summary': 'Sunday overtime is specified as 200% '
+    #                                                'in the overtime tables.',
+    #                           'special_case_notes': 'This is a fixed Sunday overtime rate, '
+    #                                                 'not part of the weekday two-tier '
+    #                                                 'structure.'},
     #  'saturday_overtime_rate': {'status': 'derived',
     #                             'source_ruleset_keys': ['overtime_consequence'],
-    #                             'source_rule_ids': ['merged-25-1-a-full-time-overtime-rates',
-    #                                                 'merged-25-1-b-part-time-overtime-rates',
-    #                                                 'merged-10-4-c-casual-overtime-rates'],
-    #                             'clause_references': ['25.1(a)(i)',
+    #                             'source_rule_ids': ['full-time-overtime-rates-general',
+    #                                                 'part-time-overtime-rates-general',
+    #                                                 'casual-overtime-rates-general'],
+    #                             'clause_references': ['25.1(a)(i)(C)',
     #                                                   '25.1(b)(i)',
-    #                                                   '25.1(c)(i)',
-    #                                                   '25.1(c)(ii)'],
-    #                             'reasoning_summary': 'The reviewed overtime rules specify '
-    #                                                  '200% on Saturday for full-time and '
-    #                                                  'part-time overtime, which is a 1.0 '
-    #                                                  'loading above base.',
-    #                             'special_case_notes': 'Weekend overtime treatment may '
-    #                                                   'differ for casual employees and for '
-    #                                                   'shiftworkers under weekend '
-    #                                                   'ordinary-hours rules.'},
+    #                                                   '25.1(c)(i)'],
+    #                             'reasoning_summary': 'Saturday overtime is specified as '
+    #                                                  '200% in the overtime tables.',
+    #                             'special_case_notes': 'This is a fixed Saturday overtime '
+    #                                                   'rate, not part of the weekday '
+    #                                                   'two-tier structure.'},
     #  'apply_span_overtime': {'status': 'derived',
-    #                          'source_ruleset_keys': ['overtime_creation'],
-    #                          'source_rule_ids': ['day-worker-span-outside-6am-to-6pm-monday-to-friday'],
-    #                          'clause_references': ['22.2(a)', '22.1(c)'],
-    #                          'reasoning_summary': 'The reviewed rules state that '
-    #                                               'day-worker ordinary hours fall between '
-    #                                               '6am and 6pm Monday to Friday and that '
-    #                                               'work outside that span is outside '
-    #                                               'ordinary hours and may be treated as '
-    #                                               'overtime. | The reviewed rules '
-    #                                               'expressly confine day-worker ordinary '
-    #                                               'hours to the weekday 6am to 6pm span.',
-    #                          'special_case_notes': 'The source describes a span boundary '
-    #                                                'rather than a complete overtime '
-    #                                                'algorithm, but it clearly supports '
-    #                                                'span overtime for day workers. | Work '
-    #                                                'outside this span is outside ordinary '
-    #                                                'hours for day workers and may be '
-    #                                                'treated as overtime or shiftwork under '
-    #                                                'the award.'},
+    #                          'source_ruleset_keys': ['overtime_consequence',
+    #                                                  'overtime_creation'],
+    #                          'source_rule_ids': ['all-employees-ordinary-hours-week-fortnight-cycle-and-span',
+    #                                              'meal-break-worked-through-overtime-rate'],
+    #                          'clause_references': ['22.2(a)', '24.1(b)'],
+    #                          'reasoning_summary': 'The reviewed rules say day-worker '
+    #                                               'ordinary hours must fall between 6.00 '
+    #                                               'am and 6.00 pm Monday to Friday, and '
+    #                                               'work outside those boundaries may be '
+    #                                               'overtime. | This is the plain-language '
+    #                                               'span rule stated in the reviewed '
+    #                                               'source.',
+    #                          'special_case_notes': 'The award also contains other overtime '
+    #                                                'triggers; this answer captures the '
+    #                                                'ordinary day-worker span rule only. | '
+    #                                                'This is a simplified live summary; the '
+    #                                                'source also links outside-span work to '
+    #                                                'overtime consequences.'},
     #  'span_overtime_hour': {'status': 'derived',
-    #                         'source_ruleset_keys': ['overtime_creation'],
-    #                         'source_rule_ids': ['day-worker-span-outside-6am-to-6pm-monday-to-friday'],
-    #                         'clause_references': ['22.2(a)', '22.1(c)'],
-    #                         'reasoning_summary': 'The reviewed rules state that day-worker '
-    #                                              'ordinary hours fall between 6am and 6pm '
-    #                                              'Monday to Friday and that work outside '
-    #                                              'that span is outside ordinary hours and '
-    #                                              'may be treated as overtime. | The live '
-    #                                              'span boundary for day workers is 6am to '
-    #                                              '6pm; the earliest cutoff is 6am. | The '
-    #                                              'reviewed rules expressly confine '
-    #                                              'day-worker ordinary hours to the weekday '
-    #                                              '6am to 6pm span.',
-    #                         'special_case_notes': 'The source describes a span boundary '
-    #                                               'rather than a complete overtime '
-    #                                               'algorithm, but it clearly supports span '
-    #                                               'overtime for day workers. | The award '
-    #                                               'has both a start and end boundary. The '
-    #                                               'calculator needs one live cutoff, so '
-    #                                               '6am is used as the main live cutoff. | '
-    #                                               'Work outside this span is outside '
-    #                                               'ordinary hours for day workers and may '
-    #                                               'be treated as overtime or shiftwork '
-    #                                               'under the award.'},
+    #                         'source_ruleset_keys': ['overtime_consequence',
+    #                                                 'overtime_creation'],
+    #                         'source_rule_ids': ['all-employees-ordinary-hours-week-fortnight-cycle-and-span',
+    #                                             'meal-break-worked-through-overtime-rate'],
+    #                         'clause_references': ['22.2(a)', '24.1(b)'],
+    #                         'reasoning_summary': 'The reviewed rules say day-worker '
+    #                                              'ordinary hours must fall between 6.00 am '
+    #                                              'and 6.00 pm Monday to Friday, and work '
+    #                                              'outside those boundaries may be '
+    #                                              'overtime. | The day-worker span cutoff '
+    #                                              'is 6.00 pm, so the live cutoff hour is '
+    #                                              '18. | This is the plain-language span '
+    #                                              'rule stated in the reviewed source.',
+    #                         'special_case_notes': 'The award also contains other overtime '
+    #                                               'triggers; this answer captures the '
+    #                                               'ordinary day-worker span rule only. | '
+    #                                               'Morning cutoff at 6.00 am is also in '
+    #                                               'the clause, but the questionnaire asks '
+    #                                               'for one live cutoff. | This is a '
+    #                                               'simplified live summary; the source '
+    #                                               'also links outside-span work to '
+    #                                               'overtime consequences.'},
     #  'gap_penalty_hours': {'status': 'derived',
-    #                        'source_ruleset_keys': ['overtime_creation', 'penalties'],
-    #                        'source_rule_ids': ['rest-period-after-overtime-less-than-10-consecutive-hours-off-duty',
-    #                                            'rest-break-between-rostered-work-22-4',
-    #                                            'sleepover-eight-hour-rest-gap-and-release',
-    #                                            'sleepover-resume-without-eight-hour-rest-double-time'],
-    #                        'clause_references': ['25.1(d)(i)',
-    #                                              '25.1(d)(ii)',
-    #                                              'clause 22.4(a)',
-    #                                              'clause 22.4(b)',
-    #                                              'clause 22.9(g)(iv)',
-    #                                              'clause 22.9(j)'],
-    #                        'reasoning_summary': 'The reviewed rules require a minimum rest '
-    #                                             'break between shifts and also provide a '
-    #                                             'post-overtime rest consequence when the '
-    #                                             'break is not met. | The standard minimum '
-    #                                             'break is 10 consecutive hours off duty '
-    #                                             'between shifts. | The reviewed rules '
-    #                                             'contain multiple rest-gap thresholds for '
-    #                                             'different contexts, so the calculator '
-    #                                             'records the standard live threshold plus '
-    #                                             'special cases.',
-    #                        'special_case_notes': 'The source contains both a general '
-    #                                              '10-hour rule and a mutually agreed '
-    #                                              'reduction to 8 hours, plus a separate '
-    #                                              'post-overtime 10-hour release rule. | '
-    #                                              'The source also allows an agreed '
-    #                                              'reduction to 8 hours, but 10 hours is '
-    #                                              'the standard live threshold. | Keep 10 '
-    #                                              'hours as the standard live threshold; 8 '
-    #                                              'hours applies only by mutual agreement '
-    #                                              'in the general rule and in '
-    #                                              'sleepover-specific consequence rules.'},
+    #                        'source_ruleset_keys': ['overtime_creation',
+    #                                                'penalties',
+    #                                                'overtime_consequence'],
+    #                        'source_rule_ids': ['rest-break-between-rostered-work',
+    #                                            'rest-period-after-overtime-10-consecutive-hours-off-duty',
+    #                                            'sleepover-insufficient-rest-gap-supporting-and-consequence-rule'],
+    #                        'clause_references': ['22.4(a)',
+    #                                              '22.4(b)',
+    #                                              '25.1(d)(i)',
+    #                                              '22.9(g)(iv)',
+    #                                              '22.9(j)'],
+    #                        'reasoning_summary': 'The reviewed rules require a minimum '
+    #                                             'break between shifts, with 10 hours as '
+    #                                             'the standard rule and an 8-hour reduction '
+    #                                             'by agreement. | The standard minimum rest '
+    #                                             'gap between rostered work periods is 10 '
+    #                                             'hours. | The source contains the standard '
+    #                                             '10-hour roster break, an 8-hour agreed '
+    #                                             'reduction, and specific 10-hour and '
+    #                                             '8-hour post-overtime/sleepover rest '
+    #                                             'rules.',
+    #                        'special_case_notes': 'There are also separate 10-hour rest '
+    #                                              'consequences after overtime and '
+    #                                              'sleepover work, but the calculator needs '
+    #                                              'one standard gap rule. | The clause '
+    #                                              'allows reduction to 8 hours by mutual '
+    #                                              'agreement; that is not the standard live '
+    #                                              'threshold. | These thresholds are '
+    #                                              'context-specific and should not be '
+    #                                              'conflated into one universal monetary '
+    #                                              'rule.'},
     #  'gap_penalty_rate': {'status': 'derived',
-    #                       'source_ruleset_keys': ['overtime_creation', 'penalties'],
-    #                       'source_rule_ids': ['rest-period-after-overtime-less-than-10-consecutive-hours-off-duty',
-    #                                           'rest-break-between-rostered-work-22-4',
-    #                                           'sleepover-eight-hour-rest-gap-and-release',
-    #                                           'sleepover-resume-without-eight-hour-rest-double-time'],
-    #                       'clause_references': ['25.1(d)(i)',
-    #                                             '25.1(d)(ii)',
-    #                                             'clause 22.4(a)',
-    #                                             'clause 22.4(b)',
-    #                                             'clause 22.9(g)(iv)',
-    #                                             'clause 22.9(j)'],
-    #                       'reasoning_summary': 'The reviewed rules require a minimum rest '
-    #                                            'break between shifts and also provide a '
-    #                                            'post-overtime rest consequence when the '
-    #                                            'break is not met. | Where the employer '
-    #                                            'directs continued work without the '
-    #                                            'required rest, the reviewed rule pays 200% '
-    #                                            'of the hourly rate, which is a 1.0 loading '
-    #                                            'above base. | The reviewed rules contain '
-    #                                            'multiple rest-gap thresholds for different '
-    #                                            'contexts, so the calculator records the '
-    #                                            'standard live threshold plus special '
-    #                                            'cases.',
-    #                       'special_case_notes': 'The source contains both a general '
-    #                                             '10-hour rule and a mutually agreed '
-    #                                             'reduction to 8 hours, plus a separate '
-    #                                             'post-overtime 10-hour release rule. | '
-    #                                             'This is the calculator loading above '
-    #                                             'base, not the total paid rate. | Keep 10 '
-    #                                             'hours as the standard live threshold; 8 '
-    #                                             'hours applies only by mutual agreement in '
-    #                                             'the general rule and in '
-    #                                             'sleepover-specific consequence rules.'},
+    #                       'source_ruleset_keys': ['overtime_creation',
+    #                                               'penalties',
+    #                                               'overtime_consequence'],
+    #                       'source_rule_ids': ['rest-break-between-rostered-work',
+    #                                           'rest-period-after-overtime-10-consecutive-hours-off-duty',
+    #                                           'sleepover-insufficient-rest-gap-supporting-and-consequence-rule'],
+    #                       'clause_references': ['22.4(a)',
+    #                                             '22.4(b)',
+    #                                             '25.1(d)(i)',
+    #                                             '22.9(g)(iv)',
+    #                                             '22.9(j)'],
+    #                       'reasoning_summary': 'The reviewed rules require a minimum break '
+    #                                            'between shifts, with 10 hours as the '
+    #                                            'standard rule and an 8-hour reduction by '
+    #                                            'agreement. | The rest-gap clause itself '
+    #                                            'sets a minimum break but does not state a '
+    #                                            'general monetary breach loading in the '
+    #                                            'reviewed rules. | The source contains the '
+    #                                            'standard 10-hour roster break, an 8-hour '
+    #                                            'agreed reduction, and specific 10-hour and '
+    #                                            '8-hour post-overtime/sleepover rest rules.',
+    #                       'special_case_notes': 'There are also separate 10-hour rest '
+    #                                             'consequences after overtime and sleepover '
+    #                                             'work, but the calculator needs one '
+    #                                             'standard gap rule. | Separate '
+    #                                             'overtime/rest-period clauses can create '
+    #                                             'double-time consequences in specific '
+    #                                             'circumstances, but not a single universal '
+    #                                             'gap breach multiplier. | These thresholds '
+    #                                             'are context-specific and should not be '
+    #                                             'conflated into one universal monetary '
+    #                                             'rule.'},
     #  'penalties': {'status': 'derived',
-    #                'source_ruleset_keys': ['penalties', 'overtime_consequence'],
-    #                'source_rule_ids': ['shiftwork-afternoon-and-night-shift-allowances',
-    #                                    'casual-loading-and-basic-casual-hourly-rate',
-    #                                    'public-holiday-day-workers-election',
-    #                                    'public-holiday-part-time-eligibility-and-election',
-    #                                    'public-holiday-casual-hours-paid-at-275',
-    #                                    'sleepover-allowance-and-supporting-conditions',
-    #                                    'sleepover-non-emergency-work-extra-pay',
-    #                                    'sleepover-full-time-worked-time-overtime',
-    #                                    'sleepover-part-time-worked-time-with-penalties',
-    #                                    'sleepover-casual-worked-time-with-penalties',
-    #                                    'sleepover-eight-hour-rest-gap-and-release',
-    #                                    'sleepover-resume-without-eight-hour-rest-double-time',
-    #                                    'rest-period-after-overtime-25-1-d'],
-    #                'clause_references': ['clause 26.1',
-    #                                      'clause 26.2',
-    #                                      'clause 10.4(b)',
-    #                                      'clause 29.2(a)(i)',
-    #                                      'clause 29.2(b)(i)',
-    #                                      'clause 29.2(c)(i)',
-    #                                      'clause 22.9(a)',
-    #                                      'clause 22.9(e)',
-    #                                      'clause 22.9(g)(i)',
-    #                                      'clause 22.9(g)(ii)',
-    #                                      'clause 22.9(g)(iii)',
-    #                                      'clause 22.9(j)',
-    #                                      'clause 25.1(d)(i)',
-    #                                      'clause 25.1(d)(ii)'],
-    #                'reasoning_summary': 'The reviewed rules provide standard shift '
-    #                                     'allowances based on the shift commencement time '
-    #                                     'bands, which can be represented as shift-based '
-    #                                     'weekday penalties. | No additional standard '
-    #                                     'weekday time-based penalty windows beyond the '
-    #                                     'shift-based commencement allowances were '
-    #                                     'supported cleanly by the reviewed rules. | The '
-    #                                     'reviewed rules include several non-weekday and '
-    #                                     'consequence-based payments that should not be '
-    #                                     'represented as live weekday penalty windows.',
-    #                'special_case_notes': 'These are allowances applied to the whole shift, '
-    #                                      'and for employees under 38 hours per week they '
-    #                                      'apply only if the shift starts before 06:00 or '
-    #                                      'finishes after 18:00. Permanent night-shift '
-    #                                      'variants are not separately encoded. | Weekend, '
-    #                                      'public holiday, casual-loading, meal-break, and '
-    #                                      'sleepover rules were excluded from the live '
-    #                                      'weekday penalty list as instructed. | Shift '
-    #                                      'allowances are the only standard weekday '
-    #                                      'penalty-like items encoded. All other '
-    #                                      'exceptional or calendar-dependent items were '
-    #                                      'excluded per instructions.'},
+    #                'source_ruleset_keys': ['penalties'],
+    #                'source_rule_ids': ['afternoon-and-night-shift-allowances-by-commencement-time',
+    #                                    'shift-allowance-paid-for-entire-shift',
+    #                                    'shiftworker-weekend-ordinary-hours-penalties',
+    #                                    'casual-weekend-penalty-rates',
+    #                                    'sleepover-conditions-allowance-and-non-emergency-work',
+    #                                    'broken-shift-conditions-and-pay'],
+    #                'clause_references': ['26.1',
+    #                                      '26.2',
+    #                                      '23.1',
+    #                                      '23.2(a)',
+    #                                      '23.2(b)',
+    #                                      '22.9',
+    #                                      '22.8'],
+    #                'reasoning_summary': 'The reviewed rules provide '
+    #                                     'commencement-time-based whole-shift allowances '
+    #                                     'with numeric windows that can be represented '
+    #                                     'directly. | No other standard weekday-only '
+    #                                     'time-based penalty windows are clearly supported '
+    #                                     'in the reviewed rules. | The source includes '
+    #                                     'several non-weekday or special-context payment '
+    #                                     'rules that should not be treated as standard '
+    #                                     'weekday penalties.',
+    #                'special_case_notes': 'These are allowances, not weekend or public '
+    #                                      'holiday penalties. The allowance applies to the '
+    #                                      'entire shift once the start-time condition is '
+    #                                      'met. | Weekend penalties, casual loading, '
+    #                                      'meal-break rules, sleepover rules, and '
+    #                                      'rotation-dependent or non-time conditions were '
+    #                                      'excluded from the live weekday penalty list. | '
+    #                                      'Casual loading is not treated as a penalty '
+    #                                      'rule.'},
     #  'hours_pen_rules': {'status': 'defaulted',
     #                      'source_ruleset_keys': [],
     #                      'source_rule_ids': [],
@@ -389,98 +356,104 @@ class MA000018Rules:
     #                                           'generated in step 6.1 yet.',
     #                      'special_case_notes': ''},
     #  'weekend_rules': {'status': 'derived',
-    #                    'source_ruleset_keys': ['overtime_consequence',
-    #                                            'overtime_creation',
-    #                                            'penalties'],
-    #                    'source_rule_ids': ['merged-25-1-a-full-time-overtime-rates',
-    #                                        'merged-25-1-b-part-time-overtime-rates',
-    #                                        'day-worker-span-outside-6am-to-6pm-monday-to-friday',
-    #                                        'weekend-ordinary-hours-for-shiftworkers'],
-    #                    'clause_references': ['25.1(a)(i)', '25.1(b)(i)', '22.2(a)', '23.1'],
-    #                    'reasoning_summary': 'The reviewed rules do not provide a '
-    #                                         'day-worker ordinary-hours penalty regime for '
-    #                                         'Saturday; day-worker ordinary hours are '
-    #                                         'confined to Monday to Friday, so Saturday '
-    #                                         'work is treated as overtime. | The reviewed '
-    #                                         'rules do not provide a day-worker '
-    #                                         'ordinary-hours penalty regime for Sunday; '
-    #                                         'day-worker ordinary hours are confined to '
-    #                                         'Monday to Friday, so Sunday work is treated '
-    #                                         'as overtime. | For shiftworkers, ordinary '
-    #                                         'weekend hours attract weekend penalty-style '
-    #                                         'rates rather than overtime in the reviewed '
-    #                                         'rules. | For shiftworkers, ordinary Sunday '
-    #                                         'hours attract weekend penalty-style rates '
-    #                                         'rather than overtime in the reviewed rules. | '
-    #                                         'The reviewed rules do not provide a standard '
-    #                                         'day-worker Saturday penalty loading. '
-    #                                         'Day-worker weekend work is treated as '
-    #                                         'overtime instead. | The reviewed rules do not '
-    #                                         'provide a standard day-worker Sunday penalty '
-    #                                         'loading. Day-worker weekend work is treated '
-    #                                         'as overtime instead. | Shiftworkers receive '
-    #                                         '1.5x for Friday midnight to Saturday '
-    #                                         'midnight, which is a 0.5 loading above base. '
-    #                                         '| Shiftworkers receive 1.75x for Saturday '
-    #                                         'midnight to Sunday midnight, which is a 0.75 '
-    #                                         'loading above base.',
-    #                    'special_case_notes': 'For day workers, weekend work is outside '
-    #                                          'ordinary-hours span. The calculator should '
-    #                                          'not treat it as a day-worker penalty rate. | '
-    #                                          'This applies to ordinary hours that include '
-    #                                          'weekend work for shiftworkers. | Do not '
-    #                                          'infer a day-worker Saturday penalty from '
-    #                                          'shiftworker or casual weekend rules. | Do '
-    #                                          'not infer a day-worker Sunday penalty from '
-    #                                          'shiftworker or casual weekend rules. | The '
-    #                                          'source describes this as weekend '
-    #                                          'ordinary-hours pay for shiftworkers, not '
-    #                                          'overtime.'},
+    #                    'source_ruleset_keys': ['overtime_consequence', 'penalties'],
+    #                    'source_rule_ids': ['full-time-overtime-rates-general',
+    #                                        'part-time-overtime-rates-general',
+    #                                        'shiftworker-weekend-ordinary-hours-penalties'],
+    #                    'clause_references': ['25.1(a)(i)(C)', '25.1(b)(i)', '23.1'],
+    #                    'reasoning_summary': 'For day workers, the reviewed overtime tables '
+    #                                         'state Saturday overtime at 200%, which is '
+    #                                         'overtime treatment. | For day workers, Sunday '
+    #                                         'work is paid at the overtime rate in the '
+    #                                         'reviewed tables. | Shiftworkers with weekend '
+    #                                         'ordinary hours receive weekend ordinary-hours '
+    #                                         'penalty rates for Saturday work. | '
+    #                                         'Shiftworkers with weekend ordinary hours '
+    #                                         'receive weekend ordinary-hours penalty rates '
+    #                                         'for Sunday work. | The reviewed rules do not '
+    #                                         'provide a separate day-worker Saturday '
+    #                                         'penalty loading; Saturday work for day '
+    #                                         'workers is dealt with through overtime rates '
+    #                                         'instead. | The reviewed rules do not provide '
+    #                                         'a separate day-worker Sunday penalty loading; '
+    #                                         'Sunday work for day workers is dealt with '
+    #                                         'through overtime rates instead. | Shiftworker '
+    #                                         'ordinary hours on Saturday are paid at 1.5x, '
+    #                                         'which is a 0.5 loading above base. | '
+    #                                         'Shiftworker ordinary hours on Sunday are paid '
+    #                                         'at 1.75x, which is a 0.75 loading above base.',
+    #                    'special_case_notes': 'Weekend penalty substitution rules exist for '
+    #                                          'shiftworkers and casuals, but day-worker '
+    #                                          'weekend ordinary hours are not given a '
+    #                                          'separate penalty regime in the reviewed '
+    #                                          'rules. | These rates substitute for shift '
+    #                                          'premiums and are separate from overtime-rate '
+    #                                          'selection. | Do not infer a penalty loading '
+    #                                          'from overtime tables. | This is a total-rate '
+    #                                          'substitution for ordinary hours, not an '
+    #                                          'overtime loading.'},
     #  'two_tier_overtime': {'status': 'derived',
     #                        'source_ruleset_keys': ['overtime_consequence'],
-    #                        'source_rule_ids': ['merged-25-1-a-full-time-overtime-rates',
-    #                                            'merged-25-1-b-part-time-overtime-rates',
-    #                                            'merged-10-4-c-casual-overtime-rates'],
-    #                        'clause_references': ['25.1(a)(i)',
+    #                        'source_rule_ids': ['full-time-overtime-rates-general',
+    #                                            'part-time-overtime-rates-general',
+    #                                            'casual-overtime-rates-general'],
+    #                        'clause_references': ['25.1(a)(i)(A)',
+    #                                              '25.1(a)(i)(B)',
     #                                              '25.1(b)(i)',
-    #                                              '25.1(c)(i)',
-    #                                              '25.1(c)(ii)'],
-    #                        'reasoning_summary': 'The reviewed rules provide a first-tier '
-    #                                             'overtime rate and a higher rate '
-    #                                             'thereafter for full-time, part-time, and '
-    #                                             'casual overtime in the standard contexts.',
-    #                        'special_case_notes': 'Casual overtime also has a two-tier '
-    #                                              'structure, but the exact rates differ by '
-    #                                              'overtime trigger and day of week.'},
+    #                                              '25.1(c)(i)'],
+    #                        'reasoning_summary': 'The overtime tables show a first overtime '
+    #                                             'tier and a higher subsequent tier for '
+    #                                             'Monday to Friday overtime.',
+    #                        'special_case_notes': 'Two-tier overtime applies on standard '
+    #                                              'weekday overtime tables; weekend/public '
+    #                                              'holiday rates are separate fixed rates.'},
     #  'two_tier_overtime_threshold': {'status': 'derived',
     #                                  'source_ruleset_keys': ['overtime_consequence'],
-    #                                  'source_rule_ids': ['merged-25-1-a-full-time-overtime-rates',
-    #                                                      'merged-25-1-b-part-time-overtime-rates',
-    #                                                      'merged-10-4-c-casual-overtime-rates'],
-    #                                  'clause_references': ['25.1(a)(i)',
+    #                                  'source_rule_ids': ['full-time-overtime-rates-general',
+    #                                                      'part-time-overtime-rates-general',
+    #                                                      'casual-overtime-rates-general'],
+    #                                  'clause_references': ['25.1(a)(i)(A)',
+    #                                                        '25.1(a)(i)(B)',
     #                                                        '25.1(b)(i)',
-    #                                                        '25.1(c)(i)',
-    #                                                        '25.1(c)(ii)'],
-    #                                  'reasoning_summary': 'The reviewed rules provide a '
-    #                                                       'first-tier overtime rate and a '
-    #                                                       'higher rate thereafter for '
-    #                                                       'full-time, part-time, and '
-    #                                                       'casual overtime in the standard '
-    #                                                       'contexts. | The reviewed rules '
-    #                                                       'state that the higher overtime '
-    #                                                       'rate applies after the first '
-    #                                                       'two overtime hours in the '
-    #                                                       'standard Monday-to-Friday '
-    #                                                       'overtime context.',
-    #                                  'special_case_notes': 'Casual overtime also has a '
-    #                                                        'two-tier structure, but the '
-    #                                                        'exact rates differ by overtime '
-    #                                                        'trigger and day of week. | '
-    #                                                        'Some casual overtime contexts '
-    #                                                        'also apply the first-two-hours '
-    #                                                        'rule, but '
-    #                                                        'weekend/public-holiday rates '
-    #                                                        'can differ.'},
+    #                                                        '25.1(c)(i)'],
+    #                                  'reasoning_summary': 'The overtime tables show a '
+    #                                                       'first overtime tier and a '
+    #                                                       'higher subsequent tier for '
+    #                                                       'Monday to Friday overtime. | '
+    #                                                       'The reviewed overtime tables '
+    #                                                       'state that the higher weekday '
+    #                                                       'overtime rate applies after the '
+    #                                                       'first two overtime hours.',
+    #                                  'special_case_notes': 'Two-tier overtime applies on '
+    #                                                        'standard weekday overtime '
+    #                                                        'tables; weekend/public holiday '
+    #                                                        'rates are separate fixed '
+    #                                                        'rates. | The higher rate '
+    #                                                        'starts only after hours '
+    #                                                        'greater than 2, not at exactly '
+    #                                                        '2 hours.'},
+    #  'extended_overtime_days': {'status': 'derived',
+    #                             'source_ruleset_keys': ['overtime_consequence'],
+    #                             'source_rule_ids': ['full-time-overtime-rates-general',
+    #                                                 'part-time-overtime-rates-general',
+    #                                                 'casual-overtime-rates-general'],
+    #                             'clause_references': ['25.1(a)(i)(A)',
+    #                                                   '25.1(a)(i)(B)',
+    #                                                   '25.1(b)(i)',
+    #                                                   '25.1(c)(i)'],
+    #                             'reasoning_summary': 'The overtime tables show a first '
+    #                                                  'overtime tier and a higher '
+    #                                                  'subsequent tier for Monday to Friday '
+    #                                                  'overtime. | The two-tier overtime '
+    #                                                  'structure applies on the weekday '
+    #                                                  'tables covering Monday to Friday.',
+    #                             'special_case_notes': 'Two-tier overtime applies on '
+    #                                                   'standard weekday overtime tables; '
+    #                                                   'weekend/public holiday rates are '
+    #                                                   'separate fixed rates. | Weekend '
+    #                                                   'days use separate fixed overtime '
+    #                                                   'rates rather than the two-tier '
+    #                                                   'weekday structure.'},
     #  'use_contracted_hours_for_pt_overtime': {'status': 'defaulted',
     #                                           'source_ruleset_keys': [],
     #                                           'source_rule_ids': [],
