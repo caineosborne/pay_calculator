@@ -16,7 +16,6 @@ Dependencies:
 - rules module for award-specific rule sets
 """
 
-from .award_registry import default_award_key
 from .rules import get_rules_for_award
 
 class PayRules:
@@ -39,22 +38,18 @@ class PayRules:
     different awards.
     """
     
-    # Default award if none is specified
-    _DEFAULT_AWARD = default_award_key()
-    
     # Class variable to store the active rules
     _active_rules = None
     
     @classmethod
-    def set_award(cls, award: str = None):
+    def set_award(cls, award: str):
         """
         Set the active award rules.
         
         Args:
             award: String identifier for the award
-                  If None, uses the default award.
+                  An explicit award key is required.
         """
-        award = award or cls._DEFAULT_AWARD
         cls._active_rules = get_rules_for_award(award)
     
     @classmethod
@@ -62,13 +57,13 @@ class PayRules:
         """
         Get the currently active rule set.
         
-        If no rules are active, initializes with the default award.
+        If no rules are active, raises an error because no award was selected.
         
         Returns:
             The active rule class for the selected award
         """
         if cls._active_rules is None:
-            cls.set_award(cls._DEFAULT_AWARD)
+            raise RuntimeError("No award has been selected.")
         return cls._active_rules
     
     #

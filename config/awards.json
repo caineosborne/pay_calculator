@@ -3,8 +3,7 @@
     "key": "hospitality",
     "label": "Hospitality Award",
     "module": "hospitality_rules",
-    "class_name": "HospitalityRules",
-    "default": true
+    "class_name": "HospitalityRules"
   },
   {
     "key": "aged_care",
@@ -37,14 +36,8 @@
     "class_name": "ClerksPrivateSectorRules"
   },
   {
-    "key": "ma000120",
-    "label": "MA120",
-    "module": "MA120",
-    "class_name": "MA000120Rules"
-  },
-  {
     "key": "ma000018",
-    "label": "Auto- Aged Care Award",
+    "label": "Auto ChildCare",
     "module": "MA000018_ruleset",
     "class_name": "MA000018Rules"
   }

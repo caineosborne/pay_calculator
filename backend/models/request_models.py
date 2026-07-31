@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 from typing import List, Optional
 from enum import Enum
 
-from services.award_registry import default_award_key, award_keys
+from services.award_registry import award_keys
 
 class WorkerType(str, Enum):
     """
@@ -78,7 +78,7 @@ class PayRequest(BaseModel):
     """
     hourly_rate: float = Field(gt=0)
     worker_type: WorkerType = Field(default=WorkerType.SHIFT)
-    award: AwardType = Field(default=AwardType(default_award_key()))
+    award: AwardType
     employment_type: EmploymentType = Field(default=EmploymentType.FULL_TIME)
     contracted_hours: Optional[float] = None
     shifts: List[Shift]

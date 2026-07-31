@@ -24,7 +24,6 @@ export function InputDetails() {
     const { state, dispatch } = usePay();
     const [showRules, setShowRules] = useState(false);
     const [awards, setAwards] = useState([]);
-    const defaultAward = awards.find((award) => award.default)?.key || 'hospitality';
 
     /**
      * Handles changes to the hourly rate input field.
@@ -123,17 +122,8 @@ export function InputDetails() {
                 const currentAwardExists = awardOptions.some(
                     (award) => award.key === state.config.award
                 );
-                if (!currentAwardExists) {
-                    const configuredDefault =
-                        awardOptions.find((award) => award.default)?.key ||
-                        awardOptions[0]?.key;
-
-                    if (configuredDefault) {
-                        dispatch({
-                            type: 'UPDATE_AWARD',
-                            payload: configuredDefault
-                        });
-                    }
+                if (!currentAwardExists && state.config.award !== null) {
+                    dispatch({ type: 'UPDATE_AWARD', payload: null });
                 }
             } catch (error) {
                 console.error('Failed to load awards:', error);
@@ -170,10 +160,11 @@ export function InputDetails() {
                             Award
                         </label>
                         <select
-                            value={state.config.award || defaultAward}
+                            value={state.config.award || ''}
                             onChange={(e) => handleAwardChange(e.target.value)}
                             className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                         >
+                            <option value="" disabled>Select an award</option>
                             {awards.map((award) => (
                                 <option key={award.key} value={award.key}>
                                     {award.label}

@@ -24,6 +24,8 @@ import { formatCurrency } from '../../utils/formatters';
 
 const FORTNIGHTS_PER_YEAR = 26;
 const MEDICARE_LEVY_RATE = 0.02;
+const MEDICARE_LOW_INCOME_THRESHOLD = 28011;
+const MEDICARE_LEVY_PHASE_IN_RATE = 0.10;
 
 // The 15% first bracket is the rate effective from 1 July 2026.
 const calculateIncomeTax = (annualIncome) => {
@@ -34,10 +36,33 @@ const calculateIncomeTax = (annualIncome) => {
     return 51370 + (annualIncome - 190000) * 0.45;
 };
 
+// The LITO reduces income tax, but cannot create a refund by itself.
+const calculateLowIncomeTaxOffset = (annualIncome) => {
+    if (annualIncome <= 37500) return 700;
+    if (annualIncome <= 45000) return 700 - (annualIncome - 37500) * 0.05;
+    if (annualIncome <= 66667) return 325 - (annualIncome - 45000) * 0.015;
+    return 0;
+};
+
+// Single person, no dependants. The levy phases in at 10c per dollar until
+// it reaches the standard 2% levy.
+const calculateMedicareLevy = (annualIncome) => {
+    const reducedLevy = Math.max(
+        0,
+        (annualIncome - MEDICARE_LOW_INCOME_THRESHOLD) * MEDICARE_LEVY_PHASE_IN_RATE
+    );
+
+    return Math.min(annualIncome * MEDICARE_LEVY_RATE, reducedLevy);
+};
+
 const calculateEstimatedFortnightlyNetPay = (fortnightlyGrossPay) => {
     const annualGrossPay = fortnightlyGrossPay * FORTNIGHTS_PER_YEAR;
-    const annualTax = calculateIncomeTax(annualGrossPay);
-    const annualMedicareLevy = annualGrossPay * MEDICARE_LEVY_RATE;
+    const annualIncomeTax = calculateIncomeTax(annualGrossPay);
+    const annualTax = Math.max(
+        0,
+        annualIncomeTax - calculateLowIncomeTaxOffset(annualGrossPay)
+    );
+    const annualMedicareLevy = calculateMedicareLevy(annualGrossPay);
 
     return (annualGrossPay - annualTax - annualMedicareLevy) / FORTNIGHTS_PER_YEAR;
 };
@@ -101,7 +126,7 @@ const SummaryTable = () => {
                 <div className="text-gray-600 mb-1">Estimated net pay</div>
                 <div className="text-green-600 font-bold text-2xl">{formatCurrency(estimatedNetPay)}</div>
                 <div className="text-gray-500 text-xs mt-1">
-                    Approximate fortnightly amount after income tax and the 2% Medicare levy only.
+                    Approximate fortnightly amount after income tax, LITO and Medicare levy. Assumes a single person with no dependants.
                 </div>
             </div>
         </div>

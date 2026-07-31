@@ -33,10 +33,7 @@ def award_keys() -> list[str]:
 
 
 def default_award_key() -> str:
-    for award in load_awards():
-        if award.get("default"):
-            return award["key"]
-    return load_awards()[0]["key"]
+    raise RuntimeError("No default award is configured; an award must be selected explicitly.")
 
 
 def public_awards() -> list[dict]:

@@ -52,8 +52,8 @@ export function ShiftCalculator({ children }) {
             });
 
             // If no hourly rate or no valid shifts, skip calculation
-            if (!state.config.hourlyRate || validShifts.length === 0) {
-                console.log('No hourly rate or valid shifts, skipping calculation');
+            if (!state.config.hourlyRate || !state.config.award || validShifts.length === 0) {
+                console.log('No hourly rate, award, or valid shifts, skipping calculation');
                 return;
             }
 

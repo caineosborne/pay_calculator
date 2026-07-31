@@ -20,7 +20,7 @@ class MA000018Rules:
     TWO_TIER_OVERTIME_THRESHOLD = 2
     EXTENDED_OVERTIME_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday','Saturday','Sunday']
     USE_CONTRACTED_HOURS_FOR_PT_OVERTIME = True
-    PT_EMPLOYEES_ENTITLED_TO_CONTRACTED_TOPUP = True
+    PT_EMPLOYEES_ENTITLED_TO_CONTRACTED_TOPUP = False
     FT_EMPLOYEES_ENTITLED_TO_CONTRACTED_TOPUP = True
     PENALTIES = {'afternoon_shift': {'type': 'shift_based',
                          'basis': 'start',
