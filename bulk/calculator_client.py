@@ -16,6 +16,8 @@ WEEKDAYS = (
     "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday",
 )
 REQUIRED_COLUMNS = {"shift_date", "start_time", "end_time"}
+EMD_COLUMNS = ("employee", "hourly_rate", "award", "worker_type", "employment_type", "contracted_hours", "pay_cycle_start_day", "pay_cycle_anchor", "rule_configuration")
+AWARDS = {"aged_care", "hospitality", "child_care", "nurses", "clerks_private_sector", "MA000018", "MA000120", "eb11"}
 
 
 class BulkImportError(ValueError):
@@ -79,33 +81,69 @@ def parse_csv(contents: bytes) -> list[dict[str, Any]]:
     return shifts
 
 
+def parse_emd_csv(contents: bytes) -> dict[str, dict[str, Any]]:
+    """Read the strict employee master data (EMD) CSV contract."""
+    try:
+        reader = csv.DictReader(io.StringIO(contents.decode("utf-8-sig")))
+        if tuple(reader.fieldnames or ()) != EMD_COLUMNS:
+            raise BulkImportError(f"EMD headers must exactly be: {', '.join(EMD_COLUMNS)}.")
+        rows = list(reader)
+    except UnicodeDecodeError as error:
+        raise BulkImportError("EMD must be UTF-8 encoded.") from error
+    if not rows:
+        raise BulkImportError("The EMD has no employee rows.")
+    profiles = {}
+    for row_number, row in enumerate(rows, start=2):
+        employee = row["employee"].strip()
+        if not employee or employee in profiles:
+            raise BulkImportError(f"EMD row {row_number}: employee must be unique and non-empty.")
+        try:
+            hourly_rate = float(row["hourly_rate"])
+            contracted_hours = float(row["contracted_hours"]) if row["contracted_hours"] else None
+        except ValueError as error:
+            raise BulkImportError(f"EMD row {row_number}: hourly_rate and contracted_hours must be numbers.") from error
+        if hourly_rate <= 0 or (contracted_hours is not None and contracted_hours < 0):
+            raise BulkImportError(f"EMD row {row_number}: hours and rate cannot be negative or zero.")
+        if row["award"] not in AWARDS or row["worker_type"] not in {"shift", "day"} or row["employment_type"] not in {"full_time", "part_time", "casual"} or row["pay_cycle_start_day"] not in WEEKDAYS:
+            raise BulkImportError(f"EMD row {row_number}: an award, employment value, or pay-cycle day is invalid.")
+        profiles[employee] = {"hourly_rate": hourly_rate, "award": row["award"], "worker_type": row["worker_type"], "employment_type": row["employment_type"], "contracted_hours": contracted_hours, "pay_cycle_start_day": row["pay_cycle_start_day"], "pay_cycle_anchor": row["pay_cycle_anchor"], "rule_configuration": row["rule_configuration"]}
+    return profiles
+
+
 def cycle_start(shift_date: date, cycle_anchor: date) -> date:
     """Return the 14-day cycle start relative to a known Week 1 start."""
     period_offset = (shift_date - cycle_anchor).days // 14
     return cycle_anchor + timedelta(days=period_offset * 14)
 
 
-def create_requests(shifts: list[dict[str, Any]], profile: dict[str, Any]) -> list[dict[str, Any]]:
+def create_requests(shifts: list[dict[str, Any]], profiles: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
     """Create one unchanged `/calculate` payload per employee/fortnight."""
-    cycle_day = profile["pay_cycle_start_day"]
-    configured_anchor = profile.get("pay_cycle_anchor")
-    if configured_anchor:
-        try:
-            cycle_anchor = date.fromisoformat(configured_anchor)
-        except ValueError as error:
-            raise BulkImportError("First Week 1 start must use YYYY-MM-DD.") from error
-        if cycle_anchor.strftime("%A") != cycle_day:
-            raise BulkImportError(f"First Week 1 start must be a {cycle_day}.")
-    else:
-        earliest_shift = min(shift["shift_date"] for shift in shifts)
-        start_day = WEEKDAYS.index(cycle_day)
-        cycle_anchor = earliest_shift - timedelta(days=(earliest_shift.weekday() - start_day) % 7)
     grouped: dict[tuple[str, date], list[dict[str, Any]]] = defaultdict(list)
-    for shift in shifts:
-        grouped[(shift["employee"], cycle_start(shift["shift_date"], cycle_anchor))].append(shift)
+    for employee in {shift["employee"] for shift in shifts}:
+        if employee not in profiles:
+            raise BulkImportError(f"No employment profile was supplied for {employee}.")
+        profile = profiles[employee]
+        cycle_day = profile["pay_cycle_start_day"]
+        employee_shifts = [shift for shift in shifts if shift["employee"] == employee]
+        configured_anchor = profile.get("pay_cycle_anchor")
+        if configured_anchor:
+            try:
+                cycle_anchor = date.fromisoformat(configured_anchor)
+            except ValueError as error:
+                raise BulkImportError(f"{employee}: First Week 1 start must use YYYY-MM-DD.") from error
+            if cycle_anchor.strftime("%A") != cycle_day:
+                raise BulkImportError(f"{employee}: First Week 1 start must be a {cycle_day}.")
+        else:
+            earliest_shift = min(shift["shift_date"] for shift in employee_shifts)
+            start_day = WEEKDAYS.index(cycle_day)
+            cycle_anchor = earliest_shift - timedelta(days=(earliest_shift.weekday() - start_day) % 7)
+        for shift in employee_shifts:
+            grouped[(employee, cycle_start(shift["shift_date"], cycle_anchor))].append(shift)
 
     requests = []
     for (employee, period_start), periods in sorted(grouped.items()):
+        profile = profiles[employee]
+        cycle_day = profile["pay_cycle_start_day"]
         api_shifts = []
         dates_by_key: dict[tuple[int, str], list[dict[str, Any]]] = defaultdict(list)
         for shift in periods:
@@ -156,10 +194,10 @@ def call_api(api_url: str, payload: dict[str, Any]) -> dict[str, Any]:
         raise BulkImportError(f"Could not reach the calculator API: {error.reason}") from error
 
 
-def calculate_upload(shifts: list[dict[str, Any]], profile: dict[str, Any], api_url: str) -> tuple[list[dict], list[dict]]:
+def calculate_upload(shifts: list[dict[str, Any]], profiles: dict[str, dict[str, Any]], api_url: str) -> tuple[list[dict], list[dict]]:
     """Call the existing API and shape its results for the two UI screens."""
     shift_rows, fortnight_rows = [], []
-    for job in create_requests(shifts, profile):
+    for job in create_requests(shifts, profiles):
         result = call_api(api_url, job["payload"])
         fortnight_rows.append({
             "Employee": job["employee"], "Period start": job["period_start"].isoformat(),
