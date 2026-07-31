@@ -86,7 +86,7 @@ class PayCalculator:
             ordinary_hours = 0
             applied_rules.append(f"{shift.day} Overtime")
         else:
-            # 1b. Check for span overtime (after 6pm for day workers)
+            # 1b. Check for span overtime outside the configured day-worker span.
             span_ot = self.rules.calculate_span_overtime(shift.start, end_time, daily_hours, self.worker_type)
             if span_ot > 0:
                 overtime_hours += span_ot
@@ -337,9 +337,15 @@ class PayCalculator:
         # Calculate topup pay
         topup_pay = round(topup_hours * self.data.hourly_rate, 2)
         
-        # Calculate overtime pay using day-specific rates
+        # Calculate overtime pay using day-specific rates. Two-tier awards pay
+        # the initial overtime hours at the standard rate and only the balance
+        # at the higher rate.
         overtime_pay = sum(
-            self.breakdown[day]['overtime'] * self.data.hourly_rate * self.breakdown[day].get('overtime_rate', rules.STANDARD_OVERTIME_RATE)
+            self.rules.calculate_overtime_pay(
+                day.rsplit(' - ', 1)[-1],
+                self.breakdown[day]['overtime'],
+                self.data.hourly_rate,
+            )
             for day in self.breakdown
         )
         overtime_pay = round(overtime_pay, 2)
@@ -392,7 +398,14 @@ class PayCalculator:
                 if getattr(rules, 'SPAN_OVERTIME_HOUR', None) is not None:
                     span_parts.append(f"After {rules.SPAN_OVERTIME_HOUR}:00")
                 span_hours_display = ' or '.join(span_parts) or "Not applicable"
-                span_rate_display = f"{rules.STANDARD_OVERTIME_RATE}x"
+                if getattr(rules, 'TWO_TIER_OVERTIME', False):
+                    span_rate_display = (
+                        f"First {rules.TWO_TIER_OVERTIME_THRESHOLD} overtime hours "
+                        f"at {rules.STANDARD_OVERTIME_RATE}x; then "
+                        f"{rules.EXTENDED_OVERTIME_RATE}x"
+                    )
+                else:
+                    span_rate_display = f"{rules.STANDARD_OVERTIME_RATE}x"
         elif hasattr(rules, 'SPAN_OVERTIME_HOUR') and self.worker_type == 'day':
             span_hours_display = f"After {rules.SPAN_OVERTIME_HOUR}:00"
             span_rate_display = f"{rules.STANDARD_OVERTIME_RATE}x"

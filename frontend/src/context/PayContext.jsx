@@ -21,6 +21,7 @@ const initialState = {
         totalHours: 0,
         appliedRules: null
     },
+    calculationRevision: 0,
     payments: {
         ordinaryPay: 0,
         overtimePay: 0,
@@ -93,6 +94,11 @@ function payReducer(state, action) {
                 ...state,
                 calculations: action.payload.calculations,
                 payments: action.payload.payments
+            };
+        case 'REFRESH_CALCULATION':
+            return {
+                ...state,
+                calculationRevision: state.calculationRevision + 1
             };
         default:
             return state;

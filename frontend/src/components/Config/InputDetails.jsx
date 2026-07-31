@@ -143,6 +143,7 @@ export function InputDetails() {
     const handleConfigurationSaved = async (savedConfiguration) => {
         await refreshRuleConfigurations();
         handleRuleConfigurationChange(savedConfiguration.id);
+        dispatch({ type: 'REFRESH_CALCULATION' });
     };
 
     const awardRuleConfigurations = ruleConfigurations.filter(

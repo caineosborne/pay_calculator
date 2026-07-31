@@ -30,7 +30,7 @@ export const QUESTIONNAIRE_SECTIONS = [
         description: 'Applies to day workers only. Set overtime before and/or after the ordinary span.',
         fields: [
             ['applies', 'Does overtime apply outside the ordinary span?', 'boolean'],
-            ['before_cutoff_hour', 'Ordinary span starts at (24-hour time)', 'number'],
+            ['before_cutoff_hour', 'Span overtime morning cut-off (24-hour time)', 'number'],
             ['cutoff_hour', 'Ordinary span ends at (24-hour time)', 'number'],
         ],
     },

@@ -158,6 +158,48 @@ class RuleConfigurationTests(unittest.TestCase):
         result = custom_calculator.calculate_pay()
         self.assertEqual(result.overtime_hours, 4)
 
+    def test_aged_care_day_work_before_morning_span_cutoff_is_overtime(self):
+        result = PayCalculator(
+            PayRequest(
+                hourly_rate=20,
+                worker_type="day",
+                award="aged_care",
+                employment_type="full_time",
+                shifts=[
+                    {
+                        "day": "Monday",
+                        "start": 5,
+                        "end": 6,
+                        "break_duration": 0,
+                    }
+                ],
+            )
+        ).calculate_pay()
+
+        self.assertEqual(result.overtime_hours, 1)
+        self.assertEqual(result.overtime_pay, 30)
+
+    def test_two_tier_overtime_splits_standard_and_higher_rates(self):
+        result = PayCalculator(
+            PayRequest(
+                hourly_rate=20,
+                worker_type="day",
+                award="aged_care",
+                employment_type="full_time",
+                shifts=[
+                    {
+                        "day": "Monday",
+                        "start": 16,
+                        "end": 21,
+                        "break_duration": 0,
+                    }
+                ],
+            )
+        ).calculate_pay()
+
+        self.assertEqual(result.overtime_hours, 3)
+        self.assertEqual(result.overtime_pay, 100)
+
     def test_custom_rule_classes_are_cached_until_the_file_changes(self):
         custom = create_custom_rule(
             "hospitality", "Cached Rule", self.builtin["source"]

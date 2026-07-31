@@ -125,6 +125,7 @@ export function ShiftCalculator({ children }) {
         state.config.ruleConfiguration,
         state.config.employmentType,
         state.config.contractedHours,
+        state.calculationRevision,
         dispatch
     ]);
 

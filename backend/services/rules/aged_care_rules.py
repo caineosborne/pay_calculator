@@ -27,7 +27,7 @@ class AgedCareRules:
 
     # Rate multipliers
     STANDARD_OVERTIME_RATE = 1.5
-    EXTENDED_OVERTIME_RATE = 2.5  # Used for extended overtime (keeping consistent with structure)
+    EXTENDED_OVERTIME_RATE = 2.0  # Monday–Friday overtime after the first two hours
     SUNDAY_OVERTIME_RATE = 2.5  # Increased to 2.5x for weekends
     SATURDAY_OVERTIME_RATE = 2.5  # Increased to 2.5x for weekends
     EXTENDED_OVERTIME_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
@@ -36,7 +36,8 @@ class AgedCareRules:
 
     # Span overtime settings
     APPLY_SPAN_OVERTIME = True  # Using span overtime for Aged Care
-    SPAN_OVERTIME_HOUR = 18  # 6pm in 24-hour format
+    SPAN_OVERTIME_START_HOUR = 6  # Span overtime morning cut-off (6am)
+    SPAN_OVERTIME_HOUR = 18  # Span overtime evening cut-off (6pm)
 
     # Gap penalty rule - specific to Aged Care award
     GAP_PENALTY_HOURS = 10  # Minimum hours required between shifts to avoid gap penalty

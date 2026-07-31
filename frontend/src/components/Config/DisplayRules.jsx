@@ -5,12 +5,18 @@ const titleCase = (value) => value
     .replace(/_/g, ' ')
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 
-const formatRate = (rate) => `${Math.round(Number(rate || 0) * 100)}% loading`;
+const formatRate = (rate) => {
+    const percentage = Number(rate || 0) * 100;
+    const value = Number.isInteger(percentage) ? percentage : percentage.toFixed(1);
+    return `${value}% loading`;
+};
 const formatTime = (time) => `${String(time).padStart(2, '0')}:00`;
 
 const formatOvertime = (rule) => {
     if (!rule?.threshold || !rule?.rate) return 'Not specified';
-    return `After ${rule.threshold} hours · ${rule.rate}`;
+    return typeof rule.threshold === 'number'
+        ? `After ${rule.threshold} hours · ${rule.rate}`
+        : `${rule.threshold} · ${rule.rate}`;
 };
 
 const formatWeekendRule = (rule) => {

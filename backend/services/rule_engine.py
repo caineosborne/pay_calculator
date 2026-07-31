@@ -227,6 +227,35 @@ class PayRules:
         # Default to standard overtime rate for weekdays and flat-rate rulesets.
         return rules.STANDARD_OVERTIME_RATE
 
+    def calculate_overtime_pay(
+        self, day: str, overtime_hours: float, hourly_rate: float
+    ) -> float:
+        """Calculate overtime pay, splitting configured two-tier rates."""
+        if overtime_hours <= 0:
+            return 0
+
+        rules = self.active_rules
+        extended_days = getattr(
+            rules,
+            'EXTENDED_OVERTIME_DAYS',
+            ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+        )
+        if (
+            day in extended_days
+            and getattr(rules, 'TWO_TIER_OVERTIME', False)
+        ):
+            threshold = rules.TWO_TIER_OVERTIME_THRESHOLD
+            standard_hours = min(overtime_hours, threshold)
+            extended_hours = max(overtime_hours - threshold, 0)
+            return hourly_rate * (
+                standard_hours * rules.STANDARD_OVERTIME_RATE
+                + extended_hours * rules.EXTENDED_OVERTIME_RATE
+            )
+
+        return overtime_hours * hourly_rate * self.get_overtime_rate(
+            day, overtime_hours
+        )
+
     #
     # PENALTY METHODS - For calculating various types of penalties
     #

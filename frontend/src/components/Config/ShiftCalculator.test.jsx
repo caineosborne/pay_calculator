@@ -27,6 +27,7 @@ const stateForRate = (hourlyRate) => ({
             break_duration: 0,
         },
     ],
+    calculationRevision: 0,
 });
 
 const responseForPay = (totalPay) => ({
@@ -103,5 +104,36 @@ describe('ShiftCalculator', () => {
             await Promise.resolve();
         });
         expect(dispatch).toHaveBeenCalledTimes(1);
+    });
+
+    it('recalculates when a saved configuration refreshes the revision', async () => {
+        const dispatch = vi.fn();
+        fetch.mockResolvedValue(responseForPay(160));
+        payContext = { state: stateForRate(20), dispatch };
+
+        const { rerender } = render(
+            <ShiftCalculator>
+                <div>Calculator</div>
+            </ShiftCalculator>
+        );
+        await act(async () => {
+            await vi.advanceTimersByTimeAsync(150);
+        });
+        expect(fetch).toHaveBeenCalledTimes(1);
+
+        payContext = {
+            state: { ...stateForRate(20), calculationRevision: 1 },
+            dispatch,
+        };
+        rerender(
+            <ShiftCalculator>
+                <div>Calculator</div>
+            </ShiftCalculator>
+        );
+        await act(async () => {
+            await vi.advanceTimersByTimeAsync(150);
+        });
+
+        expect(fetch).toHaveBeenCalledTimes(2);
     });
 });
