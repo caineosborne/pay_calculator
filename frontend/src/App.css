@@ -1,42 +1,94 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
-}
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap');
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
-}
+#root { min-height: 100vh; }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
+.pay-app { min-height: 100vh; padding: 24px; background: #edf2ef; color: #17231f; }
+.pay-shell { width: min(1180px, 100%); margin: 0 auto; }
+.pay-header { display: flex; justify-content: space-between; gap: 28px; align-items: end; padding: 20px 0 26px; border-bottom: 1px solid #cbd8d0; }
+.pay-brand { display: flex; align-items: center; gap: 14px; }
+.brand-mark { display: grid; place-items: center; width: 48px; height: 48px; color: #e9f7f1; background: #146c5a; border-radius: 14px 14px 14px 3px; font-size: 24px; }
+.eyebrow, .section-kicker { color: #517064; font: 500 11px/1.2 'DM Mono', monospace; letter-spacing: .1em; text-transform: uppercase; }
+.pay-header h1 { margin: 3px 0 0; font: 700 clamp(28px, 4vw, 40px)/.95 Fraunces, Georgia, serif; letter-spacing: -.045em; }
+.header-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.pay-button { border: 1px solid #b9c9c0; border-radius: 8px; padding: 9px 12px; color: #284338; background: rgba(255,255,255,.58); font: 500 12px/1 'DM Sans', sans-serif; cursor: pointer; }
+.pay-button:hover { color: #fff; border-color: #146c5a; background: #146c5a; }
+.workspace { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; padding: 22px 0 42px; }
+.panel { border: 1px solid #d5e0da; border-radius: 14px; background: #fff; box-shadow: 0 8px 24px rgba(38, 63, 51, .055); }
+.config-panel { padding: 21px; }
+.config-panel > .flex { gap: 17px !important; }
+.config-panel label { color: #3e554b !important; font: 500 12px/1.2 'DM Mono', monospace; letter-spacing: .02em; }
+.config-panel input:not([type='checkbox']), .config-panel select { box-sizing: border-box; min-height: 42px; border: 1px solid #cbd8d0 !important; border-radius: 7px !important; padding: 8px 10px; color: #17231f; background: #fbfdfb !important; box-shadow: none !important; font: 500 14px 'DM Sans', sans-serif; }
+.config-panel input[type='checkbox'] { width: 16px; height: 16px; margin: 0; accent-color: #146c5a; }
+.config-panel input:not([type='checkbox']):focus, .config-panel select:focus, .shift-input:focus { outline: 3px solid #b9e1d3; outline-offset: 1px; border-color: #146c5a !important; }
+.config-panel .bg-gray-50, .config-panel .bg-gray-100 { background: #edf4f0 !important; }
+.config-panel button { box-shadow: none; }
+.config-panel .bg-blue-500, .config-panel .bg-green-500 { color: #fff !important; border-color: #146c5a !important; background: #146c5a !important; }
+.config-panel .text-gray-600, .config-panel .text-gray-700 { color: #3e554b !important; }
+.shift-card { overflow-x: auto; overflow-y: hidden; }
+.shift-card::before { display: block; padding: 15px 18px 12px; color: #517064; border-bottom: 1px solid #d5e0da; background: #f8fbf9; content: 'Your fortnight · use 0–6 for next-day times'; font: 500 11px/1.2 'DM Mono', monospace; letter-spacing: .04em; text-transform: uppercase; }
+.shift-card table { min-width: 940px; }
+.shift-card thead { background: #f0f6f3 !important; }
+.shift-card th { padding: 11px 12px !important; color: #517064 !important; font: 500 10px/1.2 'DM Mono', monospace !important; letter-spacing: .07em; }
+.shift-card td { padding: 8px 12px !important; color: #283c33 !important; font: 500 13px 'DM Sans', sans-serif; }
+.shift-card tbody tr:hover { background: #f7fbf9 !important; }
+.shift-card .bg-gray-50 { background: #eff6f2 !important; }
+.shift-input { width: 42px !important; min-height: 30px; border: 1px solid #cbd8d0 !important; border-radius: 5px !important; color: #17231f; background: #fff; font: 500 13px 'DM Mono', monospace; }
+.time-adjust { display: inline-grid; place-items: center; width: 24px; height: 28px; border: 0; border-radius: 5px; color: #517064; background: transparent; font-size: 16px; }
+.time-adjust:hover { color: #146c5a; background: #e0f0e9; }
+.day-action { border: 0; border-radius: 5px; padding: 5px 7px; color: #517064; background: #edf4f0; font: 500 10px 'DM Sans', sans-serif; }
+.day-action:hover { color: #fff; background: #146c5a; }
+.day-action:disabled { cursor: not-allowed; opacity: .35; }
+.summary-panel { display: grid; grid-template-columns: 1.18fr .82fr; overflow: hidden; }
+.summary-main { padding: 22px; }
+.summary-main h2 { margin: 4px 0 18px; font: 700 25px/1 Fraunces, Georgia, serif; letter-spacing: -.035em; }
+.summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.summary-item { padding: 14px 10px; border: 1px solid #dce7e1; border-radius: 9px; background: #fbfdfc; text-align: left; }
+.summary-item-label { color: #517064; font: 500 10px 'DM Mono', monospace; text-transform: uppercase; }
+.summary-item-value { margin-top: 8px; color: #17231f; font: 700 18px/1 'DM Sans', sans-serif; letter-spacing: -.04em; }
+.summary-item-hours { margin-top: 4px; color: #768d82; font: 12px 'DM Sans', sans-serif; }
+.net-pay { display: flex; flex-direction: column; justify-content: center; padding: 30px; color: #effaf5; background: #146c5a; }
+.net-pay .eyebrow { color: #b8dbcd; }
+.net-pay-value { margin: 10px 0 8px; font: 700 clamp(36px, 5vw, 52px)/.95 Fraunces, Georgia, serif; letter-spacing: -.06em; }
+.net-pay-note { max-width: 250px; color: #c9e6da; font: 13px/1.45 'DM Sans', sans-serif; }
+.rules-panel { margin-top: 18px; padding-top: 18px; border-top: 1px solid #d5e0da; }
+.rules-heading { display: flex; justify-content: space-between; gap: 16px; align-items: start; margin-bottom: 14px; }
+.rules-heading h3 { margin: 5px 0 0; color: #17231f; font: 700 22px/1 Fraunces, Georgia, serif; letter-spacing: -.035em; }
+.rules-heading h3 span { color: #648074; font: 500 14px 'DM Sans', sans-serif; letter-spacing: 0; text-transform: capitalize; }
+.rules-badge { padding: 6px 8px; border: 1px solid #cbd8d0; border-radius: 99px; color: #517064; background: #f8fbf9; font: 500 10px 'DM Mono', monospace; white-space: nowrap; }
+.rule-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 1px solid #dce7e1; border-radius: 9px; overflow: hidden; }
+.rule-row { display: flex; justify-content: space-between; gap: 14px; padding: 11px 12px; border-bottom: 1px solid #e3ece7; color: #517064; font: 12px/1.3 'DM Sans', sans-serif; }
+.rule-row:nth-last-child(-n+2) { border-bottom: 0; }
+.rule-row:nth-child(odd) { border-right: 1px solid #e3ece7; }
+.rule-row strong { color: #284338; font-weight: 600; text-align: right; }
+.penalty-card { margin-top: 14px; border: 1px solid #b9ddd0; border-radius: 10px; overflow: hidden; background: #f1f9f5; }
+.penalty-card-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 13px; border-bottom: 1px solid #cde5da; color: #146c5a; }
+.penalty-card-heading > div { display: flex; align-items: center; gap: 8px; }
+.penalty-card-heading h4 { margin: 0; font: 600 13px 'DM Sans', sans-serif; }
+.penalty-card-heading > span { color: #517064; font: 500 10px 'DM Mono', monospace; }
+.penalty-icon { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 5px; color: #effaf5; background: #146c5a; font-weight: 700; }
+.penalty-list { padding: 0 13px; background: #fcfffd; }
+.penalty-row { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 11px 0; border-bottom: 1px solid #e2eee8; }
+.penalty-row:last-child { border-bottom: 0; }
+.penalty-row > div { display: grid; gap: 3px; }
+.penalty-row strong { color: #284338; font: 600 13px 'DM Sans', sans-serif; }
+.penalty-row span { color: #6b8579; font: 11px 'DM Mono', monospace; }
+.penalty-row b { padding: 5px 7px; border-radius: 5px; color: #146c5a; background: #d9f0e5; font: 500 11px 'DM Mono', monospace; white-space: nowrap; }
+.no-penalties { margin: 0; padding: 14px; color: #517064; background: #fcfffd; font: 13px/1.4 'DM Sans', sans-serif; }
+.rule-details { margin-top: 14px; }
+.rule-details .section-kicker { margin: 0 0 8px; }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
-}
-
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
+@media (max-width: 760px) {
+  .pay-app { padding: 14px; }
+  .pay-header { align-items: start; flex-direction: column; }
+  .header-actions { justify-content: flex-start; }
+  .config-panel { padding: 15px; }
+  .config-panel > .flex > .flex.items-center { align-items: stretch !important; flex-direction: column; }
+  .summary-panel { grid-template-columns: 1fr; }
+  .summary-grid { grid-template-columns: repeat(2, 1fr); }
+  .net-pay { padding: 24px; }
+  .rules-heading { align-items: start; flex-direction: column; }
+  .rule-grid { grid-template-columns: 1fr; }
+  .rule-row:nth-child(odd) { border-right: 0; }
+  .rule-row:nth-last-child(-n+2) { border-bottom: 1px solid #e3ece7; }
+  .rule-row:last-child { border-bottom: 0; }
 }

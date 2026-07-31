@@ -1,7 +1,5 @@
-// services/api.js
-// Dynamically determine API URL based on environment
 const BASE_URL = import.meta.env.PROD
-    ? import.meta.env.VITE_API_URL // Uses the URL from .env.production
+    ? import.meta.env.VITE_API_URL
     : 'http://localhost:8000';
 
 const responseJson = async (response, fallbackMessage) => {
@@ -14,15 +12,8 @@ const responseJson = async (response, fallbackMessage) => {
 
 export const api = {
     async getAwards() {
-        try {
-            const response = await fetch(`${BASE_URL}/awards`);
-
-            if (!response.ok) throw new Error('Failed to load awards');
-            return await response.json();
-        } catch (error) {
-            console.error('Awards API Error:', error);
-            throw error;
-        }
+        const response = await fetch(`${BASE_URL}/awards`);
+        return responseJson(response, 'Failed to load awards');
     },
 
     async getRuleConfigurations() {
@@ -30,9 +21,10 @@ export const api = {
         return responseJson(response, 'Failed to load rule configurations');
     },
 
-    async getRuleConfiguration(configurationId) {
+    async getRuleConfiguration(configurationId, options = {}) {
         const response = await fetch(
-            `${BASE_URL}/rule-configurations/${encodeURIComponent(configurationId)}`
+            `${BASE_URL}/rule-configurations/${encodeURIComponent(configurationId)}`,
+            options
         );
         return responseJson(response, 'Failed to load rule source');
     },
@@ -88,19 +80,13 @@ export const api = {
         return responseJson(response, 'Failed to update custom configuration');
     },
 
-    async calculatePay(payload) {
-        try {
-            const response = await fetch(`${BASE_URL}/calculate`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            });
-
-            if (!response.ok) throw new Error('Calculation failed');
-            return await response.json();
-        } catch (error) {
-            console.error('API Error:', error);
-            throw error;
-        }
+    async calculatePay(payload, options = {}) {
+        const response = await fetch(`${BASE_URL}/calculate`, {
+            ...options,
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        return responseJson(response, 'Calculation failed');
     }
 };

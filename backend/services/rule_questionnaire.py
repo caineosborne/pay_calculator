@@ -123,13 +123,6 @@ IMPORT_ALIASES = {
 }
 
 
-def _award_class_name(award_key: str) -> str:
-    for award in load_awards():
-        if award["key"] == award_key:
-            return award["class_name"]
-    raise ValueError(f"Unknown award: {award_key}")
-
-
 def _issue(field_path: str, message: str, severity: str = "warning") -> dict:
     return {
         "severity": severity,
@@ -177,7 +170,13 @@ def _class_assignments(
                 )
             ],
         )
-    class_name = _award_class_name(award_key)
+    award = next(
+        (item for item in load_awards() if item["key"] == award_key),
+        None,
+    )
+    if award is None:
+        raise ValueError(f"Unknown award: {award_key}")
+    class_name = award["class_name"]
     class_node = next(
         (
             node
@@ -234,68 +233,6 @@ def _literal(
         return None, "not_found"
 
 
-def _nested_value(container: Any, *keys: str) -> Any:
-    current = container
-    for key in keys:
-        if not isinstance(current, dict) or key not in current:
-            return None
-        current = current[key]
-    return current
-
-
-def _weekend_answer(rule: Any) -> tuple[str | None, Any]:
-    if not isinstance(rule, dict):
-        return None, None
-    if rule.get("is_overtime") is True:
-        return "overtime", None
-    if rule.get("is_overtime") is False:
-        loading = rule.get("penalty_rate", rule.get("rate", 0))
-        return ("penalty" if loading not in (None, 0, 0.0) else "not_applicable"), loading
-    if "penalty_rate" in rule:
-        loading = rule.get("penalty_rate", 0)
-        return ("penalty" if loading not in (None, 0, 0.0) else "not_applicable"), loading
-    return None, None
-
-
-def _penalty_row(code_name: str, penalty: Any) -> dict:
-    if not isinstance(penalty, dict):
-        return {
-            "code_name": code_name,
-            "type": "",
-            "basis": "",
-            "start_hour": None,
-            "end_hour": None,
-            "rate": None,
-            "description": "",
-            "applies_to": [],
-            "extra": {"raw_value": penalty},
-        }
-    managed_keys = {
-        "type",
-        "basis",
-        "start",
-        "end",
-        "rate",
-        "description",
-        "applies_to",
-    }
-    return {
-        "code_name": code_name,
-        "type": penalty.get("type", ""),
-        "basis": penalty.get("basis", penalty.get("match_on", "start")),
-        "start_hour": penalty.get("start"),
-        "end_hour": penalty.get("end"),
-        "rate": penalty.get("rate"),
-        "description": penalty.get("description", ""),
-        "applies_to": penalty.get("applies_to", []),
-        "extra": {
-            key: copy.deepcopy(value)
-            for key, value in penalty.items()
-            if key not in managed_keys
-        },
-    }
-
-
 def project_rule_source(
     award_key: str, source: str, imported_context: dict | None = None
 ) -> dict:
@@ -338,8 +275,31 @@ def project_rule_source(
     for (worker, day), (treatment_path, loading_path) in WEEKEND_FIELDS.items():
         treatment_section, treatment_field = treatment_path.split(".", 1)
         loading_section, loading_field = loading_path.split(".", 1)
-        rule = _nested_value(weekend_rules, worker, day)
-        treatment, loading = _weekend_answer(rule)
+        worker_rules = (
+            weekend_rules.get(worker)
+            if isinstance(weekend_rules, dict)
+            else None
+        )
+        rule = (
+            worker_rules.get(day)
+            if isinstance(worker_rules, dict)
+            else None
+        )
+        treatment = None
+        loading = None
+        if isinstance(rule, dict):
+            if rule.get("is_overtime") is True:
+                treatment = "overtime"
+            elif (
+                rule.get("is_overtime") is False
+                or "penalty_rate" in rule
+            ):
+                loading = rule.get("penalty_rate", rule.get("rate", 0))
+                treatment = (
+                    "penalty"
+                    if loading not in (None, 0, 0.0)
+                    else "not_applicable"
+                )
         status = weekend_status if rule is not None else "not_found"
         if rule is None:
             issues.append(
@@ -396,7 +356,47 @@ def project_rule_source(
     time_rows: list[dict] = []
     if isinstance(penalties, dict):
         for code_name, penalty in penalties.items():
-            row = _penalty_row(code_name, penalty)
+            if not isinstance(penalty, dict):
+                row = {
+                    "code_name": code_name,
+                    "type": "",
+                    "basis": "",
+                    "start_hour": None,
+                    "end_hour": None,
+                    "rate": None,
+                    "description": "",
+                    "applies_to": [],
+                    "extra": {"raw_value": penalty},
+                }
+            else:
+                managed_keys = {
+                    "type",
+                    "basis",
+                    "start",
+                    "end",
+                    "rate",
+                    "description",
+                    "applies_to",
+                }
+                row = {
+                    "code_name": code_name,
+                    "type": penalty.get("type", ""),
+                    "basis": penalty.get(
+                        "basis",
+                        penalty.get("match_on", "start"),
+                    ),
+                    "start_hour": penalty.get("start"),
+                    "end_hour": penalty.get("end"),
+                    "rate": penalty.get("rate"),
+                    "description": penalty.get("description", ""),
+                    "applies_to": penalty.get("applies_to", []),
+                    # Preserve keys the guided editor does not own.
+                    "extra": {
+                        key: copy.deepcopy(value)
+                        for key, value in penalty.items()
+                        if key not in managed_keys
+                    },
+                }
             if row["type"] == "shift_based":
                 shift_rows.append(row)
             elif row["type"] == "time_based":
@@ -435,6 +435,7 @@ def project_rule_source(
 
 
 def _merge_imported_context(questionnaire: dict, imported_context: dict | None) -> None:
+    """Copy evidence metadata without replacing Python-derived answers."""
     if not isinstance(imported_context, dict):
         return
     sections = imported_context.get("questionnaire_answers", imported_context)
@@ -700,76 +701,6 @@ def _deduplicate_issues(issues: list[dict]) -> list[dict]:
     return result
 
 
-def _to_penalties(questionnaire: dict) -> dict:
-    result = {}
-    for field in ("shift_based_penalties", "time_based_penalties"):
-        for row in _answer(questionnaire, f"weekday_penalties.{field}") or []:
-            value = copy.deepcopy(row.get("extra") or {})
-            value.update(
-                {
-                    "type": row["type"],
-                    "basis": row["basis"],
-                    "start": row["start_hour"],
-                    "end": row["end_hour"],
-                    "rate": row["rate"],
-                    "description": row["description"],
-                    "applies_to": row["applies_to"],
-                }
-            )
-            result[row["code_name"]] = value
-    return result
-
-
-def _to_weekend_rules(questionnaire: dict, current: Any) -> dict:
-    result = copy.deepcopy(current) if isinstance(current, dict) else {}
-    for (worker, day), (treatment_path, loading_path) in WEEKEND_FIELDS.items():
-        worker_rules = result.setdefault(worker, {})
-        existing = worker_rules.get(day)
-        entry = copy.deepcopy(existing) if isinstance(existing, dict) else {}
-        treatment = _answer(questionnaire, treatment_path)
-        if treatment == "overtime":
-            entry["is_overtime"] = True
-            entry.pop("penalty_rate", None)
-        else:
-            entry["is_overtime"] = False
-            entry["penalty_rate"] = (
-                _answer(questionnaire, loading_path)
-                if treatment == "penalty"
-                else 0
-            )
-        worker_rules[day] = entry
-    return result
-
-
-def _managed_values(
-    questionnaire: dict, assignments: dict[str, tuple[ast.AST, ast.AST]]
-) -> dict[str, Any]:
-    values = {
-        attribute: _answer(questionnaire, path)
-        for path, attribute in DIRECT_FIELDS.items()
-    }
-    gap_applies = _answer(questionnaire, "gap_between_shifts.applies")
-    values["GAP_PENALTY_HOURS"] = (
-        _answer(questionnaire, "gap_between_shifts.minimum_hours")
-        if gap_applies
-        else 0
-    )
-    values["GAP_PENALTY_RATE"] = (
-        _answer(questionnaire, "gap_between_shifts.penalty_rate")
-        if gap_applies
-        else 0
-    )
-    current_weekend = {}
-    if "WEEKEND_RULES" in assignments:
-        try:
-            current_weekend = ast.literal_eval(assignments["WEEKEND_RULES"][1])
-        except (ValueError, TypeError):
-            pass
-    values["WEEKEND_RULES"] = _to_weekend_rules(questionnaire, current_weekend)
-    values["PENALTIES"] = _to_penalties(questionnaire)
-    return values
-
-
 def _format_assignment(attribute: str, value: Any, indent: str = "    ") -> str:
     formatted = pprint.pformat(value, width=88, sort_dicts=False)
     if "\n" in formatted:
@@ -790,10 +721,85 @@ def patch_rule_source(award_key: str, source: str, questionnaire: dict) -> str:
     if class_node is None:
         raise ValueError(parse_issues[0]["message"])
 
-    values = _managed_values(questionnaire, assignments)
+    # Build the exact class values owned by the Review Helper. Everything not
+    # listed here stays untouched in the raw Python source.
+    values = {
+        attribute: _answer(questionnaire, path)
+        for path, attribute in DIRECT_FIELDS.items()
+    }
+    gap_applies = _answer(questionnaire, "gap_between_shifts.applies")
+    values["GAP_PENALTY_HOURS"] = (
+        _answer(questionnaire, "gap_between_shifts.minimum_hours")
+        if gap_applies
+        else 0
+    )
+    values["GAP_PENALTY_RATE"] = (
+        _answer(questionnaire, "gap_between_shifts.penalty_rate")
+        if gap_applies
+        else 0
+    )
+
+    current_weekend = {}
+    if "WEEKEND_RULES" in assignments:
+        try:
+            current_weekend = ast.literal_eval(
+                assignments["WEEKEND_RULES"][1]
+            )
+        except (ValueError, TypeError):
+            pass
+    weekend_rules = (
+        copy.deepcopy(current_weekend)
+        if isinstance(current_weekend, dict)
+        else {}
+    )
+    for (worker, day), (treatment_path, loading_path) in WEEKEND_FIELDS.items():
+        worker_rules = weekend_rules.setdefault(worker, {})
+        current_day_rule = worker_rules.get(day)
+        day_rule = (
+            copy.deepcopy(current_day_rule)
+            if isinstance(current_day_rule, dict)
+            else {}
+        )
+        treatment = _answer(questionnaire, treatment_path)
+        if treatment == "overtime":
+            day_rule["is_overtime"] = True
+            day_rule.pop("penalty_rate", None)
+        else:
+            day_rule["is_overtime"] = False
+            day_rule["penalty_rate"] = (
+                _answer(questionnaire, loading_path)
+                if treatment == "penalty"
+                else 0
+            )
+        worker_rules[day] = day_rule
+    values["WEEKEND_RULES"] = weekend_rules
+
+    penalties = {}
+    for field in ("shift_based_penalties", "time_based_penalties"):
+        for row in _answer(
+            questionnaire,
+            f"weekday_penalties.{field}",
+        ) or []:
+            penalty = copy.deepcopy(row.get("extra") or {})
+            penalty.update(
+                {
+                    "type": row["type"],
+                    "basis": row["basis"],
+                    "start": row["start_hour"],
+                    "end": row["end_hour"],
+                    "rate": row["rate"],
+                    "description": row["description"],
+                    "applies_to": row["applies_to"],
+                }
+            )
+            penalties[row["code_name"]] = penalty
+    values["PENALTIES"] = penalties
+
     lines = source.splitlines(keepends=True)
     replacements: list[tuple[int, int, str]] = []
     missing: list[tuple[str, Any]] = []
+    # Replace complete assignment statements by source line number. This leaves
+    # class identity, hidden attributes, and code outside managed assignments intact.
     for attribute, value in values.items():
         assignment = assignments.get(attribute)
         if assignment is None:

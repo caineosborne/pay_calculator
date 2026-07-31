@@ -42,48 +42,23 @@ class PayRules:
     # Default award if none is specified
     _DEFAULT_AWARD = default_award_key()
     
-    # Class variable to store the active rules
-    _active_rules = None
-    
-    @classmethod
-    def set_award(
-        cls,
+    def __init__(
+        self,
         award: str = None,
         configuration_identifier: str = None,
     ):
-        """
-        Set the active award rules.
-        
-        Args:
-            award: String identifier for the award
-                  If None, uses the default award.
-            configuration_identifier: Optional custom or built-in configuration.
-        """
-        award = award or cls._DEFAULT_AWARD
-        cls._active_rules = get_rules_for_award(
+        # Store the selected class on this adapter instance. A class-level value
+        # would allow one request to replace the rules used by another request.
+        award = award or self._DEFAULT_AWARD
+        self.active_rules = get_rules_for_award(
             award, configuration_identifier
         )
-    
-    @classmethod
-    def get_active_rules(cls):
-        """
-        Get the currently active rule set.
-        
-        If no rules are active, initializes with the default award.
-        
-        Returns:
-            The active rule class for the selected award
-        """
-        if cls._active_rules is None:
-            cls.set_award(cls._DEFAULT_AWARD)
-        return cls._active_rules
     
     #
     # HOURS LIMIT METHODS - Basic configuration for calculating overtime
     #
     
-    @classmethod
-    def get_ordinary_hours_daily_limit(cls, worker_type: str) -> float:
+    def get_ordinary_hours_daily_limit(self, worker_type: str) -> float:
         """
         Get daily ordinary hours limit based on worker type.
         
@@ -93,11 +68,10 @@ class PayRules:
         Returns:
             float: Maximum ordinary hours allowed per day before overtime applies
         """
-        rules = cls.get_active_rules()
+        rules = self.active_rules
         return rules.DAY_WORKER_ORDINARY_HOURS_DAILY if worker_type == 'day' else rules.ORDINARY_HOURS_LIMIT_DAILY
 
-    @classmethod
-    def calculate_weekly_ordinary_hours(cls, hours: float, worker_type: str = 'shift', employment_type: str = 'full_time', contracted_hours: float = None, period_weeks: int = 1) -> float:
+    def calculate_weekly_ordinary_hours(self, hours: float, worker_type: str = 'shift', employment_type: str = 'full_time', contracted_hours: float = None, period_weeks: int = 1) -> float:
         """
         Calculate ordinary hours for the week.
         
@@ -110,7 +84,7 @@ class PayRules:
         Returns:
             float: Maximum ordinary hours allowed per week (capped at weekly limit)
         """
-        rules = cls.get_active_rules()
+        rules = self.active_rules
         
         # Get the standard weekly limit based on worker type
         weekly_limit = rules.DAY_WORKER_ORDINARY_HOURS_WEEKLY if worker_type == 'day' else rules.ORDINARY_HOURS_LIMIT_WEEKLY
@@ -126,8 +100,7 @@ class PayRules:
     # OVERTIME METHODS - For calculating various types of overtime
     #
     
-    @classmethod
-    def is_overtime_day(cls, day: str, worker_type: str) -> bool:
+    def is_overtime_day(self, day: str, worker_type: str) -> bool:
         """
         Determine if all hours on this day are automatically overtime.
         
@@ -138,7 +111,7 @@ class PayRules:
         Returns:
             bool: True if all hours on this day count as overtime, False otherwise
         """
-        rules = cls.get_active_rules()
+        rules = self.active_rules
         
         # For day workers, check if the weekend rules specify overtime
         if worker_type == 'day' and day in ['Saturday', 'Sunday']:
@@ -152,8 +125,7 @@ class PayRules:
             
         return False
 
-    @classmethod
-    def calculate_span_overtime(cls, start_time: float, end_time: float, daily_hours: float, worker_type: str) -> float:
+    def calculate_span_overtime(self, start_time: float, end_time: float, daily_hours: float, worker_type: str) -> float:
         """
         Calculate overtime hours for work done outside the span of hours (typically after 6pm for day workers).
         This is the first overtime calculation to be applied.
@@ -167,7 +139,7 @@ class PayRules:
         Returns:
             float: Hours of span overtime to be applied
         """
-        rules = cls.get_active_rules()
+        rules = self.active_rules
         
         # Check if span overtime should be applied (some awards don't use it)
         if hasattr(rules, 'APPLY_SPAN_OVERTIME') and not rules.APPLY_SPAN_OVERTIME:
@@ -185,8 +157,7 @@ class PayRules:
         overtime_start = max(start_time, rules.SPAN_OVERTIME_HOUR)
         return min(end_time - overtime_start, daily_hours)
     
-    @classmethod
-    def get_overtime_rate(cls, day: str, hours_of_overtime: float = 0) -> float:
+    def get_overtime_rate(self, day: str, hours_of_overtime: float = 0) -> float:
         """
         Get the overtime multiplier for a given day and amount of overtime.
         
@@ -197,7 +168,7 @@ class PayRules:
         Returns:
             float: Overtime rate multiplier (e.g., 1.5 for time-and-a-half)
         """
-        rules = cls.get_active_rules()
+        rules = self.active_rules
 
         extended_overtime_days = getattr(
             rules,
@@ -228,8 +199,7 @@ class PayRules:
     # PENALTY METHODS - For calculating various types of penalties
     #
     
-    @classmethod
-    def get_penalty_rate(cls, day: str, worker_type: str) -> float:
+    def get_penalty_rate(self, day: str, worker_type: str) -> float:
         """
         Get the penalty rate for non-overtime hours on weekends for shift workers.
         
@@ -240,7 +210,7 @@ class PayRules:
         Returns:
             float: Penalty rate multiplier (e.g., 0.25 for 25% loading)
         """
-        rules = cls.get_active_rules()
+        rules = self.active_rules
 
         if getattr(rules, 'WEEKEND_PENALTIES_USE_PENALTIES', False):
             return 0
@@ -263,58 +233,7 @@ class PayRules:
 
         return weekend_rules.get('penalty_rate', 0)
     
-    @classmethod
-    def get_weekend_rate(cls, day: str, worker_type: str = 'shift') -> dict:
-        """
-        Get weekend work rules based on worker type.
-        
-        Args:
-            day: Day of the week ('Monday', 'Tuesday', etc.)
-            worker_type: Type of worker ('day' or 'shift')
-            
-        Returns:
-            dict with keys:
-            - is_overtime (bool): whether the hours count as overtime
-            - rate (float): overtime rate if is_overtime is True
-            - penalty_rate (float): penalty rate if is_overtime is False
-        """
-        rules = cls.get_active_rules()
-        
-        # For weekdays, return default values
-        if day not in ['Saturday', 'Sunday']:
-            return {'is_overtime': False, 'penalty_rate': 0, 'rate': cls.get_overtime_rate(day)}
-            
-        # Get weekend rules for this worker type and day
-        if worker_type in rules.WEEKEND_RULES:
-            weekend_rules = rules.WEEKEND_RULES.get(worker_type, {}).get(day, {})
-        else:
-            weekend_rules = rules.WEEKEND_RULES.get(day, {})
-        
-        # For shift workers, we want both penalty rates and overtime rates
-        if worker_type == 'shift':
-            return {
-                'is_overtime': weekend_rules.get('is_overtime', False),
-                'rate': cls.get_overtime_rate(day),  # Always use overtime rate for overtime hours
-                'penalty_rate': weekend_rules.get('penalty_rate', 0)
-            }
-        
-        # For day workers, use the weekend-specific rates
-        if worker_type == 'day':
-            penalty_rate = weekend_rules.get('penalty_rate', 0)
-            return {
-                'is_overtime': weekend_rules.get('is_overtime', False),
-                'rate': weekend_rules.get('rate', 1 + penalty_rate if penalty_rate else cls.get_overtime_rate(day)),
-                'penalty_rate': penalty_rate
-            }
-
-        return {
-            'is_overtime': weekend_rules.get('is_overtime', False),
-            'rate': weekend_rules.get('rate', cls.get_overtime_rate(day)),
-            'penalty_rate': weekend_rules.get('penalty_rate', 0)
-        }
-    
-    @classmethod
-    def calculate_shift_start_penalty(cls, start_time: float, worker_type: str) -> dict:
+    def calculate_shift_start_penalty(self, start_time: float, worker_type: str) -> dict:
         """
         Calculate penalty rate based on shift start time (primarily for Aged Care shift workers).
         
@@ -328,7 +247,7 @@ class PayRules:
             - penalty_rate (float): The penalty rate to apply
             - description (str): Description of the penalty for reporting
         """
-        rules = cls.get_active_rules()
+        rules = self.active_rules
         
         # Only apply if the award has shift start time penalty rules
         if not hasattr(rules, 'SHIFT_PEN_RULES'):
@@ -350,8 +269,7 @@ class PayRules:
                 
         return {'applies': False, 'penalty_rate': 0, 'description': ''}
     
-    @classmethod
-    def check_shift_gap_penalty(cls, current_shift_start: float, previous_shift_end: float, 
+    def check_shift_gap_penalty(self, current_shift_start: float, previous_shift_end: float,
                                current_day: str = None, previous_day: str = None) -> dict:
         """
         Check if a gap penalty should be applied between two shifts.
@@ -370,7 +288,7 @@ class PayRules:
             - applies (bool): Whether the gap penalty applies
             - penalty_rate (float): The penalty rate to apply
         """
-        rules = cls.get_active_rules()
+        rules = self.active_rules
         
         # Only apply if the award has gap penalty rules
         if not hasattr(rules, 'GAP_PENALTY_HOURS'):
@@ -415,55 +333,7 @@ class PayRules:
         
         return {'applies': False, 'penalty_rate': 0}
     
-    @classmethod
-    def _calculate_hours_between_shifts(cls, current_shift_start: float, previous_shift_end: float,
-                                      current_day: str = None, previous_day: str = None) -> float:
-        """
-        Helper method to calculate the hours between two shifts.
-        
-        Args:
-            current_shift_start: Start time of the current shift (in hours)
-            previous_shift_end: End time of the previous shift (in hours)
-            current_day: Day of the week for the current shift
-            previous_day: Day of the week for the previous shift
-            
-        Returns:
-            float: Hours between the two shifts
-        """
-        # Define the order of days in a week
-        days_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-        
-        # If days are different, calculate the hours between shifts properly
-        if current_day and previous_day and current_day != previous_day:
-            # Get indices of days in the week
-            current_day_idx = days_order.index(current_day)
-            previous_day_idx = days_order.index(previous_day)
-            
-            # Calculate days difference (considering circular week)
-            days_diff = (current_day_idx - previous_day_idx) % 7
-            if days_diff == 0:  # Full week difference (same day but a week later)
-                days_diff = 7
-                
-            # Calculate the total hours between shifts
-            if days_diff == 1:  # Consecutive days
-                # For consecutive days: Add the remaining hours of previous day and the hours until current shift
-                hours_between_shifts = (24 - previous_shift_end) + current_shift_start
-            else:
-                # For non-consecutive days: Add hours for all complete days in between plus partial days
-                hours_between_shifts = (24 - previous_shift_end) + current_shift_start + ((days_diff - 1) * 24)
-        else:
-            # If no day information or same day, use direct calculation
-            if current_shift_start >= previous_shift_end:
-                # Shifts on the same day
-                hours_between_shifts = current_shift_start - previous_shift_end
-            else:
-                # Second shift wraps to next day
-                hours_between_shifts = (24 - previous_shift_end) + current_shift_start
-        
-        return hours_between_shifts
-        
-    @classmethod
-    def calculate_penalties(cls, start_time: float, end_time: float, day: str, worker_type: str) -> list:
+    def calculate_penalties(self, start_time: float, end_time: float, day: str, worker_type: str) -> list:
         """
         Calculate all applicable penalties for a shift using the unified penalty structure.
         
@@ -486,7 +356,7 @@ class PayRules:
             - rate (float): Penalty rate for this period
             - description (str): Description of the penalty for reporting
         """
-        rules = cls.get_active_rules()
+        rules = self.active_rules
         
         # Only apply if the award has unified penalties structure
         if not hasattr(rules, 'PENALTIES'):
@@ -494,7 +364,7 @@ class PayRules:
             penalties = []
             
             # Try shift penalties
-            shift_penalty = cls.calculate_shift_start_penalty(start_time, worker_type)
+            shift_penalty = self.calculate_shift_start_penalty(start_time, worker_type)
             if shift_penalty['applies']:
                 penalties.append({
                     'type': 'shift_based',
@@ -504,7 +374,7 @@ class PayRules:
                 })
                 
             # Try hourly penalties
-            hourly_penalties = cls.calculate_hourly_penalties(start_time, end_time, day)
+            hourly_penalties = self.calculate_hourly_penalties(start_time, end_time, day)
             for hp in hourly_penalties:
                 penalties.append({
                     'type': 'time_based',
@@ -563,7 +433,7 @@ class PayRules:
                     continue
 
                 trigger_time = start_time if match_on != 'end' else (normalized_end_time % 24)
-                if cls._time_in_window(trigger_time, window_start, window_end):
+                if self._time_in_window(trigger_time, window_start, window_end):
                     total_hours = normalized_end_time - start_time
                     penalties.append({
                         'type': 'shift_based',
@@ -617,8 +487,7 @@ class PayRules:
 
         return window_start <= time_value < window_end
     
-    @classmethod
-    def calculate_hourly_penalties(cls, start_time: float, end_time: float, day: str = None) -> list:
+    def calculate_hourly_penalties(self, start_time: float, end_time: float, day: str = None) -> list:
         """
         Calculate hourly penalties for specific time periods.
         
@@ -639,7 +508,7 @@ class PayRules:
             - rate (float): Penalty rate for this period
             - description (str): Description of the penalty for reporting
         """
-        rules = cls.get_active_rules()
+        rules = self.active_rules
         
         # Only apply if the award has hourly penalty rules
         if not hasattr(rules, 'HOURS_PEN_RULES'):

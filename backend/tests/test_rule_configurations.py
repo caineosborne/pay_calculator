@@ -14,6 +14,7 @@ from services.rule_configurations import (
     RuleConfigurationError,
     create_custom_rule,
     get_rule_configuration,
+    load_custom_rule_class,
     list_rule_configurations,
     update_custom_rule,
     validate_rule_source,
@@ -116,6 +117,65 @@ class RuleConfigurationTests(unittest.TestCase):
         self.assertEqual(builtin_result.overtime_hours, 0)
         self.assertEqual(custom_result.overtime_hours, 4)
         self.assertGreater(custom_result.total_pay, builtin_result.total_pay)
+
+    def test_calculators_keep_their_rule_configurations_isolated(self):
+        custom_source = self.builtin["source"].replace(
+            "ORDINARY_HOURS_LIMIT_DAILY = 10",
+            "ORDINARY_HOURS_LIMIT_DAILY = 4",
+            1,
+        )
+        custom = create_custom_rule(
+            "hospitality", "Isolated Four Hour Day", custom_source
+        )
+        hospitality_request = PayRequest(
+            hourly_rate=20,
+            worker_type="shift",
+            award="hospitality",
+            employment_type="casual",
+            rule_configuration=custom["id"],
+            shifts=[
+                {
+                    "day": "Monday",
+                    "start": 9,
+                    "end": 17,
+                    "break_duration": 0,
+                }
+            ],
+        )
+        custom_calculator = PayCalculator(hospitality_request)
+
+        # Constructing another award calculator must not replace this one's rules.
+        PayCalculator(
+            PayRequest(
+                hourly_rate=20,
+                worker_type="shift",
+                award="aged_care",
+                employment_type="casual",
+                shifts=[],
+            )
+        )
+
+        result = custom_calculator.calculate_pay()
+        self.assertEqual(result.overtime_hours, 4)
+
+    def test_custom_rule_classes_are_cached_until_the_file_changes(self):
+        custom = create_custom_rule(
+            "hospitality", "Cached Rule", self.builtin["source"]
+        )
+        first = load_custom_rule_class(custom["id"], "hospitality")
+        second = load_custom_rule_class(custom["id"], "hospitality")
+        self.assertIs(first, second)
+
+        updated_source = self.builtin["source"].replace(
+            "ORDINARY_HOURS_LIMIT_DAILY = 10",
+            "ORDINARY_HOURS_LIMIT_DAILY = 4",
+            1,
+        )
+        update_custom_rule(custom["id"], updated_source)
+        updated = load_custom_rule_class(custom["id"], "hospitality")
+
+        self.assertIsNot(updated, first)
+        self.assertEqual(updated.ORDINARY_HOURS_LIMIT_DAILY, 4)
 
 
 if __name__ == "__main__":

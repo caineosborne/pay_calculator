@@ -15,12 +15,17 @@ from services.rule_configurations import (
 )
 
 
-def _build_award_map() -> dict[str, type]:
-    award_map = {}
-    for award in load_awards():
-        module = import_module(f"services.rules.{award['module']}")
-        award_map[award["key"]] = getattr(module, award["class_name"])
-    return award_map
+# Built-ins are immutable modules, so resolve them once when the service starts.
+BUILTIN_RULES = {}
+for award_definition in load_awards():
+    award_module = import_module(
+        f"services.rules.{award_definition['module']}"
+    )
+    BUILTIN_RULES[award_definition["key"]] = getattr(
+        award_module,
+        award_definition["class_name"],
+    )
+
 
 def get_rules_for_award(award: str, configuration_identifier: str | None = None):
     """
@@ -49,7 +54,8 @@ def get_rules_for_award(award: str, configuration_identifier: str | None = None)
                 configuration_identifier, normalized_award
             )
 
-    award_map = _build_award_map()
-
-    # Default to the configured default award if not found
-    return award_map.get(normalized_award, award_map[default_award_key()])
+    # Preserve the historical fallback for callers that omit or mistype an award.
+    return BUILTIN_RULES.get(
+        normalized_award,
+        BUILTIN_RULES[default_award_key()],
+    )

@@ -1,10 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { api } from '../../services/apis';
 import {
     DAYS,
     QUESTIONNAIRE_SECTIONS,
     fieldPath,
-    hasStructuralErrors,
 } from './ruleQuestionnaire';
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -522,24 +521,9 @@ export function RuleConfigurationEditor({
     const [pythonFile, setPythonFile] = useState(null);
     const [questionnaireFile, setQuestionnaireFile] = useState(null);
 
-    const loadConfiguration = async (id) => {
-        const loaded = await api.getRuleConfiguration(id);
-        setConfiguration(loaded);
-        setSource(loaded.source);
-        setInitialSource(loaded.source);
-        setQuestionnaire(clone(loaded.questionnaire));
-        setInitialQuestionnaire(clone(loaded.questionnaire));
-        setIssues(loaded.structural_issues || []);
-        setCopyName(
-            loaded.kind === 'builtin' ? `${loaded.name} Custom` : ''
-        );
-        setImportName(`${loaded.name} Import`);
-        setDirtyLayer(null);
-        return loaded;
-    };
-
     useEffect(() => {
         let isMounted = true;
+        const controller = new AbortController();
         const load = async () => {
             if (!configurationId) {
                 return;
@@ -547,11 +531,29 @@ export function RuleConfigurationEditor({
             setIsWorking(true);
             setMessage('');
             try {
+                const loaded = await api.getRuleConfiguration(
+                    configurationId,
+                    { signal: controller.signal }
+                );
                 if (isMounted) {
-                    await loadConfiguration(configurationId);
+                    // Apply one response as a unit so source, form values, and
+                    // configuration identity can never refer to different files.
+                    setConfiguration(loaded);
+                    setSource(loaded.source);
+                    setInitialSource(loaded.source);
+                    setQuestionnaire(clone(loaded.questionnaire));
+                    setInitialQuestionnaire(clone(loaded.questionnaire));
+                    setIssues(loaded.structural_issues || []);
+                    setCopyName(
+                        loaded.kind === 'builtin'
+                            ? `${loaded.name} Custom`
+                            : ''
+                    );
+                    setImportName(`${loaded.name} Import`);
+                    setDirtyLayer(null);
                 }
             } catch (error) {
-                if (isMounted) {
+                if (isMounted && error.name !== 'AbortError') {
                     setMessage(error.message);
                 }
             } finally {
@@ -563,12 +565,14 @@ export function RuleConfigurationEditor({
         load();
         return () => {
             isMounted = false;
+            controller.abort();
         };
     }, [configurationId]);
 
-    const hasErrors = useMemo(() => hasStructuralErrors(issues), [issues]);
+    const hasErrors = issues.some((issue) => issue.severity === 'error');
 
     const changeAnswer = (section, field, value) => {
+        // Only one editor layer may own unsaved changes at a time.
         if (dirtyLayer === 'raw') {
             return;
         }
@@ -582,6 +586,7 @@ export function RuleConfigurationEditor({
     };
 
     const changeSource = (value) => {
+        // Raw edits lock the questionnaire until save or discard.
         if (dirtyLayer === 'guided') {
             return;
         }
@@ -637,20 +642,6 @@ export function RuleConfigurationEditor({
         try {
             const guidedValues =
                 dirtyLayer === 'guided' ? questionnaire : null;
-            if (guidedValues) {
-                const validation = await api.validateRuleConfiguration(
-                    configuration.base_award,
-                    source,
-                    guidedValues
-                );
-                setIssues(validation.structural_issues || []);
-                if (validation.valid === false) {
-                    setMessage(
-                        'Fix the highlighted structural errors before saving.'
-                    );
-                    return;
-                }
-            }
             const saved =
                 configuration.kind === 'builtin'
                     ? await api.createRuleConfiguration(

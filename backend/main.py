@@ -41,20 +41,16 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Configure CORS
-# Allow both local development and production origins
-
+# Explicit origins keep the trusted local editor available without opening the
+# calculation API to arbitrary browser origins.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        # Local development
         "http://localhost:5173",
         "http://localhost:3000",
         "http://127.0.0.1:5173",
-        # Production domains
         "https://pay-calculator-s0bv.onrender.com",
-        "https://pay-calculator.onrender.com",  
-        # Add your actual production frontend domain
+        "https://pay-calculator.onrender.com",
         "https://pay-checker-mvp.onrender.com",
         "https://pay-check.onrender.com"
     ],
@@ -62,15 +58,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=["*"],  # Allow ANY origin — useful for debugging
-#     allow_credentials=True,
-#     allow_methods=["*"],
-#     allow_headers=["*"],
-# )
-
 
 @app.get("/awards")
 def get_awards() -> list[dict]:
@@ -145,14 +132,10 @@ def update_configuration(
 
 @app.post("/calculate", response_model=PayResponse)
 def calculate_pay(data: PayRequest) -> PayResponse:
-    """
-    Calculate pay based on provided shifts and hourly rate.
-    """
-    print("Received request data:", data.dict())  # Debug log
+    """Calculate pay from the validated request."""
     try:
         calculator = PayCalculator(data)
         result = calculator.calculate_pay()
     except RuleConfigurationError as error:
         raise _configuration_http_error(error) from error
-    print("Calculated response:", result.dict())  # Debug log
     return result

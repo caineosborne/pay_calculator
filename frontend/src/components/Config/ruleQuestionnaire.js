@@ -133,6 +133,3 @@ export const DAYS = [
 ];
 
 export const fieldPath = (section, field) => `${section}.${field}`;
-
-export const hasStructuralErrors = (issues = []) =>
-    issues.some((issue) => issue.severity === 'error');

@@ -53,58 +53,23 @@ const SummaryTable = () => {
     const estimatedNetPay = calculateEstimatedFortnightlyNetPay(totalPay);
 
     return (
-        <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-            <h2 className="text-xl font-semibold mb-4">Pay Summary</h2>
-
-            <div className="flex flex-wrap gap-4">
-                {/* Ordinary Box */}
-                <div className="flex-1 bg-gray-50 p-4 rounded-lg text-center">
-                    <div className="text-gray-600 mb-2">Ordinary</div>
-                    <div className="text-blue-500 font-bold text-xl">{formatCurrency(payments?.ordinaryPay || 0)}</div>
-                    <div className="text-gray-500 text-sm">{calculations?.ordinaryHours || '0.00'} hrs</div>
-                </div>
-
-                {/* Overtime Box */}
-                <div className="flex-1 bg-gray-50 p-4 rounded-lg text-center">
-                    <div className="text-gray-600 mb-2">Overtime</div>
-                    <div className="text-blue-500 font-bold text-xl">{formatCurrency(payments?.overtimePay || 0)}</div>
-                    <div className="text-gray-500 text-sm">{calculations?.overtimeHours || '0.00'} hrs</div>
-                </div>
-
-                {/* Penalty Box */}
-                <div className="flex-1 bg-gray-50 p-4 rounded-lg text-center">
-                    <div className="text-gray-600 mb-2">Penalty</div>
-                    <div className="text-blue-500 font-bold text-xl">{formatCurrency(payments?.penaltyPay || 0)}</div>
-                    <div className="text-gray-500 text-sm">&nbsp;</div>
-                </div>
-
-                {/* Top-up Box */}
-                <div className="flex-1 bg-gray-50 p-4 rounded-lg text-center">
-                    <div className="text-gray-600 mb-2">Top-up</div>
-                    <div className="text-blue-500 font-bold text-xl">{formatCurrency(payments?.topupPay || 0)}</div>
-                    <div className="text-gray-500 text-sm">{calculations?.topupHours || '0.00'} hrs</div>
-                </div>
-
-                {/* Total Box */}
-                <div className="flex-1 bg-blue-50 p-4 rounded-lg text-center">
-                    <div className="text-gray-600 mb-2">Total</div>
-                    <div className="text-blue-500 font-bold text-xl">
-                        {formatCurrency(
-                            totalPay.toFixed(2)
-                        )}
-                    </div>
-                    <div className="text-gray-500 text-sm">{calculations?.totalHours || '0.00'} hrs</div>
+        <section className="summary-panel panel" aria-labelledby="pay-summary-title">
+            <div className="summary-main">
+                <p className="section-kicker">Calculated from your shifts</p>
+                <h2 id="pay-summary-title">Pay breakdown</h2>
+                <div className="summary-grid">
+                    <div className="summary-item"><div className="summary-item-label">Ordinary</div><div className="summary-item-value">{formatCurrency(payments?.ordinaryPay || 0)}</div><div className="summary-item-hours">{calculations?.ordinaryHours || '0.00'} hrs</div></div>
+                    <div className="summary-item"><div className="summary-item-label">Overtime</div><div className="summary-item-value">{formatCurrency(payments?.overtimePay || 0)}</div><div className="summary-item-hours">{calculations?.overtimeHours || '0.00'} hrs</div></div>
+                    <div className="summary-item"><div className="summary-item-label">Penalty</div><div className="summary-item-value">{formatCurrency(payments?.penaltyPay || 0)}</div><div className="summary-item-hours">{calculations?.totalHours || '0.00'} total hrs</div></div>
+                    <div className="summary-item"><div className="summary-item-label">Top-up</div><div className="summary-item-value">{formatCurrency(payments?.topupPay || 0)}</div><div className="summary-item-hours">{calculations?.topupHours || '0.00'} hrs</div></div>
                 </div>
             </div>
-
-            <div className="mt-4 border-t border-gray-200 pt-4 text-center">
-                <div className="text-gray-600 mb-1">Estimated net pay</div>
-                <div className="text-green-600 font-bold text-2xl">{formatCurrency(estimatedNetPay)}</div>
-                <div className="text-gray-500 text-xs mt-1">
-                    Approximate fortnightly amount after income tax and the 2% Medicare levy only.
-                </div>
+            <div className="net-pay">
+                <p className="eyebrow">Estimated take-home</p>
+                <div className="net-pay-value">{formatCurrency(estimatedNetPay)}</div>
+                <div className="net-pay-note">From {formatCurrency(totalPay.toFixed(2))} gross. This estimate includes income tax and the 2% Medicare levy only.</div>
             </div>
-        </div>
+        </section>
     );
 };
 

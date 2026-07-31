@@ -43,7 +43,7 @@ export default function ShiftTable() {
     };
 
     return (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <section className="shift-card panel" aria-label="Fortnightly shift entries">
             <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                     <tr>
@@ -62,6 +62,6 @@ export default function ShiftTable() {
                     <ShiftResults />
                 </tbody>
             </table>
-        </div>
+        </section>
     );
 }

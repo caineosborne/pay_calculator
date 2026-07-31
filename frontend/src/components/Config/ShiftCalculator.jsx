@@ -1,86 +1,50 @@
-
-/**
- * ShiftCalculator Component
- *
- * This component is responsible for triggering pay calculations whenever shift data or hourly rate changes.
- * It uses the usePay hook to access global state and dispatch actions to update calculations.
- *
- * Data Flow:
- * - state.shifts: Comes from PayContext, originally set by initialShifts in shifts.js
- * - state.config.hourlyRate: Comes from PayContext, default set in PayContext.jsx
- * - dispatch: Provided by PayContext, used to update calculations and payments in global state
- *
- * When shifts or hourlyRate change, useEffect triggers an API call to /calculate, then updates state with results.
- */
 import React, { useEffect } from 'react';
 import { usePay } from '../../context/PayContext';
+import { api } from '../../services/apis';
 
+const parseTimeValue = (value) => {
+    if (value === '' || value === null || value === undefined) {
+        return null;
+    }
 
-/**
- * ShiftCalculator wrapper component
- * @param {React.ReactNode} children - Child components to render
- * @returns {JSX.Element}
- */
+    // A trailing "n" is the UI's explicit marker for a next-day time.
+    if (value.toString().endsWith('n')) {
+        const hour = Number.parseInt(value, 10);
+        return Number.isNaN(hour) || hour < 0 || hour > 23
+            ? null
+            : hour + 24;
+    }
+
+    const hour = Number.parseInt(value, 10);
+    return Number.isNaN(hour) || hour < 0 || hour > 30 ? null : hour;
+};
+
 export function ShiftCalculator({ children }) {
-    // Access global state and dispatch from PayContext
-    // state: { config, shifts, calculations, payments }
-    // dispatch: function to update state
     const { state, dispatch } = usePay();
 
     useEffect(() => {
-        /**
-         * Triggers calculation of pay and hours when shifts or hourly rate change.
-         * - state.shifts: Array of shift objects from PayContext
-         * - state.config.hourlyRate: Hourly rate from PayContext
-         *
-         * Calls backend API and updates global state with results.
-         */
-        const calculateShifts = async () => {
-            // Log current state for debugging
-            // console.log('Calculate Shift - Calculating shifts with state:', {
-            //     hourlyRate: state.config.hourlyRate, // From PayContext
-            //     workerType: state.config.workerType, // From PayContext
-            //     shifts: state.shifts // From PayContext
-            // });
+        const controller = new AbortController();
+        let isCurrent = true;
 
-            // Filter out shifts that don't have both start and end times
-            // state.shifts comes from PayContext, originally set by initialShifts in shifts.js
+        const calculateShifts = async () => {
             const validShifts = state.shifts.filter(shift => {
                 const hasStart = shift.start !== '' && shift.start !== null && shift.start !== undefined;
                 const hasEnd = shift.end !== '' && shift.end !== null && shift.end !== undefined;
                 return hasStart && hasEnd;
             });
 
-            // If no hourly rate or no valid shifts, skip calculation
             if (!state.config.hourlyRate || validShifts.length === 0) {
-                console.log('No hourly rate or valid shifts, skipping calculation');
                 return;
             }
 
             try {
-                // Helper function to convert time strings to numbers
-                const parseTimeValue = (value) => {
-                    if (!value && value !== 0) return null;
-
-                    // If it ends with 'n', it's a next-day time
-                    if (value.toString().endsWith('n')) {
-                        const baseHour = parseInt(value);
-                        return !isNaN(baseHour) && baseHour >= 0 && baseHour <= 23 ? baseHour + 24 : null;
-                    }
-
-                    // For regular numbers
-                    const parsed = parseInt(value);
-                    return !isNaN(parsed) && parsed >= 0 && parsed <= 30 ? parsed : null;
-                };
-
-                // Prepare the payload with parsed values
                 const payload = {
                     hourly_rate: parseFloat(state.config.hourlyRate),
                     worker_type: state.config.workerType,
-                    award: state.config.award, // Include award in the payload
+                    award: state.config.award,
                     rule_configuration: state.config.ruleConfiguration,
-                    employment_type: state.config.employmentType, // Include employment type
-                    contracted_hours: state.config.contractedHours, // Include contracted hours if available
+                    employment_type: state.config.employmentType,
+                    contracted_hours: state.config.contractedHours,
                     shifts: validShifts.map(shift => ({
                         week: shift.week || 1,
                         day: shift.day,
@@ -90,36 +54,15 @@ export function ShiftCalculator({ children }) {
                     }))
                 };
 
-                // Log request payload for debugging
-                console.log('Sending to API: (Shift Calculator)', payload);
-
-                // Dynamically determine API URL based on environment
-                const apiUrl = import.meta.env.PROD
-                    ? `${import.meta.env.VITE_API_URL}/calculate` // Uses the URL from .env.production
-                    : 'http://localhost:8000/calculate';
-
-                // Send POST request to backend API for calculation
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(payload)
+                const data = await api.calculatePay(payload, {
+                    signal: controller.signal,
                 });
-
-                // Handle API errors
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('API Error Response:', errorText);
-                    throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+                // Some test or browser fetch implementations do not honour
+                // AbortController, so also guard the state update explicitly.
+                if (!isCurrent) {
+                    return;
                 }
 
-                // data is what is sent from the API  
-                const data = await response.json();
-                console.log('API Response:', data);
-
-                // Format the daily breakdown to separate hours and pay
-                // data.daily_breakdown: returned from backend API
                 const formattedDailyBreakdown = {};
                 Object.entries(data.daily_breakdown || {}).forEach(([day, values]) => {
                     formattedDailyBreakdown[day] = {
@@ -138,36 +81,42 @@ export function ShiftCalculator({ children }) {
                     };
                 });
 
-                // Dispatch action to update calculations and payments in global state
-                // This updates PayContext, which triggers UI updates in child components
                 dispatch({
                     type: 'UPDATE_CALCULATIONS',
                     payload: {
                         calculations: {
-                            ordinaryHours: Number(data.ordinary_hours || 0).toFixed(2), // From API response
-                            overtimeHours: Number(data.overtime_hours || 0).toFixed(2), // From API response
-                            topupHours: Number(data.topup_hours || 0).toFixed(2), // Add topup hours
-                            totalHours: Number(data.total_hours || 0).toFixed(2), // From API response
-                            dailyBreakdown: formattedDailyBreakdown, // Formatted above
-                            appliedRules: data.applied_rules // Add applied rules to the state
+                            ordinaryHours: Number(data.ordinary_hours || 0).toFixed(2),
+                            overtimeHours: Number(data.overtime_hours || 0).toFixed(2),
+                            topupHours: Number(data.topup_hours || 0).toFixed(2),
+                            totalHours: Number(data.total_hours || 0).toFixed(2),
+                            dailyBreakdown: formattedDailyBreakdown,
+                            appliedRules: data.applied_rules
                         },
                         payments: {
-                            ordinaryPay: Number(data.ordinary_pay || 0).toFixed(2), // From API response
-                            overtimePay: Number(data.overtime_pay || 0).toFixed(2), // From API response
-                            topupPay: Number(data.topup_pay || 0).toFixed(2), // Add topup pay
-                            penaltyPay: Number(data.penalty_pay || 0).toFixed(2), // From API response
-                            totalPay: Number(data.total_pay || 0).toFixed(2) // From API response
+                            ordinaryPay: Number(data.ordinary_pay || 0).toFixed(2),
+                            overtimePay: Number(data.overtime_pay || 0).toFixed(2),
+                            topupPay: Number(data.topup_pay || 0).toFixed(2),
+                            penaltyPay: Number(data.penalty_pay || 0).toFixed(2),
+                            totalPay: Number(data.total_pay || 0).toFixed(2)
                         }
                     }
                 });
             } catch (error) {
-                // Log any errors from calculation or API
+                if (error.name === 'AbortError') {
+                    return;
+                }
                 console.error('Calculation error:', error);
             }
         };
 
-        // Run calculation when shifts, hourly rate, worker type, award, or employment details change
-        calculateShifts();
+        // Coalesce rapid input changes, then cancel this request if any input
+        // changes again before the response is applied.
+        const calculationTimer = window.setTimeout(calculateShifts, 150);
+        return () => {
+            isCurrent = false;
+            window.clearTimeout(calculationTimer);
+            controller.abort();
+        };
     }, [
         state.shifts,
         state.config.hourlyRate,
@@ -177,8 +126,7 @@ export function ShiftCalculator({ children }) {
         state.config.employmentType,
         state.config.contractedHours,
         dispatch
-    ]); // Dependencies: PayContext state
+    ]);
 
-    // Render child components
     return <>{children}</>;
 }

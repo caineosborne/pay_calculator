@@ -219,4 +219,55 @@ describe('RuleConfigurationEditor', () => {
             })
         );
     });
+
+    it('ignores a stale configuration response after the selection changes', async () => {
+        const pending = {};
+        api.getRuleConfiguration.mockImplementation(
+            (id) =>
+                new Promise((resolve) => {
+                    pending[id] = resolve;
+                })
+        );
+        const { rerender } = render(
+            <RuleConfigurationEditor
+                configurationId="custom:hospitality:first"
+                onConfigurationSaved={vi.fn()}
+            />
+        );
+        await waitFor(() =>
+            expect(pending['custom:hospitality:first']).toBeTypeOf('function')
+        );
+
+        rerender(
+            <RuleConfigurationEditor
+                configurationId="custom:hospitality:second"
+                onConfigurationSaved={vi.fn()}
+            />
+        );
+        await waitFor(() =>
+            expect(pending['custom:hospitality:second']).toBeTypeOf('function')
+        );
+
+        pending['custom:hospitality:second']({
+            ...configuration(),
+            id: 'custom:hospitality:second',
+            kind: 'custom',
+            source: 'class HospitalityRules:\n    VALUE = 2\n',
+        });
+        expect(await screen.findByLabelText('Rule class source')).toHaveValue(
+            'class HospitalityRules:\n    VALUE = 2\n'
+        );
+
+        pending['custom:hospitality:first']({
+            ...configuration(),
+            id: 'custom:hospitality:first',
+            kind: 'custom',
+            source: 'class HospitalityRules:\n    VALUE = 1\n',
+        });
+        await waitFor(() =>
+            expect(screen.getByLabelText('Rule class source')).toHaveValue(
+                'class HospitalityRules:\n    VALUE = 2\n'
+            )
+        );
+    });
 });

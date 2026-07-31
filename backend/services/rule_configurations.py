@@ -8,6 +8,7 @@ import os
 import re
 import tempfile
 import types
+from functools import lru_cache
 from pathlib import Path
 
 from services.award_registry import load_awards
@@ -62,15 +63,6 @@ def _custom_rules_dir() -> Path:
     return Path(configured_path) if configured_path else DEFAULT_CUSTOM_RULES_DIR
 
 
-def _slugify(name: str) -> str:
-    slug = re.sub(r"[^a-z0-9]+", "-", name.strip().lower()).strip("-")
-    if not slug:
-        raise RuleConfigurationError(
-            "Configuration name must contain at least one letter or number."
-        )
-    return slug
-
-
 def _custom_identifier(award_key: str, slug: str) -> str:
     return f"{CUSTOM_ID_PREFIX}{award_key}:{slug}"
 
@@ -92,25 +84,6 @@ def _custom_path(award_key: str, slug: str) -> Path:
 
 def _questionnaire_path(award_key: str, slug: str) -> Path:
     return _custom_rules_dir() / f"{award_key}__{slug}.questionnaire.json"
-
-
-def _builtin_path(award: dict) -> Path:
-    return Path(__file__).resolve().parent / "rules" / f"{award['module']}.py"
-
-
-def _assigned_class_attributes(class_node: ast.ClassDef) -> set[str]:
-    assigned = set()
-    for statement in class_node.body:
-        if isinstance(statement, (ast.Assign, ast.AnnAssign)):
-            targets = (
-                statement.targets
-                if isinstance(statement, ast.Assign)
-                else [statement.target]
-            )
-            for target in targets:
-                if isinstance(target, ast.Name):
-                    assigned.add(target.id)
-    return assigned
 
 
 def validate_rule_source(award_key: str, source: str) -> dict:
@@ -141,8 +114,20 @@ def validate_rule_source(award_key: str, source: str) -> dict:
             f"Expected a top-level class named {expected_class}."
         )
 
+    assigned_attributes = set()
+    for statement in class_node.body:
+        if isinstance(statement, ast.Assign):
+            targets = statement.targets
+        elif isinstance(statement, ast.AnnAssign):
+            targets = [statement.target]
+        else:
+            continue
+        assigned_attributes.update(
+            target.id for target in targets if isinstance(target, ast.Name)
+        )
+
     missing_attributes = sorted(
-        REQUIRED_RULE_ATTRIBUTES - _assigned_class_attributes(class_node)
+        REQUIRED_RULE_ATTRIBUTES - assigned_attributes
     )
     if missing_attributes:
         raise RuleConfigurationError(
@@ -200,7 +185,11 @@ def get_rule_configuration(identifier: str) -> dict:
     if identifier.startswith(BUILTIN_ID_PREFIX):
         award_key = identifier.removeprefix(BUILTIN_ID_PREFIX)
         award = _award_definition(award_key)
-        path = _builtin_path(award)
+        path = (
+            Path(__file__).resolve().parent
+            / "rules"
+            / f"{award['module']}.py"
+        )
         metadata = {
             "id": identifier,
             "name": award["label"],
@@ -253,6 +242,8 @@ def validate_rule_payload(
 ) -> dict:
     """Validate raw source or patch and validate a guided questionnaire."""
     if questionnaire is not None:
+        # Start with the Python projection so omitted form fields retain their
+        # authoritative values, then overlay only submitted answers.
         projection = project_rule_source(award_key, source, questionnaire)
         merged_questionnaire = projection["questionnaire"]
         for section, fields in merged_questionnaire.items():
@@ -304,13 +295,19 @@ def create_custom_rule(
 ) -> dict:
     """Validate and save a new custom copy without touching built-in files."""
     validation = validate_rule_payload(award_key, source, questionnaire)
-    slug = _slugify(name)
+    slug = re.sub(r"[^a-z0-9]+", "-", name.strip().lower()).strip("-")
+    if not slug:
+        raise RuleConfigurationError(
+            "Configuration name must contain at least one letter or number."
+        )
     path = _custom_path(award_key, slug)
     if path.exists():
         raise RuleConfigurationConflict(
             f"A custom configuration named '{name}' already exists."
         )
-    _write_custom_source(path, validation["source"])
+    _write_file_atomically(path, validation["source"])
+    # A save creates a new file version, so the next calculation must compile it.
+    _load_custom_rule_class_cached.cache_clear()
     if questionnaire is not None:
         _write_questionnaire_context(
             _questionnaire_path(award_key, slug), questionnaire
@@ -329,7 +326,9 @@ def update_custom_rule(
             f"Rule configuration not found: {identifier}"
         )
     validation = validate_rule_payload(award_key, source, questionnaire)
-    _write_custom_source(path, validation["source"])
+    _write_file_atomically(path, validation["source"])
+    # Do not let a calculation reuse the class compiled from the previous file.
+    _load_custom_rule_class_cached.cache_clear()
     if questionnaire is not None:
         _write_questionnaire_context(
             _questionnaire_path(award_key, slug), questionnaire
@@ -337,7 +336,8 @@ def update_custom_rule(
     return get_rule_configuration(identifier)
 
 
-def _write_custom_source(path: Path, source: str) -> None:
+def _write_file_atomically(path: Path, content: str) -> None:
+    """Replace one custom source or evidence file without a partial write."""
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary_path = None
     try:
@@ -349,7 +349,7 @@ def _write_custom_source(path: Path, source: str) -> None:
             suffix=".tmp",
             delete=False,
         ) as temporary_file:
-            temporary_file.write(source)
+            temporary_file.write(content)
             temporary_path = Path(temporary_file.name)
         temporary_path.replace(path)
     finally:
@@ -358,25 +358,24 @@ def _write_custom_source(path: Path, source: str) -> None:
 
 
 def _write_questionnaire_context(path: Path, questionnaire: dict) -> None:
-    _write_custom_source(
+    _write_file_atomically(
         path,
         json.dumps(questionnaire, indent=2, ensure_ascii=False) + "\n",
     )
 
 
-def load_custom_rule_class(identifier: str, award_key: str) -> type:
-    """Load a selected custom class from its dedicated filesystem file."""
-    identifier_award, slug = _parse_custom_identifier(identifier)
-    if identifier_award != award_key:
-        raise RuleConfigurationError(
-            "The selected configuration does not belong to the requested award."
-        )
-
-    path = _custom_path(identifier_award, slug)
-    if not path.is_file():
-        raise RuleConfigurationNotFound(
-            f"Rule configuration not found: {identifier}"
-        )
+@lru_cache(maxsize=128)
+def _load_custom_rule_class_cached(
+    path_text: str,
+    identifier_award: str,
+    slug: str,
+    _modified_ns: int,
+    _file_size: int,
+) -> type:
+    """Compile a custom class once for each saved file version."""
+    # Modification time and size are deliberately part of the cache key even
+    # though compilation only needs the path and expected class identity.
+    path = Path(path_text)
     source = path.read_text(encoding="utf-8")
     validation = validate_rule_source(identifier_award, source)
     module = types.ModuleType(
@@ -384,6 +383,8 @@ def load_custom_rule_class(identifier: str, award_key: str) -> type:
     )
     module.__file__ = str(path)
     try:
+        # This feature intentionally executes trusted local rule files. It is
+        # not exposed as a public arbitrary-code execution service.
         exec(compile(source, str(path), "exec"), module.__dict__)
     except Exception as error:
         raise RuleConfigurationError(
@@ -406,3 +407,26 @@ def load_custom_rule_class(identifier: str, award_key: str) -> type:
             + ", ".join(missing_attributes)
         )
     return rule_class
+
+
+def load_custom_rule_class(identifier: str, award_key: str) -> type:
+    """Load a selected custom class from its dedicated filesystem file."""
+    identifier_award, slug = _parse_custom_identifier(identifier)
+    if identifier_award != award_key:
+        raise RuleConfigurationError(
+            "The selected configuration does not belong to the requested award."
+        )
+
+    path = _custom_path(identifier_award, slug)
+    if not path.is_file():
+        raise RuleConfigurationNotFound(
+            f"Rule configuration not found: {identifier}"
+        )
+    file_stat = path.stat()
+    return _load_custom_rule_class_cached(
+        str(path),
+        identifier_award,
+        slug,
+        file_stat.st_mtime_ns,
+        file_stat.st_size,
+    )
