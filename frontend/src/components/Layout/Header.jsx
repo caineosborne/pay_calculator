@@ -113,51 +113,42 @@ export default function Header() {
     };
 
     return (
-        <header className="bg-gray-100 shadow">
-            <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
-                <div className="flex justify-between items-center">
+        <header className="pay-header pay-shell">
+                <div className="pay-brand">
                     {/* Title and subtitle section */}
+                    <span className="brand-mark" aria-hidden="true">$</span>
                     <div>
-                        <h1 className="text-2xl font-bold text-black">
-                            🧾 Pay Checker
+                        <p className="eyebrow">Fortnightly pay estimate</p>
+                        <h1>
+                            Pay Checker
                         </h1>
-                        <p className="mt-1 text-sm text-black">
+                        <p className="sr-only">
                             Calculate your fortnightly earnings
                         </p>
                     </div>
 
                     {/* Control buttons section */}
-                    <div className="flex space-x-3">
+                    <div className="header-actions">
                         <button
                             onClick={copyPreviousWeek}
-                            className="inline-flex items-center px-3 py-2 border
-                                     text-sm leading-4 font-medium rounded-md text-black
-                                     bg-grey-400 hover:bg-gray-700 focus:outline-none
-                                     focus:ring-2 focus:ring-offset-2 focus:ring-black"
+                            className="pay-button"
                         >
                             Copy Previous Week
                         </button>
                         <button
                             onClick={resetToDefault}
-                            className="inline-flex items-center px-3 py-2 border  
-                                     text-sm leading-4 font-medium rounded-md text-black 
-                                     bg-grey-400 hover:bg-gray-800 focus:outline-none 
-                                     focus:ring-2 focus:ring-offset-2 focus:ring-black"
+                            className="pay-button"
                         >
                             Set to 9-5
                         </button>
                         <button
                             onClick={clearAllShifts}
-                            className="inline-flex items-center px-3 py-2 border 
-                                     text-sm leading-4 font-medium rounded-md text-black 
-                                     bg-grey-400 hover:bg-gray-600 focus:outline-none 
-                                     focus:ring-2 focus:ring-offset-2 focus:ring-black"
+                            className="pay-button"
                         >
                             Clear All
                         </button>
                     </div>
                 </div>
-            </div>
         </header>
     );
 }

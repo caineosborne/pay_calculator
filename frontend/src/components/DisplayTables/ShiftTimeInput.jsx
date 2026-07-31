@@ -160,26 +160,26 @@ export default function ShiftTimeInput({ renderRow }) {
                 </td>
                 <td className="px-2 py-1 whitespace-nowrap">
                     <div className="flex items-center space-x-1">
-                        <button onClick={() => handleTimeChange(idx, 'start', 'decrement')} className="p-1 text-gray-500 hover:text-gray-700">-</button>
+                        <button aria-label={`Decrease ${shift.day} start time`} onClick={() => handleTimeChange(idx, 'start', 'decrement')} className="time-adjust">−</button>
                         <input
                             type="text"
                             value={formatTimeDisplay(shift.start)}
                             onChange={(e) => handleTimeChange(idx, 'start', e.target.value, true)}
-                            className="w-16 p-1 text-center border rounded"
+                            className="shift-input text-center"
                         />
-                        <button onClick={() => handleTimeChange(idx, 'start', 'increment')} className="p-1 text-gray-500 hover:text-gray-700">+</button>
+                        <button aria-label={`Increase ${shift.day} start time`} onClick={() => handleTimeChange(idx, 'start', 'increment')} className="time-adjust">+</button>
                     </div>
                 </td>
                 <td className="px-2 py-1 whitespace-nowrap">
                     <div className="flex items-center space-x-1">
-                        <button onClick={() => handleTimeChange(idx, 'end', 'decrement')} className="p-1 text-gray-500 hover:text-gray-700">-</button>
+                        <button aria-label={`Decrease ${shift.day} end time`} onClick={() => handleTimeChange(idx, 'end', 'decrement')} className="time-adjust">−</button>
                         <input
                             type="text"
                             value={formatTimeDisplay(shift.end)}
                             onChange={(e) => handleTimeChange(idx, 'end', e.target.value, true)}
-                            className="w-16 p-1 text-center border rounded"
+                            className="shift-input text-center"
                         />
-                        <button onClick={() => handleTimeChange(idx, 'end', 'increment')} className="p-1 text-gray-500 hover:text-gray-700">+</button>
+                        <button aria-label={`Increase ${shift.day} end time`} onClick={() => handleTimeChange(idx, 'end', 'increment')} className="time-adjust">+</button>
                     </div>
                 </td>
                 <td className="px-2 py-1 whitespace-nowrap">
@@ -188,7 +188,7 @@ export default function ShiftTimeInput({ renderRow }) {
                             type="number"
                             value={shift.break_duration}
                             onChange={(e) => handleTimeChange(idx, 'break_duration', e.target.value, true)}
-                            className="w-16 p-1 text-center border rounded"
+                            className="shift-input text-center"
                             step="0.5"
                             min="0"
                             max="24"
@@ -196,7 +196,7 @@ export default function ShiftTimeInput({ renderRow }) {
                         <div className="flex space-x-1">
                             <button
                                 onClick={() => clearDay(idx)}
-                                className="ml-2 px-2 py-0.5 bg-gray-200 rounded text-xs hover:bg-gray-300"
+                                className="day-action ml-2"
                                 title="Clear times"
                             >
                                 Clear
@@ -218,7 +218,7 @@ export default function ShiftTimeInput({ renderRow }) {
                                         });
                                     }
                                 }}
-                                className="px-2 py-0.5 bg-blue-100 rounded text-xs hover:bg-blue-200"
+                                className="day-action"
                                 title="Copy times from previous day"
                                 disabled={isFirstDayOfWeek}
                             >

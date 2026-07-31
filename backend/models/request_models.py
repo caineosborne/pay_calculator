@@ -81,4 +81,5 @@ class PayRequest(BaseModel):
     award: AwardType
     employment_type: EmploymentType = Field(default=EmploymentType.FULL_TIME)
     contracted_hours: Optional[float] = None
+    rule_configuration: Optional[str] = Field(default=None, max_length=200)
     shifts: List[Shift]

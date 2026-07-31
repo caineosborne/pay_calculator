@@ -11,11 +11,11 @@ function App() {
     <PayProvider>
       <ShiftCalculator>
         <Layout>
-          <div className="space-y-6">
+          <main className="workspace">
             <InputDetails />
             <ShiftTable />
             <SummaryTable />
-          </div>
+          </main>
         </Layout>
       </ShiftCalculator>
     </PayProvider>
