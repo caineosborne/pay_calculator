@@ -1,0 +1,854 @@
+"""Project editable rule classes into a guided questionnaire and patch them back."""
+
+from __future__ import annotations
+
+import ast
+import copy
+import io
+import pprint
+import re
+import tokenize
+from typing import Any
+
+from services.award_registry import load_awards
+
+
+DIRECT_FIELDS = {
+    "core_hours.day_worker_daily_limit_hours": "DAY_WORKER_ORDINARY_HOURS_DAILY",
+    "core_hours.shift_worker_daily_limit_hours": "ORDINARY_HOURS_LIMIT_DAILY",
+    "core_hours.day_worker_weekly_limit_hours": "DAY_WORKER_ORDINARY_HOURS_WEEKLY",
+    "core_hours.shift_worker_weekly_limit_hours": "ORDINARY_HOURS_LIMIT_WEEKLY",
+    "overtime.standard_overtime_rate": "STANDARD_OVERTIME_RATE",
+    "overtime.two_tier_overtime": "TWO_TIER_OVERTIME",
+    "overtime.extended_overtime_rate": "EXTENDED_OVERTIME_RATE",
+    "overtime.two_tier_overtime_threshold": "TWO_TIER_OVERTIME_THRESHOLD",
+    "overtime.extended_overtime_days": "EXTENDED_OVERTIME_DAYS",
+    "overtime.saturday_overtime_rate": "SATURDAY_OVERTIME_RATE",
+    "overtime.sunday_overtime_rate": "SUNDAY_OVERTIME_RATE",
+    "span_overtime.applies": "APPLY_SPAN_OVERTIME",
+    "span_overtime.cutoff_hour": "SPAN_OVERTIME_HOUR",
+    "employment_defaults.default_break": "DEFAULT_BREAK",
+    "employment_defaults.part_time_contracted_hours_overtime": (
+        "USE_CONTRACTED_HOURS_FOR_PT_OVERTIME"
+    ),
+    "employment_defaults.part_time_top_up_entitlement": (
+        "PT_EMPLOYEES_ENTITLED_TO_CONTRACTED_TOPUP"
+    ),
+    "employment_defaults.full_time_top_up_entitlement": (
+        "FT_EMPLOYEES_ENTITLED_TO_CONTRACTED_TOPUP"
+    ),
+}
+
+MANAGED_ATTRIBUTES = set(DIRECT_FIELDS.values()) | {
+    "WEEKEND_RULES",
+    "GAP_PENALTY_HOURS",
+    "GAP_PENALTY_RATE",
+    "PENALTIES",
+}
+
+WEEKEND_FIELDS = {
+    ("day", "Saturday"): (
+        "weekend_treatment.day_saturday_treatment",
+        "weekend_treatment.day_saturday_penalty_loading",
+    ),
+    ("day", "Sunday"): (
+        "weekend_treatment.day_sunday_treatment",
+        "weekend_treatment.day_sunday_penalty_loading",
+    ),
+    ("shift", "Saturday"): (
+        "weekend_treatment.shift_saturday_treatment",
+        "weekend_treatment.shift_saturday_penalty_loading",
+    ),
+    ("shift", "Sunday"): (
+        "weekend_treatment.shift_sunday_treatment",
+        "weekend_treatment.shift_sunday_penalty_loading",
+    ),
+}
+
+SECTION_FIELDS = {
+    "core_hours": [
+        "day_worker_daily_limit_hours",
+        "shift_worker_daily_limit_hours",
+        "day_worker_weekly_limit_hours",
+        "shift_worker_weekly_limit_hours",
+    ],
+    "overtime": [
+        "standard_overtime_rate",
+        "two_tier_overtime",
+        "extended_overtime_rate",
+        "two_tier_overtime_threshold",
+        "extended_overtime_days",
+        "saturday_overtime_rate",
+        "sunday_overtime_rate",
+    ],
+    "span_overtime": ["applies", "cutoff_hour"],
+    "weekend_treatment": [
+        "day_saturday_treatment",
+        "day_saturday_penalty_loading",
+        "day_sunday_treatment",
+        "day_sunday_penalty_loading",
+        "shift_saturday_treatment",
+        "shift_saturday_penalty_loading",
+        "shift_sunday_treatment",
+        "shift_sunday_penalty_loading",
+    ],
+    "gap_between_shifts": ["applies", "minimum_hours", "penalty_rate"],
+    "weekday_penalties": ["shift_based_penalties", "time_based_penalties"],
+    "employment_defaults": [
+        "default_break",
+        "part_time_contracted_hours_overtime",
+        "part_time_top_up_entitlement",
+        "full_time_top_up_entitlement",
+    ],
+}
+
+IMPORT_ALIASES = {
+    "overtime.standard_overtime_rate": "overtime.standard_overtime_multiplier",
+    "overtime.two_tier_overtime": "overtime.has_two_tier_overtime",
+    "overtime.extended_overtime_rate": "overtime.extended_overtime_multiplier",
+    "overtime.two_tier_overtime_threshold": (
+        "overtime.higher_overtime_starts_after_hours"
+    ),
+    "overtime.saturday_overtime_rate": "overtime.saturday_overtime_multiplier",
+    "overtime.sunday_overtime_rate": "overtime.sunday_overtime_multiplier",
+    "span_overtime.applies": "span.day_workers_have_span_overtime",
+    "span_overtime.cutoff_hour": "span.live_span_cutoff_hour",
+    "gap_between_shifts.applies": "gap_between_shifts.minimum_break_required",
+    "gap_between_shifts.minimum_hours": (
+        "gap_between_shifts.standard_minimum_break_hours"
+    ),
+    "gap_between_shifts.penalty_rate": (
+        "gap_between_shifts.breach_penalty_multiplier"
+    ),
+}
+
+
+def _award_class_name(award_key: str) -> str:
+    for award in load_awards():
+        if award["key"] == award_key:
+            return award["class_name"]
+    raise ValueError(f"Unknown award: {award_key}")
+
+
+def _issue(field_path: str, message: str, severity: str = "warning") -> dict:
+    return {
+        "severity": severity,
+        "field_path": field_path,
+        "message": message,
+    }
+
+
+def _record(
+    answer: Any,
+    attribute: str | None = None,
+    status: str = "derived",
+    message: str | None = None,
+) -> dict:
+    return {
+        "answer": answer,
+        "status": status,
+        "source_ruleset_keys": [],
+        "source_rule_ids": [],
+        "clause_references": [],
+        "reasoning_summary": message
+        or (
+            f"Loaded from Python attribute {attribute}."
+            if attribute
+            else "Derived from the selected Python rule class."
+        ),
+        "special_case_notes": [],
+    }
+
+
+def _class_assignments(
+    award_key: str, source: str
+) -> tuple[ast.ClassDef | None, dict[str, tuple[ast.AST, ast.AST]], list[dict]]:
+    try:
+        tree = ast.parse(source)
+    except SyntaxError as error:
+        return (
+            None,
+            {},
+            [
+                _issue(
+                    "_class",
+                    f"Invalid Python syntax at line {error.lineno}: {error.msg}",
+                    "error",
+                )
+            ],
+        )
+    class_name = _award_class_name(award_key)
+    class_node = next(
+        (
+            node
+            for node in tree.body
+            if isinstance(node, ast.ClassDef) and node.name == class_name
+        ),
+        None,
+    )
+    if class_node is None:
+        return (
+            None,
+            {},
+            [_issue("_class", f"Expected a top-level class named {class_name}.", "error")],
+        )
+
+    assignments: dict[str, tuple[ast.AST, ast.AST]] = {}
+    for statement in class_node.body:
+        if isinstance(statement, ast.Assign) and len(statement.targets) == 1:
+            target = statement.targets[0]
+            if isinstance(target, ast.Name):
+                assignments[target.id] = (statement, statement.value)
+        elif isinstance(statement, ast.AnnAssign) and isinstance(
+            statement.target, ast.Name
+        ):
+            assignments[statement.target.id] = (statement, statement.value)
+    return class_node, assignments, []
+
+
+def _literal(
+    assignments: dict[str, tuple[ast.AST, ast.AST]],
+    attribute: str,
+    path: str,
+    issues: list[dict],
+    default: Any = None,
+    default_message: str | None = None,
+) -> tuple[Any, str]:
+    assignment = assignments.get(attribute)
+    if assignment is None:
+        if default_message is not None:
+            issues.append(_issue(path, default_message))
+            return default, "defaulted"
+        issues.append(_issue(path, f"Python attribute {attribute} is missing."))
+        return default, "not_found"
+    try:
+        return ast.literal_eval(assignment[1]), "derived"
+    except (ValueError, TypeError):
+        issues.append(
+            _issue(
+                path,
+                f"Python attribute {attribute} is not a literal value and cannot "
+                "be represented by the Review Helper.",
+            )
+        )
+        return None, "not_found"
+
+
+def _nested_value(container: Any, *keys: str) -> Any:
+    current = container
+    for key in keys:
+        if not isinstance(current, dict) or key not in current:
+            return None
+        current = current[key]
+    return current
+
+
+def _weekend_answer(rule: Any) -> tuple[str | None, Any]:
+    if not isinstance(rule, dict):
+        return None, None
+    if rule.get("is_overtime") is True:
+        return "overtime", None
+    if rule.get("is_overtime") is False:
+        loading = rule.get("penalty_rate", rule.get("rate", 0))
+        return ("penalty" if loading not in (None, 0, 0.0) else "not_applicable"), loading
+    if "penalty_rate" in rule:
+        loading = rule.get("penalty_rate", 0)
+        return ("penalty" if loading not in (None, 0, 0.0) else "not_applicable"), loading
+    return None, None
+
+
+def _penalty_row(code_name: str, penalty: Any) -> dict:
+    if not isinstance(penalty, dict):
+        return {
+            "code_name": code_name,
+            "type": "",
+            "basis": "",
+            "start_hour": None,
+            "end_hour": None,
+            "rate": None,
+            "description": "",
+            "applies_to": [],
+            "extra": {"raw_value": penalty},
+        }
+    managed_keys = {
+        "type",
+        "basis",
+        "start",
+        "end",
+        "rate",
+        "description",
+        "applies_to",
+    }
+    return {
+        "code_name": code_name,
+        "type": penalty.get("type", ""),
+        "basis": penalty.get("basis", penalty.get("match_on", "start")),
+        "start_hour": penalty.get("start"),
+        "end_hour": penalty.get("end"),
+        "rate": penalty.get("rate"),
+        "description": penalty.get("description", ""),
+        "applies_to": penalty.get("applies_to", []),
+        "extra": {
+            key: copy.deepcopy(value)
+            for key, value in penalty.items()
+            if key not in managed_keys
+        },
+    }
+
+
+def project_rule_source(
+    award_key: str, source: str, imported_context: dict | None = None
+) -> dict:
+    """Build the 30-field questionnaire from the authoritative Python source."""
+    class_node, assignments, issues = _class_assignments(award_key, source)
+    questionnaire = {
+        section: {field: _record(None, status="not_found") for field in fields}
+        for section, fields in SECTION_FIELDS.items()
+    }
+    if class_node is None:
+        return {
+            "questionnaire": questionnaire,
+            "structural_issues": issues,
+            "advanced_attributes": [],
+        }
+
+    for path, attribute in DIRECT_FIELDS.items():
+        section, field = path.split(".", 1)
+        if attribute == "DEFAULT_BREAK":
+            value, status = _literal(
+                assignments,
+                attribute,
+                path,
+                issues,
+                default=0.5,
+                default_message=(
+                    "DEFAULT_BREAK is absent; Paychecker uses the 0.5 hour fallback."
+                ),
+            )
+        else:
+            value, status = _literal(assignments, attribute, path, issues)
+        questionnaire[section][field] = _record(value, attribute, status)
+
+    weekend_rules, weekend_status = _literal(
+        assignments,
+        "WEEKEND_RULES",
+        "weekend_treatment",
+        issues,
+    )
+    for (worker, day), (treatment_path, loading_path) in WEEKEND_FIELDS.items():
+        treatment_section, treatment_field = treatment_path.split(".", 1)
+        loading_section, loading_field = loading_path.split(".", 1)
+        rule = _nested_value(weekend_rules, worker, day)
+        treatment, loading = _weekend_answer(rule)
+        status = weekend_status if rule is not None else "not_found"
+        if rule is None:
+            issues.append(
+                _issue(
+                    treatment_path,
+                    f"WEEKEND_RULES has no {worker} worker {day} entry.",
+                )
+            )
+        questionnaire[treatment_section][treatment_field] = _record(
+            treatment, "WEEKEND_RULES", status
+        )
+        questionnaire[loading_section][loading_field] = _record(
+            loading, "WEEKEND_RULES", status
+        )
+
+    gap_hours, gap_hours_status = _literal(
+        assignments,
+        "GAP_PENALTY_HOURS",
+        "gap_between_shifts.minimum_hours",
+        issues,
+        default=0,
+        default_message=(
+            "GAP_PENALTY_HOURS is absent; the gap rule is treated as disabled."
+        ),
+    )
+    gap_rate, gap_rate_status = _literal(
+        assignments,
+        "GAP_PENALTY_RATE",
+        "gap_between_shifts.penalty_rate",
+        issues,
+        default=0,
+        default_message=(
+            "GAP_PENALTY_RATE is absent; the gap rule is treated as disabled."
+        ),
+    )
+    questionnaire["gap_between_shifts"] = {
+        "applies": _record(
+            bool(gap_hours and gap_rate),
+            "GAP_PENALTY_HOURS / GAP_PENALTY_RATE",
+            "derived"
+            if gap_hours_status == gap_rate_status == "derived"
+            else "defaulted",
+        ),
+        "minimum_hours": _record(
+            gap_hours, "GAP_PENALTY_HOURS", gap_hours_status
+        ),
+        "penalty_rate": _record(gap_rate, "GAP_PENALTY_RATE", gap_rate_status),
+    }
+
+    penalties, penalties_status = _literal(
+        assignments, "PENALTIES", "weekday_penalties", issues, default={}
+    )
+    shift_rows: list[dict] = []
+    time_rows: list[dict] = []
+    if isinstance(penalties, dict):
+        for code_name, penalty in penalties.items():
+            row = _penalty_row(code_name, penalty)
+            if row["type"] == "shift_based":
+                shift_rows.append(row)
+            elif row["type"] == "time_based":
+                time_rows.append(row)
+            else:
+                issues.append(
+                    _issue(
+                        f"weekday_penalties.{code_name}",
+                        f"Penalty '{code_name}' has an unsupported or missing type.",
+                    )
+                )
+    elif penalties is not None:
+        issues.append(
+            _issue(
+                "weekday_penalties",
+                "PENALTIES must be a dictionary to use the Review Helper.",
+            )
+        )
+    questionnaire["weekday_penalties"] = {
+        "shift_based_penalties": _record(
+            shift_rows, "PENALTIES", penalties_status
+        ),
+        "time_based_penalties": _record(time_rows, "PENALTIES", penalties_status),
+    }
+
+    _merge_imported_context(questionnaire, imported_context)
+    issues.extend(validate_questionnaire(questionnaire))
+    advanced_attributes = sorted(
+        attribute for attribute in assignments if attribute not in MANAGED_ATTRIBUTES
+    )
+    return {
+        "questionnaire": questionnaire,
+        "structural_issues": _deduplicate_issues(issues),
+        "advanced_attributes": advanced_attributes,
+    }
+
+
+def _merge_imported_context(questionnaire: dict, imported_context: dict | None) -> None:
+    if not isinstance(imported_context, dict):
+        return
+    sections = imported_context.get("questionnaire_answers", imported_context)
+    if not isinstance(sections, dict):
+        return
+    for section, fields in questionnaire.items():
+        for field, record in fields.items():
+            imported_path = IMPORT_ALIASES.get(
+                f"{section}.{field}", f"{section}.{field}"
+            )
+            imported_section_name, imported_field_name = imported_path.split(
+                ".", 1
+            )
+            imported_section = sections.get(imported_section_name)
+            imported_record = (
+                imported_section.get(imported_field_name)
+                if isinstance(imported_section, dict)
+                else None
+            )
+            if not isinstance(record, dict) or not isinstance(imported_record, dict):
+                continue
+            for key in (
+                "status",
+                "source_ruleset_keys",
+                "source_rule_ids",
+                "clause_references",
+                "reasoning_summary",
+                "special_case_notes",
+            ):
+                if key in imported_record:
+                    value = copy.deepcopy(imported_record[key])
+                    if key in {
+                        "source_ruleset_keys",
+                        "source_rule_ids",
+                        "clause_references",
+                        "special_case_notes",
+                    }:
+                        if value is None:
+                            value = []
+                        elif not isinstance(value, list):
+                            value = [value]
+                    record[key] = value
+
+
+def _answer(questionnaire: dict, path: str) -> Any:
+    section, field = path.split(".", 1)
+    value = questionnaire.get(section, {}).get(field)
+    return value.get("answer") if isinstance(value, dict) else value
+
+
+def _numeric(
+    questionnaire: dict,
+    path: str,
+    issues: list[dict],
+    *,
+    positive: bool = False,
+    minimum: float | None = None,
+    maximum: float | None = None,
+) -> None:
+    value = _answer(questionnaire, path)
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        issues.append(_issue(path, "A numeric value is required.", "error"))
+        return
+    if positive and value <= 0:
+        issues.append(_issue(path, "The value must be greater than zero.", "error"))
+    if minimum is not None and value < minimum:
+        issues.append(_issue(path, f"The value must be at least {minimum}.", "error"))
+    if maximum is not None and value > maximum:
+        issues.append(_issue(path, f"The value must not exceed {maximum}.", "error"))
+
+
+def _boolean(questionnaire: dict, path: str, issues: list[dict]) -> None:
+    if not isinstance(_answer(questionnaire, path), bool):
+        issues.append(_issue(path, "Choose Yes or No.", "error"))
+
+
+def validate_questionnaire(questionnaire: dict) -> list[dict]:
+    """Return executable-structure errors for questionnaire values."""
+    issues: list[dict] = []
+    for path in (
+        "core_hours.day_worker_daily_limit_hours",
+        "core_hours.shift_worker_daily_limit_hours",
+        "core_hours.day_worker_weekly_limit_hours",
+        "core_hours.shift_worker_weekly_limit_hours",
+        "overtime.standard_overtime_rate",
+        "overtime.saturday_overtime_rate",
+        "overtime.sunday_overtime_rate",
+    ):
+        _numeric(questionnaire, path, issues, positive=True)
+
+    _boolean(questionnaire, "overtime.two_tier_overtime", issues)
+    if _answer(questionnaire, "overtime.two_tier_overtime") is True:
+        _numeric(
+            questionnaire,
+            "overtime.extended_overtime_rate",
+            issues,
+            positive=True,
+        )
+        _numeric(
+            questionnaire,
+            "overtime.two_tier_overtime_threshold",
+            issues,
+            minimum=0,
+        )
+        days = _answer(questionnaire, "overtime.extended_overtime_days")
+        valid_days = {
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            "Sunday",
+        }
+        if (
+            not isinstance(days, list)
+            or not days
+            or any(day not in valid_days for day in days)
+        ):
+            issues.append(
+                _issue(
+                    "overtime.extended_overtime_days",
+                    "Select at least one valid extended-overtime day.",
+                    "error",
+                )
+            )
+
+    _boolean(questionnaire, "span_overtime.applies", issues)
+    if _answer(questionnaire, "span_overtime.applies") is True:
+        _numeric(
+            questionnaire,
+            "span_overtime.cutoff_hour",
+            issues,
+            minimum=0,
+            maximum=24,
+        )
+
+    for treatment_path, loading_path in WEEKEND_FIELDS.values():
+        treatment = _answer(questionnaire, treatment_path)
+        if treatment not in {"overtime", "penalty", "not_applicable"}:
+            issues.append(
+                _issue(
+                    treatment_path,
+                    "Choose Overtime, Penalty loading, or Not applicable.",
+                    "error",
+                )
+            )
+        if treatment == "penalty":
+            _numeric(questionnaire, loading_path, issues, minimum=0)
+
+    _boolean(questionnaire, "gap_between_shifts.applies", issues)
+    if _answer(questionnaire, "gap_between_shifts.applies") is True:
+        _numeric(
+            questionnaire,
+            "gap_between_shifts.minimum_hours",
+            issues,
+            positive=True,
+        )
+        _numeric(
+            questionnaire,
+            "gap_between_shifts.penalty_rate",
+            issues,
+            minimum=0,
+        )
+
+    seen_codes: set[str] = set()
+    for field, expected_type in (
+        ("shift_based_penalties", "shift_based"),
+        ("time_based_penalties", "time_based"),
+    ):
+        rows = _answer(questionnaire, f"weekday_penalties.{field}")
+        if not isinstance(rows, list):
+            issues.append(
+                _issue(
+                    f"weekday_penalties.{field}",
+                    "Penalty rows must be a list.",
+                    "error",
+                )
+            )
+            continue
+        for index, row in enumerate(rows):
+            path = f"weekday_penalties.{field}.{index}"
+            if not isinstance(row, dict):
+                issues.append(_issue(path, "Penalty row is malformed.", "error"))
+                continue
+            code = row.get("code_name")
+            if not isinstance(code, str) or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", code):
+                issues.append(
+                    _issue(path + ".code_name", "Enter a valid unique code name.", "error")
+                )
+            elif code in seen_codes:
+                issues.append(
+                    _issue(path + ".code_name", "Penalty code names must be unique.", "error")
+                )
+            else:
+                seen_codes.add(code)
+            if row.get("type") != expected_type:
+                issues.append(
+                    _issue(path + ".type", f"Type must be {expected_type}.", "error")
+                )
+            if row.get("basis") not in {"start", "end", "duration"}:
+                issues.append(
+                    _issue(path + ".basis", "Basis must be start, end, or duration.", "error")
+                )
+            for key in ("start_hour", "end_hour"):
+                value = row.get(key)
+                if (
+                    isinstance(value, bool)
+                    or not isinstance(value, (int, float))
+                    or value < 0
+                    or value > 24
+                ):
+                    issues.append(
+                        _issue(path + f".{key}", "Enter a time from 0 to 24.", "error")
+                    )
+            rate = row.get("rate")
+            if isinstance(rate, bool) or not isinstance(rate, (int, float)) or rate < 0:
+                issues.append(
+                    _issue(path + ".rate", "Enter a non-negative numeric rate.", "error")
+                )
+            if not isinstance(row.get("description"), str) or not row["description"].strip():
+                issues.append(
+                    _issue(path + ".description", "Description is required.", "error")
+                )
+            applicability = row.get("applies_to")
+            if (
+                not isinstance(applicability, list)
+                or not applicability
+                or any(worker not in {"day", "shift"} for worker in applicability)
+            ):
+                issues.append(
+                    _issue(
+                        path + ".applies_to",
+                        "Select day workers, shift workers, or both.",
+                        "error",
+                    )
+                )
+
+    _numeric(
+        questionnaire,
+        "employment_defaults.default_break",
+        issues,
+        minimum=0,
+        maximum=24,
+    )
+    for path in (
+        "employment_defaults.part_time_contracted_hours_overtime",
+        "employment_defaults.part_time_top_up_entitlement",
+        "employment_defaults.full_time_top_up_entitlement",
+    ):
+        _boolean(questionnaire, path, issues)
+    return _deduplicate_issues(issues)
+
+
+def _deduplicate_issues(issues: list[dict]) -> list[dict]:
+    result = []
+    seen = set()
+    for issue in issues:
+        key = (issue["severity"], issue["field_path"], issue["message"])
+        if key not in seen:
+            seen.add(key)
+            result.append(issue)
+    return result
+
+
+def _to_penalties(questionnaire: dict) -> dict:
+    result = {}
+    for field in ("shift_based_penalties", "time_based_penalties"):
+        for row in _answer(questionnaire, f"weekday_penalties.{field}") or []:
+            value = copy.deepcopy(row.get("extra") or {})
+            value.update(
+                {
+                    "type": row["type"],
+                    "basis": row["basis"],
+                    "start": row["start_hour"],
+                    "end": row["end_hour"],
+                    "rate": row["rate"],
+                    "description": row["description"],
+                    "applies_to": row["applies_to"],
+                }
+            )
+            result[row["code_name"]] = value
+    return result
+
+
+def _to_weekend_rules(questionnaire: dict, current: Any) -> dict:
+    result = copy.deepcopy(current) if isinstance(current, dict) else {}
+    for (worker, day), (treatment_path, loading_path) in WEEKEND_FIELDS.items():
+        worker_rules = result.setdefault(worker, {})
+        existing = worker_rules.get(day)
+        entry = copy.deepcopy(existing) if isinstance(existing, dict) else {}
+        treatment = _answer(questionnaire, treatment_path)
+        if treatment == "overtime":
+            entry["is_overtime"] = True
+            entry.pop("penalty_rate", None)
+        else:
+            entry["is_overtime"] = False
+            entry["penalty_rate"] = (
+                _answer(questionnaire, loading_path)
+                if treatment == "penalty"
+                else 0
+            )
+        worker_rules[day] = entry
+    return result
+
+
+def _managed_values(
+    questionnaire: dict, assignments: dict[str, tuple[ast.AST, ast.AST]]
+) -> dict[str, Any]:
+    values = {
+        attribute: _answer(questionnaire, path)
+        for path, attribute in DIRECT_FIELDS.items()
+    }
+    gap_applies = _answer(questionnaire, "gap_between_shifts.applies")
+    values["GAP_PENALTY_HOURS"] = (
+        _answer(questionnaire, "gap_between_shifts.minimum_hours")
+        if gap_applies
+        else 0
+    )
+    values["GAP_PENALTY_RATE"] = (
+        _answer(questionnaire, "gap_between_shifts.penalty_rate")
+        if gap_applies
+        else 0
+    )
+    current_weekend = {}
+    if "WEEKEND_RULES" in assignments:
+        try:
+            current_weekend = ast.literal_eval(assignments["WEEKEND_RULES"][1])
+        except (ValueError, TypeError):
+            pass
+    values["WEEKEND_RULES"] = _to_weekend_rules(questionnaire, current_weekend)
+    values["PENALTIES"] = _to_penalties(questionnaire)
+    return values
+
+
+def _format_assignment(attribute: str, value: Any, indent: str = "    ") -> str:
+    formatted = pprint.pformat(value, width=88, sort_dicts=False)
+    if "\n" in formatted:
+        formatted = formatted.replace("\n", "\n" + indent)
+    return f"{indent}{attribute} = {formatted}"
+
+
+def patch_rule_source(award_key: str, source: str, questionnaire: dict) -> str:
+    """Patch only managed class assignments while retaining all other source."""
+    errors = [
+        issue
+        for issue in validate_questionnaire(questionnaire)
+        if issue["severity"] == "error"
+    ]
+    if errors:
+        raise ValueError(errors[0]["message"])
+    class_node, assignments, parse_issues = _class_assignments(award_key, source)
+    if class_node is None:
+        raise ValueError(parse_issues[0]["message"])
+
+    values = _managed_values(questionnaire, assignments)
+    lines = source.splitlines(keepends=True)
+    replacements: list[tuple[int, int, str]] = []
+    missing: list[tuple[str, Any]] = []
+    for attribute, value in values.items():
+        assignment = assignments.get(attribute)
+        if assignment is None:
+            missing.append((attribute, value))
+            continue
+        statement = assignment[0]
+        start = statement.lineno - 1
+        end = statement.end_lineno or statement.lineno
+        original = "".join(lines[start:end])
+        newline = "\n" if original.endswith("\n") else ""
+        indent_match = re.match(r"\s*", lines[start])
+        indent = indent_match.group(0) if indent_match else "    "
+        trailing_comment = ""
+        if statement.end_col_offset is not None:
+            last_line = lines[end - 1].rstrip("\n")
+            suffix = last_line[statement.end_col_offset :]
+            comment_index = suffix.find("#")
+            if comment_index >= 0:
+                trailing_comment = "  " + suffix[comment_index:].rstrip()
+        preserved_comments = []
+        try:
+            tokens = tokenize.generate_tokens(io.StringIO(original).readline)
+            for token in tokens:
+                if token.type == tokenize.COMMENT:
+                    comment = token.string.rstrip()
+                    if comment and comment not in trailing_comment:
+                        preserved_comments.append(indent + comment + "\n")
+        except tokenize.TokenError:
+            preserved_comments = []
+        replacements.append(
+            (
+                start,
+                end,
+                "".join(preserved_comments)
+                + _format_assignment(attribute, value, indent)
+                + trailing_comment
+                + newline,
+            )
+        )
+
+    for start, end, replacement in sorted(replacements, reverse=True):
+        lines[start:end] = [replacement]
+
+    if missing:
+        insert_at = class_node.end_lineno or len(lines)
+        # Account for line changes before the class end.
+        delta = sum(
+            replacement.count("\n") - (end - start)
+            for start, end, replacement in replacements
+            if start < insert_at
+        )
+        insert_at += delta
+        block = "".join(
+            _format_assignment(attribute, value) + "\n"
+            for attribute, value in missing
+        )
+        lines.insert(insert_at, block)
+    return "".join(lines)

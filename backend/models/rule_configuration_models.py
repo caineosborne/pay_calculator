@@ -1,11 +1,14 @@
 """API models for editable rule configurations."""
 
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
 class RuleSourceValidationRequest(BaseModel):
     base_award: str
     source: str
+    questionnaire: dict[str, Any] | None = None
 
 
 class CreateRuleConfigurationRequest(RuleSourceValidationRequest):
@@ -14,3 +17,4 @@ class CreateRuleConfigurationRequest(RuleSourceValidationRequest):
 
 class UpdateRuleConfigurationRequest(BaseModel):
     source: str
+    questionnaire: dict[str, Any] | None = None

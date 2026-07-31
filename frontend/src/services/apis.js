@@ -37,16 +37,25 @@ export const api = {
         return responseJson(response, 'Failed to load rule source');
     },
 
-    async validateRuleConfiguration(baseAward, source) {
+    async validateRuleConfiguration(baseAward, source, questionnaire = null) {
         const response = await fetch(`${BASE_URL}/rule-configurations/validate`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ base_award: baseAward, source }),
+            body: JSON.stringify({
+                base_award: baseAward,
+                source,
+                ...(questionnaire ? { questionnaire } : {}),
+            }),
         });
         return responseJson(response, 'Rule source is invalid');
     },
 
-    async createRuleConfiguration(baseAward, name, source) {
+    async createRuleConfiguration(
+        baseAward,
+        name,
+        source,
+        questionnaire = null
+    ) {
         const response = await fetch(`${BASE_URL}/rule-configurations`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -54,18 +63,26 @@ export const api = {
                 base_award: baseAward,
                 name,
                 source,
+                ...(questionnaire ? { questionnaire } : {}),
             }),
         });
         return responseJson(response, 'Failed to save custom configuration');
     },
 
-    async updateRuleConfiguration(configurationId, source) {
+    async updateRuleConfiguration(
+        configurationId,
+        source,
+        questionnaire = null
+    ) {
         const response = await fetch(
             `${BASE_URL}/rule-configurations/${encodeURIComponent(configurationId)}`,
             {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ source }),
+                body: JSON.stringify({
+                    source,
+                    ...(questionnaire ? { questionnaire } : {}),
+                }),
             }
         );
         return responseJson(response, 'Failed to update custom configuration');

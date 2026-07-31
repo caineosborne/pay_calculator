@@ -68,7 +68,12 @@ class PayCalculator:
             return self._get_empty_day_breakdown()
 
         rules = PayRules.get_active_rules()
-        break_duration = shift.break_duration if shift.break_duration is not None else rules.DEFAULT_BREAK
+        default_break = getattr(rules, "DEFAULT_BREAK", 0.5)
+        break_duration = (
+            shift.break_duration
+            if shift.break_duration is not None
+            else default_break
+        )
         end_time = shift.end if shift.end > shift.start else shift.end + 24
         daily_hours = max(0, (end_time - shift.start) - break_duration)
         
@@ -209,7 +214,7 @@ class PayCalculator:
             'shift_penalty_rate': 0,
             'hourly_penalties': [],
             'topup': 0,  # Add topup field
-            'break': rules.DEFAULT_BREAK,
+            'break': getattr(rules, "DEFAULT_BREAK", 0.5),
             'applied_rules': []
         }
 

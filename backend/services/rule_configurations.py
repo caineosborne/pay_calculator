@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import json
 import os
 import re
 import tempfile
@@ -10,6 +11,11 @@ import types
 from pathlib import Path
 
 from services.award_registry import load_awards
+from services.rule_questionnaire import (
+    patch_rule_source,
+    project_rule_source,
+    validate_questionnaire,
+)
 
 
 CUSTOM_RULES_ENV = "PAYCHECKER_CUSTOM_RULES_DIR"
@@ -82,6 +88,10 @@ def _parse_custom_identifier(identifier: str) -> tuple[str, str]:
 
 def _custom_path(award_key: str, slug: str) -> Path:
     return _custom_rules_dir() / f"{award_key}__{slug}.py"
+
+
+def _questionnaire_path(award_key: str, slug: str) -> Path:
+    return _custom_rules_dir() / f"{award_key}__{slug}.questionnaire.json"
 
 
 def _builtin_path(award: dict) -> Path:
@@ -201,6 +211,7 @@ def get_rule_configuration(identifier: str) -> dict:
     else:
         award_key, slug = _parse_custom_identifier(identifier)
         path = _custom_path(award_key, slug)
+        questionnaire_path = _questionnaire_path(award_key, slug)
         award = _award_definition(award_key)
         metadata = {
             "id": identifier,
@@ -215,23 +226,101 @@ def get_rule_configuration(identifier: str) -> dict:
             f"Rule configuration not found: {identifier}"
         )
 
-    return {**metadata, "source": path.read_text(encoding="utf-8")}
+    source = path.read_text(encoding="utf-8")
+    imported_context = None
+    if metadata["kind"] == "custom" and questionnaire_path.is_file():
+        try:
+            imported_context = json.loads(
+                questionnaire_path.read_text(encoding="utf-8")
+            )
+        except (OSError, json.JSONDecodeError):
+            imported_context = None
+    projection = project_rule_source(award_key, source, imported_context)
+    return {
+        **metadata,
+        "source": source,
+        **projection,
+        "imported_evidence": imported_context,
+    }
 
 
-def create_custom_rule(award_key: str, name: str, source: str) -> dict:
+def validate_rule_payload(
+    award_key: str,
+    source: str,
+    questionnaire: dict | None = None,
+    *,
+    allow_invalid_questionnaire: bool = False,
+) -> dict:
+    """Validate raw source or patch and validate a guided questionnaire."""
+    if questionnaire is not None:
+        projection = project_rule_source(award_key, source, questionnaire)
+        merged_questionnaire = projection["questionnaire"]
+        for section, fields in merged_questionnaire.items():
+            submitted_section = questionnaire.get(section)
+            if not isinstance(submitted_section, dict):
+                continue
+            for field, record in fields.items():
+                submitted_record = submitted_section.get(field)
+                if isinstance(submitted_record, dict) and "answer" in submitted_record:
+                    record["answer"] = submitted_record["answer"]
+        structural_issues = validate_questionnaire(merged_questionnaire)
+        errors = [
+            issue
+            for issue in structural_issues
+            if issue["severity"] == "error"
+        ]
+        if errors:
+            if allow_invalid_questionnaire:
+                return {
+                    "valid": False,
+                    "base_award": award_key,
+                    "class_name": _award_definition(award_key)["class_name"],
+                    "source": source,
+                    "questionnaire": merged_questionnaire,
+                    "structural_issues": structural_issues,
+                    "advanced_attributes": projection[
+                        "advanced_attributes"
+                    ],
+                }
+            raise RuleConfigurationError(errors[0]["message"])
+        try:
+            source = patch_rule_source(award_key, source, merged_questionnaire)
+        except ValueError as error:
+            raise RuleConfigurationError(str(error)) from error
+    validation = validate_rule_source(award_key, source)
+    projection = project_rule_source(award_key, source, questionnaire)
+    return {
+        **validation,
+        "source": source,
+        **projection,
+    }
+
+
+def create_custom_rule(
+    award_key: str,
+    name: str,
+    source: str,
+    questionnaire: dict | None = None,
+) -> dict:
     """Validate and save a new custom copy without touching built-in files."""
-    validate_rule_source(award_key, source)
+    validation = validate_rule_payload(award_key, source, questionnaire)
     slug = _slugify(name)
     path = _custom_path(award_key, slug)
     if path.exists():
         raise RuleConfigurationConflict(
             f"A custom configuration named '{name}' already exists."
         )
-    _write_custom_source(path, source)
+    _write_custom_source(path, validation["source"])
+    if questionnaire is not None:
+        _write_questionnaire_context(
+            _questionnaire_path(award_key, slug), questionnaire
+        )
     return get_rule_configuration(_custom_identifier(award_key, slug))
 
 
-def update_custom_rule(identifier: str, source: str) -> dict:
+def update_custom_rule(
+    identifier: str, source: str, questionnaire: dict | None = None
+) -> dict:
     """Validate and replace an existing custom file."""
     award_key, slug = _parse_custom_identifier(identifier)
     path = _custom_path(award_key, slug)
@@ -239,8 +328,12 @@ def update_custom_rule(identifier: str, source: str) -> dict:
         raise RuleConfigurationNotFound(
             f"Rule configuration not found: {identifier}"
         )
-    validate_rule_source(award_key, source)
-    _write_custom_source(path, source)
+    validation = validate_rule_payload(award_key, source, questionnaire)
+    _write_custom_source(path, validation["source"])
+    if questionnaire is not None:
+        _write_questionnaire_context(
+            _questionnaire_path(award_key, slug), questionnaire
+        )
     return get_rule_configuration(identifier)
 
 
@@ -262,6 +355,13 @@ def _write_custom_source(path: Path, source: str) -> None:
     finally:
         if temporary_path and temporary_path.exists():
             temporary_path.unlink()
+
+
+def _write_questionnaire_context(path: Path, questionnaire: dict) -> None:
+    _write_custom_source(
+        path,
+        json.dumps(questionnaire, indent=2, ensure_ascii=False) + "\n",
+    )
 
 
 def load_custom_rule_class(identifier: str, award_key: str) -> type:

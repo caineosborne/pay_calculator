@@ -32,7 +32,7 @@ from services.rule_configurations import (
     get_rule_configuration,
     list_rule_configurations,
     update_custom_rule,
-    validate_rule_source,
+    validate_rule_payload,
 )
 
 app = FastAPI(
@@ -100,7 +100,12 @@ def get_rule_configurations() -> list[dict]:
 def validate_configuration(data: RuleSourceValidationRequest) -> dict:
     """Validate rule source without saving it."""
     try:
-        return validate_rule_source(data.base_award, data.source)
+        return validate_rule_payload(
+            data.base_award,
+            data.source,
+            data.questionnaire,
+            allow_invalid_questionnaire=True,
+        )
     except RuleConfigurationError as error:
         raise _configuration_http_error(error) from error
 
@@ -118,7 +123,9 @@ def get_configuration(configuration_id: str) -> dict:
 def create_configuration(data: CreateRuleConfigurationRequest) -> dict:
     """Save validated source as a new custom rule file."""
     try:
-        return create_custom_rule(data.base_award, data.name, data.source)
+        return create_custom_rule(
+            data.base_award, data.name, data.source, data.questionnaire
+        )
     except RuleConfigurationError as error:
         raise _configuration_http_error(error) from error
 
@@ -129,7 +136,9 @@ def update_configuration(
 ) -> dict:
     """Replace a custom rule file after validation."""
     try:
-        return update_custom_rule(configuration_id, data.source)
+        return update_custom_rule(
+            configuration_id, data.source, data.questionnaire
+        )
     except RuleConfigurationError as error:
         raise _configuration_http_error(error) from error
 

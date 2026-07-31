@@ -10,6 +10,7 @@ __pycache__/
 env/
 venv/
 backend/custom_rules/*.py
+backend/custom_rules/*.questionnaire.json
 backend/custom_rules/.*.tmp
 
 # VSCode
