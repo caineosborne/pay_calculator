@@ -106,6 +106,12 @@ export function ShiftCalculator({ children }) {
                     return;
                 }
                 console.error('Calculation error:', error);
+                if (isCurrent) {
+                    dispatch({
+                        type: 'SET_CALCULATION_ERROR',
+                        payload: error.message || 'Unable to calculate these shifts.',
+                    });
+                }
             }
         };
 

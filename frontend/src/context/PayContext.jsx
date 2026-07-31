@@ -27,7 +27,8 @@ const initialState = {
         overtimePay: 0,
         penaltyPay: 0,
         totalPay: 0
-    }
+    },
+    calculationError: null,
 };
 
 
@@ -87,13 +88,19 @@ function payReducer(state, action) {
         case 'UPDATE_SHIFTS':
             return {
                 ...state,
-                shifts: action.payload
+                shifts: action.payload,
+                calculationError: null,
             };
         case 'UPDATE_CALCULATIONS':
             return {
                 ...state,
                 calculations: action.payload.calculations,
                 payments: action.payload.payments
+            };
+        case 'SET_CALCULATION_ERROR':
+            return {
+                ...state,
+                calculationError: action.payload,
             };
         case 'REFRESH_CALCULATION':
             return {

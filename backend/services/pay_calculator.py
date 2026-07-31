@@ -11,6 +11,8 @@ Dependencies:
 - services.rule_engine: Business rules and constants
 """
 
+from collections import defaultdict
+
 from models.request_models import PayRequest, Shift
 from models.response_models import PayResponse, RulesetSummary
 from services.rule_engine import PayRules
@@ -52,7 +54,7 @@ class PayCalculator:
         self.previous_shift_end = None
         self.previous_shift_day = None
 
-    def calculate_daily_hours(self, shift: Shift) -> dict:
+    def _calculate_single_shift_hours(self, shift: Shift) -> dict:
         """Calculate hours breakdown for a single shift.
         
         This follows a three-phase calculation:
@@ -194,6 +196,142 @@ class PayCalculator:
             'applied_rules': applied_rules
         }
 
+    @staticmethod
+    def _normalized_end(shift: Shift) -> float:
+        """Return an end time on the shift's start-day timeline."""
+        return shift.end if shift.end > shift.start else shift.end + 24
+
+    def calculate_daily_hours(self, shift: Shift, periods: list[Shift] | None = None) -> dict:
+        """Calculate one logical workday, optionally made up of split periods.
+
+        A single period deliberately follows the pre-existing calculation path.
+        For a split day, daily limits and whole-shift rules use the combined
+        workday, while hourly penalties are calculated from actual attendance.
+        """
+        periods = periods or [shift]
+        if len(periods) == 1:
+            return self._calculate_single_shift_hours(periods[0])
+
+        ordered_periods = sorted(periods, key=lambda item: item.start)
+        first_start = ordered_periods[0].start
+        final_end = max(self._normalized_end(item) for item in ordered_periods)
+        total_break = sum(item.break_duration or 0 for item in ordered_periods)
+        combined_shift = Shift(
+            week=shift.week,
+            day=shift.day,
+            start=first_start,
+            end=final_end,
+            break_duration=total_break,
+        )
+
+        # Reuse the existing whole-shift and gap-rule behaviour, then replace
+        # the fields which must be calculated from the individual attendance
+        # periods rather than the elapsed span between them.
+        breakdown = self._calculate_single_shift_hours(combined_shift)
+        period_hours = [
+            max(0, self._normalized_end(item) - item.start - (item.break_duration or 0))
+            for item in ordered_periods
+        ]
+        total_hours = sum(period_hours)
+        rules = self.rules.active_rules
+
+        if self.rules.is_overtime_day(shift.day, self.worker_type):
+            overtime_hours = total_hours
+            ordinary_hours = 0
+        else:
+            span_overtime = sum(
+                self.rules.calculate_span_overtime(
+                    item.start,
+                    self._normalized_end(item),
+                    hours,
+                    self.worker_type,
+                )
+                for item, hours in zip(ordered_periods, period_hours)
+            )
+            ordinary_hours = max(0, total_hours - span_overtime)
+            daily_limit = self.rules.get_ordinary_hours_daily_limit(
+                self.worker_type, self.employment_type
+            )
+            daily_overtime = max(0, ordinary_hours - daily_limit)
+            ordinary_hours -= daily_overtime
+            overtime_hours = span_overtime + daily_overtime
+
+        breakdown['total'] = total_hours
+        breakdown['ordinary'] = ordinary_hours
+        breakdown['overtime'] = overtime_hours
+        breakdown['overtime_rate'] = (
+            self.rules.get_overtime_rate(shift.day, overtime_hours)
+            if overtime_hours > 0 else 0
+        )
+        breakdown['break'] = total_break
+        breakdown['penalty'] = (
+            ordinary_hours
+            if self.rules.get_penalty_rate(shift.day, self.worker_type) > 0
+            else 0
+        )
+        # Whole-shift and gap loadings continue to apply to ordinary hours
+        # only, even though their trigger was evaluated from the combined day.
+        breakdown['shift_penalty'] = (
+            ordinary_hours if breakdown.get('shift_penalty_rate', 0) > 0 else 0
+        )
+        breakdown['gap_penalty'] = (
+            ordinary_hours if breakdown.get('gap_penalty_rate', 0) > 0 else 0
+        )
+
+        # Whole-shift penalties retain the combined earliest-start/latest-end
+        # trigger. Time-based penalties must not include gaps between periods.
+        hourly_penalties = []
+        for item in ordered_periods:
+            item_end = self._normalized_end(item)
+            for penalty in self.rules.calculate_penalties(
+                item.start, item_end, item.day, self.worker_type
+            ):
+                if penalty['type'] == 'time_based':
+                    hourly_penalties.append({
+                        'start': penalty['start'],
+                        'end': penalty['end'],
+                        'hours': penalty['hours'],
+                        'rate': penalty['rate'],
+                        'description': penalty['description'],
+                    })
+            if not hasattr(rules, 'PENALTIES'):
+                hourly_penalties.extend(
+                    self.rules.calculate_hourly_penalties(item.start, item_end, item.day)
+                )
+        breakdown['hourly_penalties'] = hourly_penalties
+
+        # The original method labels the same rules while calculating the
+        # elapsed span. Keep labels useful without repeating them per period.
+        breakdown['applied_rules'] = list(dict.fromkeys(breakdown['applied_rules']))
+        return breakdown
+
+    def _validate_and_group_shifts(self) -> list[tuple[int, str, list[Shift]]]:
+        """Group input by workday and reject overlapping attendance periods."""
+        grouped = defaultdict(list)
+        for shift in self.data.shifts:
+            grouped[(shift.week, shift.day)].append(shift)
+
+        day_order = {
+            day: index for index, day in enumerate(
+                ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+            )
+        }
+        result = []
+        for (week, day), periods in sorted(
+            grouped.items(), key=lambda item: (item[0][0], day_order[item[0][1]])
+        ):
+            ordered = sorted(periods, key=lambda item: item.start)
+            previous_end = None
+            for period in ordered:
+                end_time = self._normalized_end(period)
+                if previous_end is not None and period.start < previous_end:
+                    raise ValueError(
+                        f"Overlapping shifts are not allowed for Week {week} - {day}."
+                    )
+                previous_end = end_time
+            result.append((week, day, ordered))
+        return result
+
     def _get_empty_day_breakdown(self) -> dict:
         """
         Get default values for a day with no hours.
@@ -227,10 +365,11 @@ class PayCalculator:
         Returns:
             PayResponse: Complete calculation results
         """
-        # Process each shift
-        for shift in self.data.shifts:
-            day_breakdown = self.calculate_daily_hours(shift)
-            breakdown_key = f"Week {shift.week} - {shift.day}"
+        # Process each logical workday. A day may contain one or more periods.
+        for week, day, periods in self._validate_and_group_shifts():
+            shift = periods[0]
+            day_breakdown = self.calculate_daily_hours(shift, periods)
+            breakdown_key = f"Week {week} - {day}"
             
             if day_breakdown['total'] > 0:
                 self.ordered_days.append(breakdown_key)

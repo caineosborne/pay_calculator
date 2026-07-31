@@ -4,6 +4,19 @@ import { usePay } from '../../context/PayContext';
 export default function ShiftTimeInput({ renderRow }) {
     const { state, dispatch } = usePay();
 
+    const resetCalculationsIfEmpty = (newShifts) => {
+        const allShiftsEmpty = newShifts.every(shift => !shift.start || !shift.end);
+        if (allShiftsEmpty) {
+            dispatch({
+                type: 'UPDATE_CALCULATIONS',
+                payload: {
+                    calculations: { ordinaryHours: 0, overtimeHours: 0, totalHours: 0, dailyBreakdown: {} },
+                    payments: { ordinaryPay: 0, overtimePay: 0, penaltyPay: 0, totalPay: 0 }
+                }
+            });
+        }
+    };
+
     const handleShiftChange = (idx, field, value) => {
         const newShifts = [...state.shifts];
         newShifts[idx] = {
@@ -11,34 +24,11 @@ export default function ShiftTimeInput({ renderRow }) {
             [field]: value
         };
 
-        // Check if all shifts are empty (no start or end times)
-        const allShiftsEmpty = newShifts.every(shift => !shift.start || !shift.end);
-
         dispatch({
             type: 'UPDATE_SHIFTS',
             payload: newShifts
         });
-
-        // If all shifts are empty, reset calculations and payments
-        if (allShiftsEmpty) {
-            dispatch({
-                type: 'UPDATE_CALCULATIONS',
-                payload: {
-                    calculations: {
-                        ordinaryHours: 0,
-                        overtimeHours: 0,
-                        totalHours: 0,
-                        dailyBreakdown: {}
-                    },
-                    payments: {
-                        ordinaryPay: 0,
-                        overtimePay: 0,
-                        penaltyPay: 0,
-                        totalPay: 0
-                    }
-                }
-            });
-        }
+        resetCalculationsIfEmpty(newShifts);
     };
 
     const formatTimeDisplay = (value) => {
@@ -121,42 +111,46 @@ export default function ShiftTimeInput({ renderRow }) {
             break_duration: '0.5'
         };
 
-        // Check if all shifts are now empty
-        const allShiftsEmpty = newShifts.every(shift => !shift.start || !shift.end);
-
         dispatch({
             type: 'UPDATE_SHIFTS',
             payload: newShifts
         });
+        resetCalculationsIfEmpty(newShifts);
+    };
 
-        // If all shifts are empty, reset calculations and payments
-        if (allShiftsEmpty) {
-            dispatch({
-                type: 'UPDATE_CALCULATIONS',
-                payload: {
-                    calculations: {
-                        ordinaryHours: 0,
-                        overtimeHours: 0,
-                        totalHours: 0,
-                        dailyBreakdown: {}
-                    },
-                    payments: {
-                        ordinaryPay: 0,
-                        overtimePay: 0,
-                        penaltyPay: 0,
-                        totalPay: 0
-                    }
-                }
-            });
-        }
+    const addShift = (shift) => {
+        const sameDay = state.shifts.filter((item) => item.week === shift.week && item.day === shift.day);
+        const newShift = {
+            id: `shift-${shift.week}-${shift.day}-${Date.now()}-${sameDay.length}`,
+            week: shift.week,
+            day: shift.day,
+            isPrimary: false,
+            start: '',
+            end: '',
+            break_duration: '0.5',
+        };
+        const index = state.shifts.findIndex((item) => item.id === shift.id);
+        const insertAfter = state.shifts.findLastIndex(
+            (item) => item.week === shift.week && item.day === shift.day
+        );
+        const targetIndex = insertAfter >= 0 ? insertAfter : index;
+        const newShifts = [...state.shifts];
+        newShifts.splice(targetIndex + 1, 0, newShift);
+        dispatch({ type: 'UPDATE_SHIFTS', payload: newShifts });
+    };
+
+    const removeShift = (idx) => {
+        const newShifts = state.shifts.filter((_, index) => index !== idx);
+        dispatch({ type: 'UPDATE_SHIFTS', payload: newShifts });
+        resetCalculationsIfEmpty(newShifts);
     };
 
     const renderShiftInputs = (shift, idx) => {
-        const isFirstDayOfWeek = idx % 7 === 0;
+        const isPrimary = shift.isPrimary !== false;
         return (
             <>
                 <td className="px-2 py-1 whitespace-nowrap text-sm font-medium text-gray-900">
-                    Week {shift.week || 1} - {shift.day}
+                    {isPrimary ? `Week ${shift.week || 1} - ${shift.day}` : '↳ Additional shift'}
                 </td>
                 <td className="px-2 py-1 whitespace-nowrap">
                     <div className="flex items-center space-x-1">
@@ -194,36 +188,10 @@ export default function ShiftTimeInput({ renderRow }) {
                             max="24"
                         />
                         <div className="flex space-x-1">
-                            <button
-                                onClick={() => clearDay(idx)}
-                                className="day-action ml-2"
-                                title="Clear times"
-                            >
-                                Clear
-                            </button>
-                            <button
-                                onClick={() => {
-                                    if (idx > 0 && !isFirstDayOfWeek) {
-                                        const prevShift = state.shifts[idx - 1];
-                                        const newShifts = [...state.shifts];
-                                        newShifts[idx] = {
-                                            ...newShifts[idx],
-                                            start: prevShift.start,
-                                            end: prevShift.end,
-                                            break_duration: prevShift.break_duration
-                                        };
-                                        dispatch({
-                                            type: 'UPDATE_SHIFTS',
-                                            payload: newShifts
-                                        });
-                                    }
-                                }}
-                                className="day-action"
-                                title="Copy times from previous day"
-                                disabled={isFirstDayOfWeek}
-                            >
-                                Copy Prev
-                            </button>
+                            {isPrimary ? <>
+                                <button onClick={() => clearDay(idx)} className="day-action ml-2" title="Clear times">Clear</button>
+                                <button onClick={() => addShift(shift)} className="day-action" title="Add another shift period">+ Add shift</button>
+                            </> : <button onClick={() => removeShift(idx)} className="day-action ml-2" title="Remove this shift period">Remove</button>}
                         </div>
                     </div>
                 </td>

@@ -1,15 +1,25 @@
 const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-const createWeek = (week, includeDefaultHours = false) => WEEKDAYS.map((day, index) => ({
+const shiftId = (week, day, sequence = 1) => `shift-${week}-${day}-${sequence}`;
+
+export const createShift = ({ week, day, sequence = 1, isPrimary = sequence === 1, start = '', end = '', break_duration = '0.5' }) => ({
+    id: shiftId(week, day, sequence),
     week,
     day,
-    start: includeDefaultHours && index < 5 ? '9' : '',
-    end: includeDefaultHours && index < 5 ? '17' : '',
-    break_duration: '0.5'
-}));
+    isPrimary,
+    start,
+    end,
+    break_duration,
+});
+
+export const createFortnightShifts = (includeDefaultHours = false, includeSecondWeekDefault = false) => [1, 2].flatMap((week) =>
+    WEEKDAYS.map((day, index) => createShift({
+        week,
+        day,
+        start: includeDefaultHours && (week === 1 || includeSecondWeekDefault) && index < 5 ? '9' : '',
+        end: includeDefaultHours && (week === 1 || includeSecondWeekDefault) && index < 5 ? '17' : '',
+    }))
+);
 
 // The second week starts blank and can be populated with "Copy Previous Week".
-export const initialShifts = [
-    ...createWeek(1, true),
-    ...createWeek(2)
-];
+export const initialShifts = createFortnightShifts(true);

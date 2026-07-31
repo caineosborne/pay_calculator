@@ -13,11 +13,13 @@ const formatRate = (rate) => {
 const formatTime = (time) => `${String(time).padStart(2, '0')}:00`;
 
 const formatOvertime = (rule) => {
-    if (!rule?.threshold || !rule?.rate) return 'Not specified';
+    if (!rule?.threshold) return 'Not specified';
     return typeof rule.threshold === 'number'
-        ? `After ${rule.threshold} hours · ${rule.rate}`
-        : `${rule.threshold} · ${rule.rate}`;
+        ? `After ${rule.threshold} hours`
+        : rule.threshold;
 };
+
+const formatSpan = (rule) => rule?.threshold || 'Not specified';
 
 const formatWeekendRule = (rule) => {
     if (!rule) return 'Not specified';
@@ -90,7 +92,7 @@ export function DisplayRules({ showRules }) {
             </div>
 
             <div className="rule-grid">
-                <div className="rule-row"><span>Span of hours</span><strong>{rules.span_hours?.threshold === 'N/A' ? 'Not applicable' : formatOvertime(rules.span_hours)}</strong></div>
+                <div className="rule-row"><span>Span of hours</span><strong>{rules.span_hours?.threshold === 'N/A' ? 'Not applicable' : formatSpan(rules.span_hours)}</strong></div>
                 <div className="rule-row"><span>Daily overtime</span><strong>{formatOvertime(rules.daily_overtime)}</strong></div>
                 <div className="rule-row"><span>Fortnightly overtime</span><strong>{formatOvertime(rules.weekly_overtime)}</strong></div>
                 <div className="rule-row"><span>Saturday</span><strong>{formatWeekendRule(rules.saturday_rules)}</strong></div>

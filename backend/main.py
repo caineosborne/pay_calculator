@@ -138,4 +138,6 @@ def calculate_pay(data: PayRequest) -> PayResponse:
         result = calculator.calculate_pay()
     except RuleConfigurationError as error:
         raise _configuration_http_error(error) from error
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
     return result
