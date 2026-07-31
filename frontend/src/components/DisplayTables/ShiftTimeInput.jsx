@@ -145,6 +145,34 @@ export default function ShiftTimeInput({ renderRow }) {
         resetCalculationsIfEmpty(newShifts);
     };
 
+    const copyPreviousDay = (shift) => {
+        const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        const currentDayIndex = dayOrder.indexOf(shift.day);
+        if (currentDayIndex === 0 && shift.week === 1) {
+            return;
+        }
+
+        const previousDay = currentDayIndex === 0 ? 'Sunday' : dayOrder[currentDayIndex - 1];
+        const previousWeek = currentDayIndex === 0 ? shift.week - 1 : shift.week;
+        const previousPeriods = state.shifts.filter(
+            (item) => item.week === previousWeek && item.day === previousDay
+        );
+        const copiedPeriods = previousPeriods.map((item, index) => ({
+            ...item,
+            id: `shift-${shift.week}-${shift.day}-${Date.now()}-${index}`,
+            day: shift.day,
+            isPrimary: index === 0,
+        }));
+        const firstCurrentIndex = state.shifts.findIndex(
+            (item) => item.week === shift.week && item.day === shift.day
+        );
+        const withoutCurrentDay = state.shifts.filter(
+            (item) => item.week !== shift.week || item.day !== shift.day
+        );
+        withoutCurrentDay.splice(firstCurrentIndex, 0, ...copiedPeriods);
+        dispatch({ type: 'UPDATE_SHIFTS', payload: withoutCurrentDay });
+    };
+
     const renderShiftInputs = (shift, idx) => {
         const isPrimary = shift.isPrimary !== false;
         return (
@@ -190,6 +218,14 @@ export default function ShiftTimeInput({ renderRow }) {
                         <div className="flex space-x-1">
                             {isPrimary ? <>
                                 <button onClick={() => clearDay(idx)} className="day-action ml-2" title="Clear times">Clear</button>
+                                <button
+                                    onClick={() => copyPreviousDay(shift)}
+                                    className="day-action"
+                                    title="Copy all shift periods from the previous day"
+                                    disabled={shift.week === 1 && shift.day === 'Monday'}
+                                >
+                                    Copy Prev
+                                </button>
                                 <button onClick={() => addShift(shift)} className="day-action" title="Add another shift period">+ Add shift</button>
                             </> : <button onClick={() => removeShift(idx)} className="day-action ml-2" title="Remove this shift period">Remove</button>}
                         </div>

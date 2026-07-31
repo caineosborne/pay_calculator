@@ -155,6 +155,17 @@ describe('RuleConfigurationEditor', () => {
         expect(
             within(section).getByLabelText('Whole-shift penalty loadings code 1')
         ).toHaveValue('shift_based_loading_1');
+        fireEvent.change(
+            within(section).getByLabelText(
+                'Whole-shift penalty loadings code 1'
+            ),
+            { target: { value: 'custom_loading' } }
+        );
+        expect(
+            within(section).getByLabelText(
+                'Whole-shift penalty loadings code 1'
+            )
+        ).toHaveValue('custom_loading');
         const condition = within(section).getByLabelText(
             'Whole-shift penalty loadings condition 1'
         );

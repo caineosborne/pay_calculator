@@ -269,7 +269,7 @@ function PenaltyRows({
             <div className="mt-2 space-y-3">
                 {rows.map((row, index) => (
                     <div
-                        key={`${row.code_name}-${index}`}
+                        key={index}
                         className="rounded-md border border-gray-200 p-3 dark:border-gray-600"
                     >
                         <div className="grid gap-3 md:grid-cols-4">

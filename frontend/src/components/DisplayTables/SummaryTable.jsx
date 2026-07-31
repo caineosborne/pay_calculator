@@ -65,7 +65,7 @@ const SummaryTable = () => {
                 <div className="summary-grid">
                     <div className="summary-item"><div className="summary-item-label">Ordinary</div><div className="summary-item-value">{formatCurrency(payments?.ordinaryPay || 0)}</div><div className="summary-item-hours">{calculations?.ordinaryHours || '0.00'} hrs</div></div>
                     <div className="summary-item"><div className="summary-item-label">Overtime</div><div className="summary-item-value">{formatCurrency(payments?.overtimePay || 0)}</div><div className="summary-item-hours">{calculations?.overtimeHours || '0.00'} hrs</div></div>
-                    <div className="summary-item"><div className="summary-item-label">Penalty</div><div className="summary-item-value">{formatCurrency(payments?.penaltyPay || 0)}</div><div className="summary-item-hours">{calculations?.totalHours || '0.00'} total hrs</div></div>
+                    <div className="summary-item"><div className="summary-item-label">Penalty</div><div className="summary-item-value">{formatCurrency(payments?.penaltyPay || 0)}</div><div className="summary-item-hours">{Number(calculations?.timeBasedPenaltyHours || 0) > 0 ? `${calculations.timeBasedPenaltyHours} loaded hrs` : 'Applies to eligible hours'}</div></div>
                     <div className="summary-item"><div className="summary-item-label">Top-up</div><div className="summary-item-value">{formatCurrency(payments?.topupPay || 0)}</div><div className="summary-item-hours">{calculations?.topupHours || '0.00'} hrs</div></div>
                 </div>
             </div>

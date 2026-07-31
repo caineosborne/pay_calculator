@@ -56,8 +56,10 @@ export function InputDetails() {
     useEffect(() => {
         // Full-time contracted hours follow the active ruleset's period limit.
         if (state.config.employmentType === 'full_time') {
-            const weeklyLimit = state.calculations?.appliedRules?.weekly_overtime?.threshold ||
-                (state.config.award === 'aged_care' ? 40 : 38);
+            const fortnightlyLimit = state.calculations?.appliedRules?.weekly_overtime?.threshold;
+            const weeklyLimit = fortnightlyLimit
+                ? Number(fortnightlyLimit) / 2
+                : 38;
 
             dispatch({
                 type: 'UPDATE_CONTRACTED_HOURS',

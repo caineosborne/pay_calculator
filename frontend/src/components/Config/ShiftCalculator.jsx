@@ -89,6 +89,7 @@ export function ShiftCalculator({ children }) {
                             overtimeHours: Number(data.overtime_hours || 0).toFixed(2),
                             topupHours: Number(data.topup_hours || 0).toFixed(2),
                             totalHours: Number(data.total_hours || 0).toFixed(2),
+                            timeBasedPenaltyHours: Number(data.time_based_penalty_hours || 0).toFixed(2),
                             dailyBreakdown: formattedDailyBreakdown,
                             appliedRules: data.applied_rules
                         },
