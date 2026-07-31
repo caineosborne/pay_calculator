@@ -184,6 +184,7 @@ export default function ShiftTimeInput({ renderRow }) {
                     <div className="flex items-center space-x-1">
                         <button aria-label={`Decrease ${shift.day} start time`} onClick={() => handleTimeChange(idx, 'start', 'decrement')} className="time-adjust">−</button>
                         <input
+                            aria-label={`Week ${shift.week || 1} ${shift.day} ${isPrimary ? 'primary' : 'additional'} shift start`}
                             type="text"
                             value={formatTimeDisplay(shift.start)}
                             onChange={(e) => handleTimeChange(idx, 'start', e.target.value, true)}
@@ -196,6 +197,7 @@ export default function ShiftTimeInput({ renderRow }) {
                     <div className="flex items-center space-x-1">
                         <button aria-label={`Decrease ${shift.day} end time`} onClick={() => handleTimeChange(idx, 'end', 'decrement')} className="time-adjust">−</button>
                         <input
+                            aria-label={`Week ${shift.week || 1} ${shift.day} ${isPrimary ? 'primary' : 'additional'} shift end`}
                             type="text"
                             value={formatTimeDisplay(shift.end)}
                             onChange={(e) => handleTimeChange(idx, 'end', e.target.value, true)}
@@ -207,6 +209,7 @@ export default function ShiftTimeInput({ renderRow }) {
                 <td className="px-2 py-1 whitespace-nowrap">
                     <div className="flex items-center space-x-1">
                         <input
+                            aria-label={`Week ${shift.week || 1} ${shift.day} ${isPrimary ? 'primary' : 'additional'} unpaid break hours`}
                             type="number"
                             value={shift.break_duration}
                             onChange={(e) => handleTimeChange(idx, 'break_duration', e.target.value, true)}

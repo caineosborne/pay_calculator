@@ -200,6 +200,74 @@ class RuleConfigurationTests(unittest.TestCase):
         self.assertEqual(result.overtime_hours, 3)
         self.assertEqual(result.overtime_pay, 100)
 
+    def test_overtime_hours_do_not_create_a_contracted_hours_top_up(self):
+        shifts = [
+            {
+                "week": week,
+                "day": day,
+                "start": 12,
+                "end": 21,
+                "break_duration": 0.5,
+            }
+            for week in (1, 2)
+            for day in ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
+        ]
+        result = PayCalculator(
+            PayRequest(
+                hourly_rate=20,
+                worker_type="day",
+                award="aged_care",
+                employment_type="full_time",
+                contracted_hours=38,
+                shifts=shifts,
+            )
+        ).calculate_pay()
+
+        self.assertGreater(result.overtime_hours, 0)
+        self.assertGreater(result.total_hours, 76)
+        self.assertEqual(result.topup_hours, 0)
+
+    def test_time_based_penalty_reports_only_overlapping_loaded_hours(self):
+        aged_care_source = get_rule_configuration("builtin:aged_care")[
+            "source"
+        ].replace(
+            "    PENALTIES = {\n",
+            "    PENALTIES = {\n"
+            "        'afternoon_loading': {\n"
+            "            'type': 'time_based',\n"
+            "            'basis': 'time',\n"
+            "            'start': 14,\n"
+            "            'end': 16,\n"
+            "            'rate': 0.1,\n"
+            "            'description': 'Afternoon loading',\n"
+            "            'applies_to': ['day', 'shift'],\n"
+            "        },\n",
+            1,
+        )
+        custom = create_custom_rule(
+            "aged_care", "Afternoon Loading", aged_care_source
+        )
+        result = PayCalculator(
+            PayRequest(
+                hourly_rate=20,
+                worker_type="day",
+                award="aged_care",
+                employment_type="full_time",
+                rule_configuration=custom["id"],
+                shifts=[
+                    {
+                        "day": "Monday",
+                        "start": 12,
+                        "end": 20,
+                        "break_duration": 0,
+                    }
+                ],
+            )
+        ).calculate_pay()
+
+        self.assertEqual(result.time_based_penalty_hours, 2)
+        self.assertEqual(result.hourly_penalty_pay, 4)
+
     def test_custom_rule_classes_are_cached_until_the_file_changes(self):
         custom = create_custom_rule(
             "hospitality", "Cached Rule", self.builtin["source"]

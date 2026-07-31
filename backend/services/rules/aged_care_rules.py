@@ -43,32 +43,30 @@ class AgedCareRules:
     GAP_PENALTY_HOURS = 10  # Minimum hours required between shifts to avoid gap penalty
     GAP_PENALTY_RATE = 1.0  # 100% penalty rate when shifts are too close together
 
-    # Unified penalties structure
-    # Type can be "shift_based" (applies to entire shift based on start time) or "time_based" (applies to specific hours)
     PENALTIES = {
         'morning_shift': {
             'type': 'shift_based',
-            'start': 10,   # 10am
-            'end': 13,     # 1pm
-            'rate': 0.10,  # 10% penalty
+            'start': 10,
+            'end': 13,
+            'rate': 0.10,
             'description': 'Morning Shift Penalty (10%)',
-            'applies_to': ['shift']  # Only applies to shift workers
+            'applies_to': ['shift']
         },
         'afternoon_shift': {
             'type': 'shift_based',
-            'start': 13,   # 1pm
-            'end': 16,     # 4pm
-            'rate': 0.125, # 12.5% penalty
+            'start': 13,
+            'end': 16,
+            'rate': 0.125,
             'description': 'Afternoon Shift Penalty (12.5%)',
-            'applies_to': ['shift']  # Only applies to shift workers
+            'applies_to': ['shift']
         },
         'evening_shift': {
             'type': 'shift_based',
-            'start': 16,   # 4pm
-            'end': 24,     # Midnight
-            'rate': 0.15,  # 15% penalty
+            'start': 16,
+            'end': 24,
+            'rate': 0.15,
             'description': 'Evening Shift Penalty (15%)',
-            'applies_to': ['shift']  # Only applies to shift workers
+            'applies_to': ['shift']
         }
     }
 

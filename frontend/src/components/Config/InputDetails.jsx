@@ -159,10 +159,11 @@ export function InputDetails() {
                 <div className="flex items-center justify-between gap-4">
                     {/* Hourly rate input section */}
                     <div className="flex-1">
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                        <label htmlFor="hourly-rate" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                             Hourly Rate ($)
                         </label>
                         <input
+                            id="hourly-rate"
                             type="number"
                             value={state.config.hourlyRate}
                             onChange={(event) =>
@@ -180,10 +181,11 @@ export function InputDetails() {
 
                     {/* Award selection dropdown */}
                     <div className="flex-1">
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                        <label htmlFor="award" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                             Award
                         </label>
                         <select
+                            id="award"
                             value={state.config.award || defaultAward}
                             onChange={(e) => handleAwardChange(e.target.value)}
                             className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
@@ -281,6 +283,7 @@ export function InputDetails() {
                                 Effective Contracted Hours per Week
                             </label>
                             <input
+                                aria-label="Effective Contracted Hours per Week"
                                 type="number"
                                 value={state.config.contractedHours || ''}
                                 onChange={(event) =>
@@ -327,10 +330,11 @@ export function InputDetails() {
 
                 <div className="flex items-end gap-4">
                     <div className="flex-1">
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                        <label htmlFor="rule-configuration" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                             Rule Configuration
                         </label>
                         <select
+                            id="rule-configuration"
                             value={
                                 state.config.ruleConfiguration ||
                                 `builtin:${state.config.award}`

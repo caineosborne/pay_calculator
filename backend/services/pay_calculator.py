@@ -417,8 +417,9 @@ class PayCalculator:
                 )
             weekly_overtime_remaining -= overtime_from_ordinary
 
-        # Apply a contracted-hours top-up only after overtime has been
-        # reassigned, because the entitlement is based on remaining ordinary hours.
+        # Apply a contracted-hours top-up only when the employee's total worked
+        # hours fall short of their contracted-period target. Overtime counts as
+        # worked time; it must not create a top-up entitlement.
         rules = self.rules.active_rules
         is_entitled_to_topup = (
             self.employment_type == 'part_time'
@@ -436,13 +437,13 @@ class PayCalculator:
             )
         )
         if is_entitled_to_topup and self.contracted_hours:
-            ordinary_hours_after_overtime = sum(
-                day['ordinary'] for day in self.breakdown.values()
+            worked_hours_after_overtime = sum(
+                day['total'] for day in self.breakdown.values()
             )
             contracted_topup = max(
                 0,
                 (self.contracted_hours * self.period_weeks)
-                - ordinary_hours_after_overtime,
+                - worked_hours_after_overtime,
             )
             if contracted_topup > 0:
                 if self.ordered_days:
@@ -513,10 +514,13 @@ class PayCalculator:
         
         # Calculate hourly time-based penalties (Hospitality award)
         hourly_penalty_pay = 0
+        time_based_penalty_hours = 0
         for day in self.breakdown:
             for penalty in self.breakdown[day].get('hourly_penalties', []):
                 hourly_penalty_pay += penalty.get('hours', 0) * self.data.hourly_rate * penalty.get('rate', 0)
+                time_based_penalty_hours += penalty.get('hours', 0)
         hourly_penalty_pay = round(hourly_penalty_pay, 2)
+        time_based_penalty_hours = round(time_based_penalty_hours, 2)
         
         # Combine all penalty types for total penalty pay
         total_penalty_pay = round(penalty_pay + gap_penalty_pay + shift_penalty_pay + hourly_penalty_pay, 2)
@@ -655,5 +659,6 @@ class PayCalculator:
             gap_penalty_pay=gap_penalty_pay,  # Individual penalty components
             shift_penalty_pay=shift_penalty_pay,
             hourly_penalty_pay=hourly_penalty_pay,
+            time_based_penalty_hours=time_based_penalty_hours,
             applied_rules=ruleset
         )

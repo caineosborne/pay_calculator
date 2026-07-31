@@ -59,14 +59,14 @@ const SummaryTable = () => {
                 <h2 id="pay-summary-title">Pay breakdown</h2>
                 <div className="gross-pay">
                     <p className="eyebrow">Gross pay</p>
-                    <div className="gross-pay-value">{formatCurrency(totalPay)}</div>
+                    <div className="gross-pay-value" data-testid="gross-pay">{formatCurrency(totalPay)}</div>
                     <p>Before tax and other deductions</p>
                 </div>
                 <div className="summary-grid">
-                    <div className="summary-item"><div className="summary-item-label">Ordinary</div><div className="summary-item-value">{formatCurrency(payments?.ordinaryPay || 0)}</div><div className="summary-item-hours">{calculations?.ordinaryHours || '0.00'} hrs</div></div>
-                    <div className="summary-item"><div className="summary-item-label">Overtime</div><div className="summary-item-value">{formatCurrency(payments?.overtimePay || 0)}</div><div className="summary-item-hours">{calculations?.overtimeHours || '0.00'} hrs</div></div>
-                    <div className="summary-item"><div className="summary-item-label">Penalty</div><div className="summary-item-value">{formatCurrency(payments?.penaltyPay || 0)}</div><div className="summary-item-hours">{Number(calculations?.timeBasedPenaltyHours || 0) > 0 ? `${calculations.timeBasedPenaltyHours} loaded hrs` : 'Applies to eligible hours'}</div></div>
-                    <div className="summary-item"><div className="summary-item-label">Top-up</div><div className="summary-item-value">{formatCurrency(payments?.topupPay || 0)}</div><div className="summary-item-hours">{calculations?.topupHours || '0.00'} hrs</div></div>
+                    <div className="summary-item" data-testid="ordinary-summary"><div className="summary-item-label">Ordinary</div><div className="summary-item-value">{formatCurrency(payments?.ordinaryPay || 0)}</div><div className="summary-item-hours">{calculations?.ordinaryHours || '0.00'} hrs</div></div>
+                    <div className="summary-item" data-testid="overtime-summary"><div className="summary-item-label">Overtime</div><div className="summary-item-value">{formatCurrency(payments?.overtimePay || 0)}</div><div className="summary-item-hours">{calculations?.overtimeHours || '0.00'} hrs</div></div>
+                    <div className="summary-item" data-testid="penalty-summary"><div className="summary-item-label">Penalty</div><div className="summary-item-value">{formatCurrency(payments?.penaltyPay || 0)}</div><div className="summary-item-hours">{Number(calculations?.timeBasedPenaltyHours || 0) > 0 ? `${calculations.timeBasedPenaltyHours} loaded hrs` : 'Applies to eligible hours'}</div></div>
+                    <div className="summary-item" data-testid="topup-summary"><div className="summary-item-label">Top-up</div><div className="summary-item-value">{formatCurrency(payments?.topupPay || 0)}</div><div className="summary-item-hours">{calculations?.topupHours || '0.00'} hrs</div></div>
                 </div>
             </div>
             <div className="net-pay">

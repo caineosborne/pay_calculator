@@ -832,6 +832,7 @@ export function RuleConfigurationEditor({
                         New custom configuration name
                     </label>
                     <input
+                        aria-label="New custom configuration name"
                         type="text"
                         value={copyName}
                         onChange={(event) => setCopyName(event.target.value)}

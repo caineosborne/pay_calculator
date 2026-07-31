@@ -1,0 +1,5 @@
+employee,shift_date,start_time,end_time,break_duration
+Alex,2026-07-06,09:00,17:00,0.5
+Alex,2026-07-07,09:00,17:00,0.5
+Alex,2026-07-08,09:00,17:00,0.5
+Jordan,2026-07-06,08:00,16:00,0.5

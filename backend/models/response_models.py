@@ -75,4 +75,5 @@ class PayResponse(BaseModel):
     gap_penalty_pay: float = 0.0
     shift_penalty_pay: float = 0.0
     hourly_penalty_pay: float = 0.0
+    time_based_penalty_hours: float = 0.0
     applied_rules: RulesetSummary
