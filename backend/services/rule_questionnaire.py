@@ -28,7 +28,7 @@ DIRECT_FIELDS = {
     "span_overtime.applies": "APPLY_SPAN_OVERTIME",
     "span_overtime.cutoff_hour": "SPAN_OVERTIME_HOUR",
     "employment_defaults.default_break": "DEFAULT_BREAK",
-    "employment_defaults.part_time_contracted_hours_overtime": (
+    "overtime.part_time_contracted_hours_overtime": (
         "USE_CONTRACTED_HOURS_FOR_PT_OVERTIME"
     ),
     "employment_defaults.part_time_top_up_entitlement": (
@@ -40,6 +40,9 @@ DIRECT_FIELDS = {
 }
 
 MANAGED_ATTRIBUTES = set(DIRECT_FIELDS.values()) | {
+    "DAILY_OVERTIME_CONFIGURATION",
+    "WEEKLY_OVERTIME_CONFIGURATION",
+    "SPAN_OVERTIME_START_HOUR",
     "WEEKEND_RULES",
     "GAP_PENALTY_HOURS",
     "GAP_PENALTY_RATE",
@@ -73,6 +76,8 @@ SECTION_FIELDS = {
         "shift_worker_weekly_limit_hours",
     ],
     "overtime": [
+        "daily_overtime_configuration",
+        "weekly_overtime_configuration",
         "standard_overtime_rate",
         "two_tier_overtime",
         "extended_overtime_rate",
@@ -81,7 +86,7 @@ SECTION_FIELDS = {
         "saturday_overtime_rate",
         "sunday_overtime_rate",
     ],
-    "span_overtime": ["applies", "cutoff_hour"],
+    "span_overtime": ["applies", "before_cutoff_hour", "cutoff_hour"],
     "weekend_treatment": [
         "day_saturday_treatment",
         "day_saturday_penalty_loading",
@@ -96,7 +101,6 @@ SECTION_FIELDS = {
     "weekday_penalties": ["shift_based_penalties", "time_based_penalties"],
     "employment_defaults": [
         "default_break",
-        "part_time_contracted_hours_overtime",
         "part_time_top_up_entitlement",
         "full_time_top_up_entitlement",
     ],
@@ -212,9 +216,12 @@ def _literal(
     issues: list[dict],
     default: Any = None,
     default_message: str | None = None,
+    silently_default_if_missing: bool = False,
 ) -> tuple[Any, str]:
     assignment = assignments.get(attribute)
     if assignment is None:
+        if silently_default_if_missing:
+            return default, "defaulted"
         if default_message is not None:
             issues.append(_issue(path, default_message))
             return default, "defaulted"
@@ -231,6 +238,36 @@ def _literal(
             )
         )
         return None, "not_found"
+
+
+def _overtime_configuration(
+    assignments: dict[str, tuple[ast.AST, ast.AST]],
+    attribute: str,
+    day_attribute: str,
+    shift_attribute: str,
+    path: str,
+    issues: list[dict],
+) -> tuple[dict, str]:
+    """Read the optional enhanced configuration or derive the current limits."""
+    configured, status = _literal(
+        assignments,
+        attribute,
+        path,
+        issues,
+        silently_default_if_missing=True,
+    )
+    if isinstance(configured, dict):
+        return configured, status
+
+    day_value, day_status = _literal(assignments, day_attribute, path, issues)
+    shift_value, shift_status = _literal(assignments, shift_attribute, path, issues)
+    if day_value == shift_value:
+        return {"variation": "default", "default": shift_value}, day_status
+    return {
+        "variation": "worker_type",
+        "day": day_value,
+        "shift": shift_value,
+    }, "derived" if day_status == shift_status == "derived" else "not_found"
 
 
 def project_rule_source(
@@ -258,13 +295,46 @@ def project_rule_source(
                 path,
                 issues,
                 default=0.5,
-                default_message=(
-                    "DEFAULT_BREAK is absent; Paychecker uses the 0.5 hour fallback."
-                ),
+                silently_default_if_missing=True,
             )
         else:
             value, status = _literal(assignments, attribute, path, issues)
         questionnaire[section][field] = _record(value, attribute, status)
+
+    for field, attribute, day_attribute, shift_attribute in (
+        (
+            "daily_overtime_configuration",
+            "DAILY_OVERTIME_CONFIGURATION",
+            "DAY_WORKER_ORDINARY_HOURS_DAILY",
+            "ORDINARY_HOURS_LIMIT_DAILY",
+        ),
+        (
+            "weekly_overtime_configuration",
+            "WEEKLY_OVERTIME_CONFIGURATION",
+            "DAY_WORKER_ORDINARY_HOURS_WEEKLY",
+            "ORDINARY_HOURS_LIMIT_WEEKLY",
+        ),
+    ):
+        value, status = _overtime_configuration(
+            assignments,
+            attribute,
+            day_attribute,
+            shift_attribute,
+            f"overtime.{field}",
+            issues,
+        )
+        questionnaire["overtime"][field] = _record(value, attribute, status)
+
+    before_span, before_span_status = _literal(
+        assignments,
+        "SPAN_OVERTIME_START_HOUR",
+        "span_overtime.before_cutoff_hour",
+        issues,
+        silently_default_if_missing=True,
+    )
+    questionnaire["span_overtime"]["before_cutoff_hour"] = _record(
+        before_span, "SPAN_OVERTIME_START_HOUR", before_span_status
+    )
 
     weekend_rules, weekend_status = _literal(
         assignments,
@@ -374,6 +444,8 @@ def project_rule_source(
                     "basis",
                     "start",
                     "end",
+                    "finish_start",
+                    "finish_end",
                     "rate",
                     "description",
                     "applies_to",
@@ -381,9 +453,10 @@ def project_rule_source(
                 row = {
                     "code_name": code_name,
                     "type": penalty.get("type", ""),
-                    "basis": penalty.get(
-                        "basis",
-                        penalty.get("match_on", "start"),
+                    "basis": (
+                        penalty.get("basis", penalty.get("match_on", "start"))
+                        if penalty.get("type") == "shift_based"
+                        else "time"
                     ),
                     "start_hour": penalty.get("start"),
                     "end_hour": penalty.get("end"),
@@ -397,6 +470,9 @@ def project_rule_source(
                         if key not in managed_keys
                     },
                 }
+                if row["basis"] == "start_and_end":
+                    row["finish_start_hour"] = penalty.get("finish_start")
+                    row["finish_end_hour"] = penalty.get("finish_end")
             if row["type"] == "shift_based":
                 shift_rows.append(row)
             elif row["type"] == "time_based":
@@ -512,19 +588,42 @@ def _boolean(questionnaire: dict, path: str, issues: list[dict]) -> None:
         issues.append(_issue(path, "Choose Yes or No.", "error"))
 
 
+def _validate_overtime_configuration(questionnaire: dict, path: str, issues: list[dict]) -> None:
+    value = _answer(questionnaire, path)
+    if not isinstance(value, dict):
+        issues.append(_issue(path, "Choose how this overtime limit varies.", "error"))
+        return
+    variation = value.get("variation")
+    fields = {
+        "default": ("default",),
+        "worker_type": ("day", "shift"),
+        "employment_type": ("full_time", "part_time", "casual"),
+    }.get(variation)
+    if fields is None:
+        issues.append(_issue(path + ".variation", "Choose one variation method.", "error"))
+        return
+    for field in fields:
+        number = value.get(field)
+        if isinstance(number, bool) or not isinstance(number, (int, float)) or number <= 0:
+            issues.append(_issue(path + f".{field}", "Enter a limit greater than zero.", "error"))
+
+
 def validate_questionnaire(questionnaire: dict) -> list[dict]:
     """Return executable-structure errors for questionnaire values."""
     issues: list[dict] = []
     for path in (
-        "core_hours.day_worker_daily_limit_hours",
-        "core_hours.shift_worker_daily_limit_hours",
-        "core_hours.day_worker_weekly_limit_hours",
-        "core_hours.shift_worker_weekly_limit_hours",
         "overtime.standard_overtime_rate",
         "overtime.saturday_overtime_rate",
         "overtime.sunday_overtime_rate",
     ):
         _numeric(questionnaire, path, issues, positive=True)
+
+    _validate_overtime_configuration(
+        questionnaire, "overtime.daily_overtime_configuration", issues
+    )
+    _validate_overtime_configuration(
+        questionnaire, "overtime.weekly_overtime_configuration", issues
+    )
 
     _boolean(questionnaire, "overtime.two_tier_overtime", issues)
     if _answer(questionnaire, "overtime.two_tier_overtime") is True:
@@ -572,6 +671,15 @@ def validate_questionnaire(questionnaire: dict) -> list[dict]:
             minimum=0,
             maximum=24,
         )
+        before_cutoff = _answer(questionnaire, "span_overtime.before_cutoff_hour")
+        if before_cutoff is not None:
+            _numeric(
+                questionnaire,
+                "span_overtime.before_cutoff_hour",
+                issues,
+                minimum=0,
+                maximum=24,
+            )
 
     for treatment_path, loading_path in WEEKEND_FIELDS.values():
         treatment = _answer(questionnaire, treatment_path)
@@ -636,9 +744,17 @@ def validate_questionnaire(questionnaire: dict) -> list[dict]:
                 issues.append(
                     _issue(path + ".type", f"Type must be {expected_type}.", "error")
                 )
-            if row.get("basis") not in {"start", "end", "duration"}:
+            allowed_bases = (
+                {"start", "end", "duration", "start_and_end"}
+                if expected_type == "shift_based"
+                # Time-based penalties always use time overlap. Retain the
+                # earlier values here so existing saved questionnaires remain
+                # valid while the editor normalizes new rows to "time".
+                else {"time", "start", "end", "duration"}
+            )
+            if row.get("basis") not in allowed_bases:
                 issues.append(
-                    _issue(path + ".basis", "Basis must be start, end, or duration.", "error")
+                    _issue(path + ".basis", "Choose a valid penalty condition.", "error")
                 )
             for key in ("start_hour", "end_hour"):
                 value = row.get(key)
@@ -651,6 +767,18 @@ def validate_questionnaire(questionnaire: dict) -> list[dict]:
                     issues.append(
                         _issue(path + f".{key}", "Enter a time from 0 to 24.", "error")
                     )
+            if row.get("basis") == "start_and_end":
+                for key in ("finish_start_hour", "finish_end_hour"):
+                    value = row.get(key)
+                    if (
+                        isinstance(value, bool)
+                        or not isinstance(value, (int, float))
+                        or value < 0
+                        or value > 24
+                    ):
+                        issues.append(
+                            _issue(path + f".{key}", "Enter a time from 0 to 24.", "error")
+                        )
             rate = row.get("rate")
             if isinstance(rate, bool) or not isinstance(rate, (int, float)) or rate < 0:
                 issues.append(
@@ -682,7 +810,7 @@ def validate_questionnaire(questionnaire: dict) -> list[dict]:
         maximum=24,
     )
     for path in (
-        "employment_defaults.part_time_contracted_hours_overtime",
+        "overtime.part_time_contracted_hours_overtime",
         "employment_defaults.part_time_top_up_entitlement",
         "employment_defaults.full_time_top_up_entitlement",
     ):
@@ -727,6 +855,15 @@ def patch_rule_source(award_key: str, source: str, questionnaire: dict) -> str:
         attribute: _answer(questionnaire, path)
         for path, attribute in DIRECT_FIELDS.items()
     }
+    values["DAILY_OVERTIME_CONFIGURATION"] = _answer(
+        questionnaire, "overtime.daily_overtime_configuration"
+    )
+    values["WEEKLY_OVERTIME_CONFIGURATION"] = _answer(
+        questionnaire, "overtime.weekly_overtime_configuration"
+    )
+    values["SPAN_OVERTIME_START_HOUR"] = _answer(
+        questionnaire, "span_overtime.before_cutoff_hour"
+    )
     gap_applies = _answer(questionnaire, "gap_between_shifts.applies")
     values["GAP_PENALTY_HOURS"] = (
         _answer(questionnaire, "gap_between_shifts.minimum_hours")
@@ -792,6 +929,9 @@ def patch_rule_source(award_key: str, source: str, questionnaire: dict) -> str:
                     "applies_to": row["applies_to"],
                 }
             )
+            if row["basis"] == "start_and_end":
+                penalty["finish_start"] = row["finish_start_hour"]
+                penalty["finish_end"] = row["finish_end_hour"]
             penalties[row["code_name"]] = penalty
     values["PENALTIES"] = penalties
 

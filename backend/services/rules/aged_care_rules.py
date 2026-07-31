@@ -10,13 +10,13 @@ class AgedCareRules:
     """
     
     # Time rules for shift workers
-    ORDINARY_HOURS_LIMIT_DAILY = 12  # Increased to 12 hours per day
-    ORDINARY_HOURS_LIMIT_WEEKLY = 40  # Increased to 40 hours per week
+    ORDINARY_HOURS_LIMIT_DAILY = 10  # Increased to 12 hours per day
+    ORDINARY_HOURS_LIMIT_WEEKLY = 38  # Increased to 40 hours per week
     # DEFAULT_BREAK = 1
 
     # Time rules for day workers
     DAY_WORKER_ORDINARY_HOURS_DAILY = 8 
-    DAY_WORKER_ORDINARY_HOURS_WEEKLY = 40  # Increased to 40 hours per week
+    DAY_WORKER_ORDINARY_HOURS_WEEKLY = 38  # Increased to 40 hours per week
     
     # Part time overtime rules
     USE_CONTRACTED_HOURS_FOR_PT_OVERTIME = False  # If True, part-time employees get overtime after contracted hours
@@ -71,15 +71,6 @@ class AgedCareRules:
         }
     }
     
-    # Legacy penalty structures (commented out - using unified structure instead)
-    # SHIFT_PEN_RULES = {
-    #     'shift': {
-    #         'first_window': {'start': 10, 'end': 13, 'rate': 0.10},  # 10am to 1pm - 10% penalty
-    #         'second_window': {'start': 13, 'end': 16, 'rate': 0.125},  # 1pm to 4pm - 12.5% penalty
-    #         'third_window': {'start': 16, 'end': 24, 'rate': 0.15},  # After 4pm - 15% penalty
-    #     },
-    #     'day': {}  # Day workers don't receive shift penalties
-    # }
     
     # Hourly penalties based on time of day (not used in Aged Care)
     HOURS_PEN_RULES = {}
@@ -87,8 +78,8 @@ class AgedCareRules:
     # Weekend rules by worker type
     WEEKEND_RULES = {
         'day': {
-            'Saturday': {'is_overtime': True, 'rate': 2.5},  # All hours are overtime at 2.5x
-            'Sunday': {'is_overtime': True, 'rate': 2.5}     # All hours are overtime at 2.5x
+            'Saturday': {'is_overtime': True, 'rate': 1.5},  # All hours are overtime at 2.5x
+            'Sunday': {'is_overtime': True, 'rate': 2}     # All hours are overtime at 2.5x
         },
         'shift': {
             'Saturday': {'penalty_rate': 0.25},  # Penalty rate for non-overtime hours
@@ -97,5 +88,5 @@ class AgedCareRules:
     }
     
     # Two-tier overtime structure (not used in Aged Care)
-    TWO_TIER_OVERTIME = False
-    TWO_TIER_OVERTIME_THRESHOLD = 0  # Not applicable
+    TWO_TIER_OVERTIME = True
+    TWO_TIER_OVERTIME_THRESHOLD = 2  # Not applicable

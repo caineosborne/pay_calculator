@@ -41,15 +41,19 @@
 .summary-panel { display: grid; grid-template-columns: 1.18fr .82fr; overflow: hidden; }
 .summary-main { padding: 22px; }
 .summary-main h2 { margin: 4px 0 18px; font: 700 25px/1 Fraunces, Georgia, serif; letter-spacing: -.035em; }
+.gross-pay { margin: 0 0 18px; padding: 16px 18px; border-radius: 10px; color: #effaf5; background: #146c5a; }
+.gross-pay .eyebrow { margin: 0; color: #b8dbcd; }
+.gross-pay-value { margin: 6px 0; font: 700 clamp(30px, 4vw, 42px)/1 Fraunces, Georgia, serif; letter-spacing: -.05em; }
+.gross-pay > p:last-child { margin: 0; color: #c9e6da; font: 12px 'DM Sans', sans-serif; }
 .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .summary-item { padding: 14px 10px; border: 1px solid #dce7e1; border-radius: 9px; background: #fbfdfc; text-align: left; }
 .summary-item-label { color: #517064; font: 500 10px 'DM Mono', monospace; text-transform: uppercase; }
 .summary-item-value { margin-top: 8px; color: #17231f; font: 700 18px/1 'DM Sans', sans-serif; letter-spacing: -.04em; }
 .summary-item-hours { margin-top: 4px; color: #768d82; font: 12px 'DM Sans', sans-serif; }
-.net-pay { display: flex; flex-direction: column; justify-content: center; padding: 30px; color: #effaf5; background: #146c5a; }
-.net-pay .eyebrow { color: #b8dbcd; }
-.net-pay-value { margin: 10px 0 8px; font: 700 clamp(36px, 5vw, 52px)/.95 Fraunces, Georgia, serif; letter-spacing: -.06em; }
-.net-pay-note { max-width: 250px; color: #c9e6da; font: 13px/1.45 'DM Sans', sans-serif; }
+.net-pay { display: flex; flex-direction: column; justify-content: center; padding: 30px; color: #284338; background: #f1f9f5; }
+.net-pay .eyebrow { color: #517064; }
+.net-pay-value { margin: 8px 0; font: 700 clamp(27px, 3.2vw, 34px)/1 Fraunces, Georgia, serif; letter-spacing: -.05em; }
+.net-pay-note { max-width: 250px; color: #6b8579; font: 13px/1.45 'DM Sans', sans-serif; }
 .rules-panel { margin-top: 18px; padding-top: 18px; border-top: 1px solid #d5e0da; }
 .rules-heading { display: flex; justify-content: space-between; gap: 16px; align-items: start; margin-bottom: 14px; }
 .rules-heading h3 { margin: 5px 0 0; color: #17231f; font: 700 22px/1 Fraunces, Georgia, serif; letter-spacing: -.035em; }

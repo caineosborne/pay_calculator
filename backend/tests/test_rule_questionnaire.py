@@ -34,7 +34,7 @@ class RuleQuestionnaireTests(unittest.TestCase):
             os.environ[CUSTOM_RULES_ENV] = self.previous_custom_directory
         self.temporary_directory.cleanup()
 
-    def test_every_builtin_projects_all_30_questions(self):
+    def test_every_builtin_projects_all_questions(self):
         for item in list_rule_configurations():
             if item["kind"] != "builtin":
                 continue
@@ -49,7 +49,7 @@ class RuleQuestionnaireTests(unittest.TestCase):
                     for issue in configuration["structural_issues"]
                     if issue["severity"] == "error"
                 ]
-                self.assertEqual(question_count, 30)
+                self.assertEqual(question_count, 33)
                 self.assertEqual(errors, [])
 
     def test_missing_default_break_projects_and_calculates_half_hour(self):
@@ -86,6 +86,13 @@ class RuleQuestionnaireTests(unittest.TestCase):
                 "shift_worker_weekly_limit_hours": 36,
             },
             "overtime": {
+                "daily_overtime_configuration": {
+                    "variation": "worker_type", "day": 7, "shift": 9
+                },
+                "weekly_overtime_configuration": {
+                    "variation": "worker_type", "day": 35, "shift": 36
+                },
+                "part_time_contracted_hours_overtime": False,
                 "standard_overtime_rate": 1.7,
                 "two_tier_overtime": True,
                 "extended_overtime_rate": 2.3,
@@ -94,7 +101,11 @@ class RuleQuestionnaireTests(unittest.TestCase):
                 "saturday_overtime_rate": 1.8,
                 "sunday_overtime_rate": 2.4,
             },
-            "span_overtime": {"applies": True, "cutoff_hour": 19.5},
+            "span_overtime": {
+                "applies": True,
+                "before_cutoff_hour": None,
+                "cutoff_hour": 19.5,
+            },
             "weekend_treatment": {
                 "day_saturday_treatment": "overtime",
                 "day_saturday_penalty_loading": None,
@@ -128,7 +139,7 @@ class RuleQuestionnaireTests(unittest.TestCase):
                     {
                         "code_name": "night_hours",
                         "type": "time_based",
-                        "basis": "start",
+                        "basis": "time",
                         "start_hour": 0,
                         "end_hour": 6,
                         "rate": 0.3,
@@ -140,7 +151,6 @@ class RuleQuestionnaireTests(unittest.TestCase):
             },
             "employment_defaults": {
                 "default_break": 0.75,
-                "part_time_contracted_hours_overtime": False,
                 "part_time_top_up_entitlement": False,
                 "full_time_top_up_entitlement": True,
             },
@@ -194,9 +204,10 @@ class RuleQuestionnaireTests(unittest.TestCase):
     def test_guided_save_changes_selected_custom_calculation(self):
         builtin = get_rule_configuration("builtin:hospitality")
         questionnaire = copy.deepcopy(builtin["questionnaire"])
-        questionnaire["core_hours"]["shift_worker_daily_limit_hours"][
-            "answer"
-        ] = 4
+        questionnaire["overtime"]["daily_overtime_configuration"]["answer"] = {
+            "variation": "default",
+            "default": 4,
+        }
         custom = create_custom_rule(
             "hospitality", "Guided Four Hour Day", builtin["source"], questionnaire
         )
@@ -218,6 +229,50 @@ class RuleQuestionnaireTests(unittest.TestCase):
             PayRequest(**request, rule_configuration=custom["id"])
         ).calculate_pay()
         self.assertEqual(result.overtime_hours, 4)
+
+    def test_start_and_end_penalty_requires_both_windows(self):
+        builtin = get_rule_configuration("builtin:hospitality")
+        questionnaire = copy.deepcopy(builtin["questionnaire"])
+        questionnaire["weekday_penalties"]["shift_based_penalties"]["answer"] = [
+            {
+                "code_name": "afternoon_shift",
+                "type": "shift_based",
+                "basis": "start_and_end",
+                "start_hour": 10,
+                "end_hour": 13,
+                "finish_start_hour": 18,
+                "finish_end_hour": 24,
+                "rate": 0.125,
+                "description": "Afternoon shift loading",
+                "applies_to": ["shift"],
+                "extra": {},
+            }
+        ]
+        custom = create_custom_rule(
+            "hospitality", "Start And End Penalty", builtin["source"], questionnaire
+        )
+
+        def calculate_penalty(end):
+            return PayCalculator(
+                PayRequest(
+                    hourly_rate=20,
+                    worker_type="shift",
+                    award="hospitality",
+                    employment_type="casual",
+                    shifts=[
+                        Shift(
+                            day="Monday",
+                            start=11,
+                            end=end,
+                            break_duration=0,
+                        )
+                    ],
+                    rule_configuration=custom["id"],
+                )
+            ).calculate_pay().penalty_pay
+
+        self.assertGreater(calculate_penalty(19), 0)
+        self.assertEqual(calculate_penalty(17), 0)
 
     def test_raw_validation_refreshes_questionnaire(self):
         builtin = get_rule_configuration("builtin:hospitality")

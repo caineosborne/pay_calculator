@@ -271,11 +271,11 @@ export function InputDetails() {
                         </div>
                     </div>
 
-                    {/* Contracted hours input - only shown for part-time employees */}
+                    {/* Effective contracted hours input - only shown for part-time employees */}
                     {state.config.employmentType === 'part_time' && (
                         <div className="flex-1">
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                                Contracted Hours per Week
+                                Effective Contracted Hours per Week
                             </label>
                             <input
                                 type="number"
@@ -296,11 +296,11 @@ export function InputDetails() {
                         </div>
                     )}
 
-                    {/* Display selected contracted hours for full-time */}
+                    {/* Display effective contracted hours for full-time */}
                     {state.config.employmentType === 'full_time' && (
                         <div className="flex-1">
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                                Contracted Hours per Week
+                                Effective Contracted Hours per Week
                             </label>
                             <div className="mt-1 py-2 px-3 bg-gray-100 dark:bg-gray-700 rounded-md text-gray-700 dark:text-gray-200">
                                 {state.config.contractedHours ||

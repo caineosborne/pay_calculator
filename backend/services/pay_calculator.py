@@ -87,14 +87,16 @@ class PayCalculator:
             applied_rules.append(f"{shift.day} Overtime")
         else:
             # 1b. Check for span overtime (after 6pm for day workers)
-            span_ot = self.rules.calculate_span_overtime(shift.start, shift.end, daily_hours, self.worker_type)
+            span_ot = self.rules.calculate_span_overtime(shift.start, end_time, daily_hours, self.worker_type)
             if span_ot > 0:
                 overtime_hours += span_ot
                 ordinary_hours -= span_ot
                 applied_rules.append("Span Overtime")
             
             # 1c. Check daily hours limit
-            daily_limit = self.rules.get_ordinary_hours_daily_limit(self.worker_type)
+            daily_limit = self.rules.get_ordinary_hours_daily_limit(
+                self.worker_type, self.employment_type
+            )
             if ordinary_hours > daily_limit:
                 daily_ot = ordinary_hours - daily_limit
                 overtime_hours += daily_ot
@@ -384,17 +386,22 @@ class PayCalculator:
         
         if hasattr(rules, 'APPLY_SPAN_OVERTIME'):
             if rules.APPLY_SPAN_OVERTIME and self.worker_type == 'day':
-                span_hours_display = f"After {rules.SPAN_OVERTIME_HOUR}:00"
+                span_parts = []
+                if getattr(rules, 'SPAN_OVERTIME_START_HOUR', None) is not None:
+                    span_parts.append(f"Before {rules.SPAN_OVERTIME_START_HOUR}:00")
+                if getattr(rules, 'SPAN_OVERTIME_HOUR', None) is not None:
+                    span_parts.append(f"After {rules.SPAN_OVERTIME_HOUR}:00")
+                span_hours_display = ' or '.join(span_parts) or "Not applicable"
                 span_rate_display = f"{rules.STANDARD_OVERTIME_RATE}x"
         elif hasattr(rules, 'SPAN_OVERTIME_HOUR') and self.worker_type == 'day':
             span_hours_display = f"After {rules.SPAN_OVERTIME_HOUR}:00"
             span_rate_display = f"{rules.STANDARD_OVERTIME_RATE}x"
             
         # Determine the appropriate weekly overtime threshold for the ruleset summary
-        weekly_overtime_threshold = rules.ORDINARY_HOURS_LIMIT_WEEKLY * self.period_weeks
-        if self.worker_type == 'day':
-            weekly_overtime_threshold = rules.DAY_WORKER_ORDINARY_HOURS_WEEKLY * self.period_weeks
-        elif self.employment_type == 'part_time' and self.contracted_hours is not None:
+        weekly_overtime_threshold = self.rules.calculate_weekly_ordinary_hours(
+            float('inf'), self.worker_type, self.employment_type, None, 1
+        ) * self.period_weeks
+        if self.employment_type == 'part_time' and self.contracted_hours is not None:
             if hasattr(rules, 'USE_CONTRACTED_HOURS_FOR_PT_OVERTIME') and rules.USE_CONTRACTED_HOURS_FOR_PT_OVERTIME:
                 weekly_overtime_threshold = self.contracted_hours * self.period_weeks
             
@@ -408,7 +415,7 @@ class PayCalculator:
                 'rate': span_rate_display
             },
             daily_overtime={
-                'threshold': rules.ORDINARY_HOURS_LIMIT_DAILY if self.worker_type == 'shift' else rules.DAY_WORKER_ORDINARY_HOURS_DAILY,
+                'threshold': self.rules.get_ordinary_hours_daily_limit(self.worker_type, self.employment_type),
                 'rate': f"{rules.STANDARD_OVERTIME_RATE}x"
             },
             weekly_overtime={

@@ -50,37 +50,27 @@ export function DisplayRules({ showRules }) {
         })
         .filter(Boolean);
 
-    const hourlyPenalties = Object.entries(rules.hourly_penalties || {})
-        .filter(([key]) => key !== 'note')
-        .map(([name, detail]) => ({
-            name: titleCase(name),
-            rate: typeof detail === 'string' ? detail : 'Applies at the specified time',
-            detail: rules.hourly_penalties.note || 'Weekdays only',
-        }));
-
-    const shiftStartPenalties = Object.entries(rules.shift_start_penalties || {})
-        .filter(([, detail]) => hasValue(detail))
-        .map(([name, detail]) => ({
-            name: titleCase(name.replace(/_/g, ' ')),
-            rate: detail,
-            detail: 'When the shift starts',
-        }));
-
-    const allPenalties = [...penalties, ...shiftStartPenalties, ...hourlyPenalties];
+    const allPenalties = penalties;
     const worker = state.config.workerType === 'shift' ? 'Shift worker' : 'Day worker';
-    const employment = state.config.employmentType?.replace('_', ' ');
     const gapPenalty =
         rules.gap_penalty?.threshold && rules.gap_penalty?.rate
             ? `${rules.gap_penalty.threshold} · ${rules.gap_penalty.rate}`
             : rules.gap_penalty?.penalty_rate
               ? formatRate(rules.gap_penalty.penalty_rate)
               : null;
+    const contractedHours = hasValue(rules.contracted_hours)
+        ? `${rules.contracted_hours} hours per week`
+        : null;
     const detailRows = [
-        hasValue(rules.employment_type) && ['Employment type', titleCase(rules.employment_type)],
-        hasValue(rules.contracted_hours) && ['Contracted hours', `${rules.contracted_hours} hours per week`],
-        hasValue(rules.use_contracted_hours_for_overtime) && ['Overtime based on contracted hours', rules.use_contracted_hours_for_overtime ? 'Yes' : 'No'],
-        hasValue(rules.pt_employees_entitled_to_contracted_topup) && ['Part-time contracted-hours top-up', rules.pt_employees_entitled_to_contracted_topup ? 'Included' : 'Not included'],
-        hasValue(rules.ft_employees_entitled_to_contracted_topup) && ['Full-time contracted-hours top-up', rules.ft_employees_entitled_to_contracted_topup ? 'Included' : 'Not included'],
+        contractedHours && ['Effective contracted hours', contractedHours],
+        hasValue(rules.use_contracted_hours_for_overtime) && [
+            'Overtime based on contracted hours',
+            rules.use_contracted_hours_for_overtime
+                ? `Yes — after ${contractedHours || 'contracted hours'}`
+                : `No${contractedHours ? ` — after ${contractedHours}` : ''}`,
+        ],
+        hasValue(rules.pt_employees_entitled_to_contracted_topup) && ['Contracted-hours top-up for part-time employees', rules.pt_employees_entitled_to_contracted_topup ? 'Included' : 'Not included'],
+        hasValue(rules.ft_employees_entitled_to_contracted_topup) && ['Contracted-hours top-up for full-time employees', rules.ft_employees_entitled_to_contracted_topup ? 'Included' : 'Not included'],
     ].filter(Boolean);
 
     return (
@@ -88,7 +78,7 @@ export function DisplayRules({ showRules }) {
             <div className="rules-heading">
                 <div>
                     <p className="section-kicker">How your pay is worked out</p>
-                    <h3>{worker} rules <span>{employment}</span></h3>
+                    <h3>{worker} rules</h3>
                 </div>
                 <span className="rules-badge">Current award settings</span>
             </div>

@@ -11,36 +11,6 @@ const clone = (value) => JSON.parse(JSON.stringify(value));
 const inputClass =
     'mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm disabled:bg-gray-100 disabled:text-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:disabled:bg-gray-800';
 
-function FieldContext({ record }) {
-    if (!record) {
-        return null;
-    }
-    const references = [
-        ...(record.clause_references || []),
-        ...(record.source_rule_ids || []),
-    ];
-    return (
-        <details className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-            <summary className="cursor-pointer">
-                Context: {record.status || 'derived'}
-            </summary>
-            {record.reasoning_summary && (
-                <p className="mt-1 mb-0">{record.reasoning_summary}</p>
-            )}
-            {references.length > 0 && (
-                <p className="mt-1 mb-0">
-                    Evidence: {references.join(', ')}
-                </p>
-            )}
-            {(record.special_case_notes || []).length > 0 && (
-                <p className="mt-1 mb-0">
-                    Notes: {record.special_case_notes.join(' · ')}
-                </p>
-            )}
-        </details>
-    );
-}
-
 function FieldIssues({ path, issues }) {
     const matching = issues.filter(
         (issue) =>
@@ -68,6 +38,54 @@ function FieldIssues({ path, issues }) {
     );
 }
 
+function OvertimeLimitField({ label, record, disabled, issues, path, onChange }) {
+    const value = record?.answer || { variation: 'default', default: null };
+    const variation = value.variation || 'default';
+    const fields = variation === 'worker_type'
+        ? [['day', 'Day workers'], ['shift', 'Shift workers']]
+        : variation === 'employment_type'
+          ? [['full_time', 'Full-time employees'], ['part_time', 'Part-time employees'], ['casual', 'Casual employees']]
+          : [['default', 'All employees']];
+    const update = (key, nextValue) => onChange({ ...value, [key]: nextValue });
+
+    return (
+        <div className="md:col-span-2 rounded-md border border-gray-200 p-3 dark:border-gray-600">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">{label}</label>
+            <select
+                aria-label={`${label} variation`}
+                value={variation}
+                disabled={disabled}
+                onChange={(event) => onChange({ variation: event.target.value })}
+                className={inputClass}
+            >
+                <option value="default">One limit for everyone</option>
+                <option value="worker_type">Different limits for day and shift workers</option>
+                <option value="employment_type">Different limits for full-time, part-time and casual employees</option>
+            </select>
+            <div className="mt-3 grid gap-3 md:grid-cols-3">
+                {fields.map(([key, fieldLabel]) => (
+                    <label key={key} className="text-xs">
+                        {fieldLabel}
+                        <input
+                            aria-label={`${label} ${fieldLabel}`}
+                            type="number"
+                            step="any"
+                            value={value[key] ?? ''}
+                            disabled={disabled}
+                            onChange={(event) => update(
+                                key,
+                                event.target.value === '' ? null : Number(event.target.value)
+                            )}
+                            className={inputClass}
+                        />
+                    </label>
+                ))}
+            </div>
+            <FieldIssues path={path} issues={issues} />
+        </div>
+    );
+}
+
 function SimpleField({
     section,
     field,
@@ -90,7 +108,7 @@ function SimpleField({
             ].includes(field) &&
             questionnaire?.overtime?.two_tier_overtime?.answer !== true) ||
         (section === 'span_overtime' &&
-            field === 'cutoff_hour' &&
+            ['before_cutoff_hour', 'cutoff_hour'].includes(field) &&
             questionnaire?.span_overtime?.applies?.answer !== true) ||
         (section === 'gap_between_shifts' &&
             ['minimum_hours', 'penalty_rate'].includes(field) &&
@@ -103,7 +121,9 @@ function SimpleField({
     const isDisabled = disabled || dependentDisabled;
     let control;
 
-    if (type === 'boolean') {
+    if (type === 'overtime_limits') {
+        return <OvertimeLimitField label={label} record={record} disabled={disabled} issues={issues} path={path} onChange={onChange} />;
+    } else if (type === 'boolean') {
         control = (
             <select
                 aria-label={label}
@@ -190,7 +210,6 @@ function SimpleField({
             </label>
             {control}
             <FieldIssues path={path} issues={issues} />
-            <FieldContext record={record} />
         </div>
     );
 }
@@ -207,6 +226,7 @@ function PenaltyRows({
     const rows = record?.answer || [];
     const expectedType =
         field === 'shift_based_penalties' ? 'shift_based' : 'time_based';
+    const isShiftBased = expectedType === 'shift_based';
     const updateRow = (index, key, value) => {
         const next = clone(rows);
         next[index][key] = value;
@@ -218,9 +238,11 @@ function PenaltyRows({
             {
                 code_name: `${expectedType}_loading_${rows.length + 1}`,
                 type: expectedType,
-                basis: 'start',
+                basis: isShiftBased ? 'start' : 'time',
                 start_hour: 0,
                 end_hour: 24,
+                finish_start_hour: null,
+                finish_end_hour: null,
                 rate: 0,
                 description: '',
                 applies_to: expectedType === 'shift_based' ? ['shift'] : ['day'],
@@ -267,27 +289,39 @@ function PenaltyRows({
                                     className={inputClass}
                                 />
                             </label>
+                            {isShiftBased ? (
+                                <label className="text-xs">
+                                    Apply loading when
+                                    <select
+                                        aria-label={`${label} condition ${index + 1}`}
+                                        value={row.basis || 'start'}
+                                        disabled={disabled}
+                                        onChange={(event) =>
+                                            updateRow(
+                                                index,
+                                                'basis',
+                                                event.target.value
+                                            )
+                                        }
+                                        className={inputClass}
+                                    >
+                                        <option value="start">Shift starts in this window</option>
+                                        <option value="end">Shift ends in this window</option>
+                                        <option value="duration">Shift duration is in this range</option>
+                                        <option value="start_and_end">Shift start and end both match</option>
+                                    </select>
+                                </label>
+                            ) : (
+                                <p className="m-0 self-end text-xs text-gray-500 dark:text-gray-400">
+                                    Applies only to hours worked in this time window.
+                                </p>
+                            )}
                             <label className="text-xs">
-                                Basis
-                                <select
-                                    value={row.basis || ''}
-                                    disabled={disabled}
-                                    onChange={(event) =>
-                                        updateRow(
-                                            index,
-                                            'basis',
-                                            event.target.value
-                                        )
-                                    }
-                                    className={inputClass}
-                                >
-                                    <option value="start">Shift start</option>
-                                    <option value="end">Shift end</option>
-                                    <option value="duration">Duration</option>
-                                </select>
-                            </label>
-                            <label className="text-xs">
-                                Start
+                                {row.basis === 'duration'
+                                    ? 'Minimum duration (hours)'
+                                    : row.basis === 'end'
+                                      ? 'Shift ends from'
+                                      : 'Shift starts from'}
                                 <input
                                     type="number"
                                     step="any"
@@ -306,7 +340,11 @@ function PenaltyRows({
                                 />
                             </label>
                             <label className="text-xs">
-                                End
+                                {row.basis === 'duration'
+                                    ? 'Maximum duration (hours)'
+                                    : row.basis === 'end'
+                                      ? 'Shift ends before'
+                                      : 'Shift starts before'}
                                 <input
                                     type="number"
                                     step="any"
@@ -321,9 +359,53 @@ function PenaltyRows({
                                                 : Number(event.target.value)
                                         )
                                     }
-                                    className={inputClass}
-                                />
-                            </label>
+                                className={inputClass}
+                            />
+                        </label>
+                            {isShiftBased && row.basis === 'start_and_end' && (
+                                <>
+                                    <label className="text-xs">
+                                        Shift ends from
+                                        <input
+                                            aria-label={`${label} finish start ${index + 1}`}
+                                            type="number"
+                                            step="any"
+                                            value={row.finish_start_hour ?? ''}
+                                            disabled={disabled}
+                                            onChange={(event) =>
+                                                updateRow(
+                                                    index,
+                                                    'finish_start_hour',
+                                                    event.target.value === ''
+                                                        ? null
+                                                        : Number(event.target.value)
+                                                )
+                                            }
+                                            className={inputClass}
+                                        />
+                                    </label>
+                                    <label className="text-xs">
+                                        Shift ends before
+                                        <input
+                                            aria-label={`${label} finish end ${index + 1}`}
+                                            type="number"
+                                            step="any"
+                                            value={row.finish_end_hour ?? ''}
+                                            disabled={disabled}
+                                            onChange={(event) =>
+                                                updateRow(
+                                                    index,
+                                                    'finish_end_hour',
+                                                    event.target.value === ''
+                                                        ? null
+                                                        : Number(event.target.value)
+                                                )
+                                            }
+                                            className={inputClass}
+                                        />
+                                    </label>
+                                </>
+                            )}
                             <label className="text-xs">
                                 Loading
                                 <input
@@ -423,7 +505,6 @@ function PenaltyRows({
                 path={fieldPath(section, field)}
                 issues={issues}
             />
-            <FieldContext record={record} />
         </div>
     );
 }
@@ -723,11 +804,10 @@ export function RuleConfigurationEditor({
             <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                     <h3 className="m-0 text-lg font-semibold text-gray-900 dark:text-white">
-                        Ruleset Review Helper
+                        Pay rules
                     </h3>
                     <p className="mt-1 mb-0 text-sm text-gray-600 dark:text-gray-300">
-                        Python remains the calculation source of truth. This
-                        helper edits only the fields Paychecker uses.
+                        Enter the rules that apply to this award.
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -769,7 +849,7 @@ export function RuleConfigurationEditor({
                     <strong>
                         {hasErrors
                             ? 'Review required before guided save.'
-                            : 'Code-derived warnings'}
+                            : 'Review notes'}
                     </strong>
                     <span className="ml-2">
                         {issues.length} structural issue

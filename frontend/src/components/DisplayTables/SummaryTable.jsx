@@ -57,6 +57,11 @@ const SummaryTable = () => {
             <div className="summary-main">
                 <p className="section-kicker">Calculated from your shifts</p>
                 <h2 id="pay-summary-title">Pay breakdown</h2>
+                <div className="gross-pay">
+                    <p className="eyebrow">Gross pay</p>
+                    <div className="gross-pay-value">{formatCurrency(totalPay)}</div>
+                    <p>Before tax and other deductions</p>
+                </div>
                 <div className="summary-grid">
                     <div className="summary-item"><div className="summary-item-label">Ordinary</div><div className="summary-item-value">{formatCurrency(payments?.ordinaryPay || 0)}</div><div className="summary-item-hours">{calculations?.ordinaryHours || '0.00'} hrs</div></div>
                     <div className="summary-item"><div className="summary-item-label">Overtime</div><div className="summary-item-value">{formatCurrency(payments?.overtimePay || 0)}</div><div className="summary-item-hours">{calculations?.overtimeHours || '0.00'} hrs</div></div>
@@ -67,7 +72,7 @@ const SummaryTable = () => {
             <div className="net-pay">
                 <p className="eyebrow">Estimated take-home</p>
                 <div className="net-pay-value">{formatCurrency(estimatedNetPay)}</div>
-                <div className="net-pay-note">From {formatCurrency(totalPay.toFixed(2))} gross. This estimate includes income tax and the 2% Medicare levy only.</div>
+                <div className="net-pay-note">Includes estimated income tax and the 2% Medicare levy only.</div>
             </div>
         </section>
     );

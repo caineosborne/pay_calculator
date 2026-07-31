@@ -27,6 +27,9 @@ const buildQuestionnaire = () => {
             if (type === 'penalties') {
                 answer = [];
             }
+            if (type === 'overtime_limits') {
+                answer = { variation: 'default', default: 8 };
+            }
             questionnaire[section.key][field] = record(answer);
         }
     }
@@ -75,7 +78,7 @@ describe('RuleConfigurationEditor', () => {
                 onConfigurationSaved={vi.fn()}
             />
         );
-        const field = await screen.findByLabelText('Day worker daily limit');
+        const field = await screen.findByLabelText('Standard overtime rate');
         const source = screen.getByLabelText('Rule class source');
 
         fireEvent.change(field, { target: { value: '9' } });
@@ -89,7 +92,7 @@ describe('RuleConfigurationEditor', () => {
 
     it('locks the questionnaire during raw edits and refreshes it after validation', async () => {
         const refreshed = buildQuestionnaire();
-        refreshed.core_hours.day_worker_daily_limit_hours.answer = 7;
+        refreshed.overtime.standard_overtime_rate.answer = 1.7;
         api.validateRuleConfiguration.mockResolvedValueOnce({
             valid: true,
             source: 'class HospitalityRules:\n    VALUE = 7\n',
@@ -107,14 +110,14 @@ describe('RuleConfigurationEditor', () => {
             target: { value: 'class HospitalityRules:\n    VALUE = 7\n' },
         });
         expect(
-            screen.getByLabelText('Day worker daily limit')
+                screen.getByLabelText('Standard overtime rate')
         ).toBeDisabled();
 
         fireEvent.click(screen.getByRole('button', { name: 'Validate' }));
         await waitFor(() =>
             expect(
-                screen.getByLabelText('Day worker daily limit')
-            ).toHaveValue(7)
+                screen.getByLabelText('Standard overtime rate')
+            ).toHaveValue(1.7)
         );
     });
 
@@ -129,7 +132,7 @@ describe('RuleConfigurationEditor', () => {
             name: 'Review Helper',
         });
         fireEvent.click(toggle);
-        expect(screen.queryByText('Core Hours')).not.toBeInTheDocument();
+        expect(screen.queryByText('Ordinary hours')).not.toBeInTheDocument();
         expect(screen.getByText('Advanced Python').parentElement).toHaveAttribute(
             'open'
         );
@@ -150,11 +153,26 @@ describe('RuleConfigurationEditor', () => {
         });
         fireEvent.click(addButtons[0]);
         expect(
-            within(section).getByLabelText('Shift-based penalties code 1')
+            within(section).getByLabelText('Whole-shift penalty loadings code 1')
         ).toHaveValue('shift_based_loading_1');
+        const condition = within(section).getByLabelText(
+            'Whole-shift penalty loadings condition 1'
+        );
+        expect(condition).toHaveTextContent('Shift start and end both match');
+        fireEvent.change(condition, { target: { value: 'start_and_end' } });
+        expect(
+            within(section).getByLabelText(
+                'Whole-shift penalty loadings finish start 1'
+            )
+        ).toBeInTheDocument();
+        expect(
+            within(section).getByLabelText(
+                'Whole-shift penalty loadings finish end 1'
+            )
+        ).toBeInTheDocument();
         fireEvent.click(within(section).getByRole('button', { name: 'Remove' }));
         expect(
-            within(section).queryByLabelText('Shift-based penalties code 1')
+            within(section).queryByLabelText('Whole-shift penalty loadings code 1')
         ).not.toBeInTheDocument();
     });
 
@@ -166,8 +184,7 @@ describe('RuleConfigurationEditor', () => {
             structural_issues: [
                 {
                     severity: 'error',
-                    field_path:
-                        'core_hours.day_worker_daily_limit_hours',
+                    field_path: 'overtime.standard_overtime_rate',
                     message: 'A numeric value is required.',
                 },
             ],
@@ -179,7 +196,7 @@ describe('RuleConfigurationEditor', () => {
             />
         );
         fireEvent.change(
-            await screen.findByLabelText('Day worker daily limit'),
+            await screen.findByLabelText('Standard overtime rate'),
             { target: { value: '' } }
         );
         fireEvent.click(screen.getByRole('button', { name: 'Validate' }));
@@ -202,7 +219,7 @@ describe('RuleConfigurationEditor', () => {
             />
         );
         fireEvent.change(
-            await screen.findByLabelText('Day worker daily limit'),
+            await screen.findByLabelText('Standard overtime rate'),
             { target: { value: '9' } }
         );
         fireEvent.click(

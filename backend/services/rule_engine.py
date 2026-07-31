@@ -58,7 +58,24 @@ class PayRules:
     # HOURS LIMIT METHODS - Basic configuration for calculating overtime
     #
     
-    def get_ordinary_hours_daily_limit(self, worker_type: str) -> float:
+    def _configured_overtime_limit(
+        self, attribute: str, worker_type: str, employment_type: str | None
+    ) -> float | None:
+        configuration = getattr(self.active_rules, attribute, None)
+        if not isinstance(configuration, dict):
+            return None
+        variation = configuration.get('variation')
+        if variation == 'default':
+            return configuration.get('default')
+        if variation == 'worker_type':
+            return configuration.get(worker_type)
+        if variation == 'employment_type' and employment_type is not None:
+            return configuration.get(employment_type)
+        return None
+
+    def get_ordinary_hours_daily_limit(
+        self, worker_type: str, employment_type: str | None = None
+    ) -> float:
         """
         Get daily ordinary hours limit based on worker type.
         
@@ -68,6 +85,11 @@ class PayRules:
         Returns:
             float: Maximum ordinary hours allowed per day before overtime applies
         """
+        configured = self._configured_overtime_limit(
+            'DAILY_OVERTIME_CONFIGURATION', worker_type, employment_type
+        )
+        if configured is not None:
+            return configured
         rules = self.active_rules
         return rules.DAY_WORKER_ORDINARY_HOURS_DAILY if worker_type == 'day' else rules.ORDINARY_HOURS_LIMIT_DAILY
 
@@ -84,10 +106,17 @@ class PayRules:
         Returns:
             float: Maximum ordinary hours allowed per week (capped at weekly limit)
         """
+        configured = self._configured_overtime_limit(
+            'WEEKLY_OVERTIME_CONFIGURATION', worker_type, employment_type
+        )
         rules = self.active_rules
         
         # Get the standard weekly limit based on worker type
-        weekly_limit = rules.DAY_WORKER_ORDINARY_HOURS_WEEKLY if worker_type == 'day' else rules.ORDINARY_HOURS_LIMIT_WEEKLY
+        weekly_limit = (
+            configured
+            if configured is not None
+            else rules.DAY_WORKER_ORDINARY_HOURS_WEEKLY if worker_type == 'day' else rules.ORDINARY_HOURS_LIMIT_WEEKLY
+        )
         
         # For part-time employees, use contracted hours if configured in the rules
         if employment_type == 'part_time' and contracted_hours is not None:
@@ -149,13 +178,19 @@ class PayRules:
         if worker_type != 'day':
             return 0
             
-        # No span overtime if shift ends before the span overtime hour
-        if not hasattr(rules, 'SPAN_OVERTIME_HOUR') or end_time <= rules.SPAN_OVERTIME_HOUR:
-            return 0
-            
-        # Calculate span overtime hours (capped at daily hours)
-        overtime_start = max(start_time, rules.SPAN_OVERTIME_HOUR)
-        return min(end_time - overtime_start, daily_hours)
+        after_cutoff = getattr(rules, 'SPAN_OVERTIME_HOUR', None)
+        before_cutoff = getattr(rules, 'SPAN_OVERTIME_START_HOUR', None)
+        before_hours = (
+            max(0, min(end_time, before_cutoff) - start_time)
+            if before_cutoff is not None
+            else 0
+        )
+        after_hours = (
+            max(0, end_time - max(start_time, after_cutoff))
+            if after_cutoff is not None
+            else 0
+        )
+        return min(before_hours + after_hours, daily_hours)
     
     def get_overtime_rate(self, day: str, hours_of_overtime: float = 0) -> float:
         """
@@ -429,6 +464,27 @@ class PayRules:
                             'description': penalty['description'],
                             'hours': duration_hours,
                             'basis': 'duration'
+                        })
+                    continue
+
+                if match_on == 'start_and_end':
+                    finish_start = penalty.get('finish_start')
+                    finish_end = penalty.get('finish_end')
+                    if finish_start is None or finish_end is None:
+                        continue
+                    shift_starts_in_window = self._time_in_window(
+                        start_time, window_start, window_end
+                    )
+                    shift_ends_in_window = self._time_in_window(
+                        normalized_end_time % 24, finish_start, finish_end
+                    )
+                    if shift_starts_in_window and shift_ends_in_window:
+                        penalties.append({
+                            'type': 'shift_based',
+                            'rate': penalty['rate'],
+                            'description': penalty['description'],
+                            'hours': normalized_end_time - start_time,
+                            'basis': 'start_and_end'
                         })
                     continue
 
