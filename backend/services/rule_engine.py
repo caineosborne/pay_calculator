@@ -46,16 +46,23 @@ class PayRules:
     _active_rules = None
     
     @classmethod
-    def set_award(cls, award: str = None):
+    def set_award(
+        cls,
+        award: str = None,
+        configuration_identifier: str = None,
+    ):
         """
         Set the active award rules.
         
         Args:
             award: String identifier for the award
                   If None, uses the default award.
+            configuration_identifier: Optional custom or built-in configuration.
         """
         award = award or cls._DEFAULT_AWARD
-        cls._active_rules = get_rules_for_award(award)
+        cls._active_rules = get_rules_for_award(
+            award, configuration_identifier
+        )
     
     @classmethod
     def get_active_rules(cls):

@@ -14,6 +14,7 @@ export function useShiftCalculations() {
                     shifts: state.shifts,
                     worker_type: state.config.workerType,
                     award: state.config.award,
+                    rule_configuration: state.config.ruleConfiguration,
                 });
 
                 dispatch({ type: 'UPDATE_CALCULATIONS', payload: result });
@@ -25,5 +26,12 @@ export function useShiftCalculations() {
         if (state.shifts.length > 0) {
             calculatePay();
         }
-    }, [state.shifts, state.config.hourlyRate, state.config.workerType, state.config.award]);
+    }, [
+        dispatch,
+        state.shifts,
+        state.config.hourlyRate,
+        state.config.workerType,
+        state.config.award,
+        state.config.ruleConfiguration,
+    ]);
 }

@@ -78,6 +78,7 @@ export function ShiftCalculator({ children }) {
                     hourly_rate: parseFloat(state.config.hourlyRate),
                     worker_type: state.config.workerType,
                     award: state.config.award, // Include award in the payload
+                    rule_configuration: state.config.ruleConfiguration,
                     employment_type: state.config.employmentType, // Include employment type
                     contracted_hours: state.config.contractedHours, // Include contracted hours if available
                     shifts: validShifts.map(shift => ({
@@ -172,6 +173,7 @@ export function ShiftCalculator({ children }) {
         state.config.hourlyRate,
         state.config.workerType,
         state.config.award,
+        state.config.ruleConfiguration,
         state.config.employmentType,
         state.config.contractedHours,
         dispatch

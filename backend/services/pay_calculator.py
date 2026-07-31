@@ -36,7 +36,7 @@ class PayCalculator:
         
         # Set the active award rules
         award = data.award.value if hasattr(data.award, 'value') else data.award
-        PayRules.set_award(award)
+        PayRules.set_award(award, data.rule_configuration)
         
         # Get employment type and contracted hours
         self.employment_type = data.employment_type.value if hasattr(data.employment_type, 'value') else data.employment_type

@@ -72,7 +72,10 @@ export function DisplayRules({ showRules }) {
         }
 
         // Handle day-specific rules (saturday, sunday, etc.)
-        if (ruleName.includes('_rules') && ruleData.hasOwnProperty('is_overtime')) {
+        if (
+            ruleName.includes('_rules') &&
+            Object.prototype.hasOwnProperty.call(ruleData, 'is_overtime')
+        ) {
             if (ruleData.is_overtime) {
                 return <span className="font-medium">All hours as overtime</span>;
             } else if (ruleData.penalty_rate) {
@@ -106,7 +109,7 @@ export function DisplayRules({ showRules }) {
             if (typeof ruleData === 'object' && ruleData !== null) {
                 // Try to extract useful information from complex objects
                 const simpleRepresentation = Object.entries(ruleData)
-                    .filter(([key, value]) => value !== null && value !== undefined)
+                    .filter(([, value]) => value !== null && value !== undefined)
                     .map(([key, value]) => {
                         if (typeof value === 'boolean') {
                             return value ? key : `not ${key}`;
@@ -130,7 +133,7 @@ export function DisplayRules({ showRules }) {
 
             // Last resort: JSON stringify
             return <span className="font-medium">{JSON.stringify(ruleData)}</span>;
-        } catch (error) {
+        } catch {
             return <span className="font-medium">Error displaying rule</span>;
         }
     };
