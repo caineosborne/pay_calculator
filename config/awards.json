@@ -12,6 +12,24 @@
     "class_name": "AgedCareRules"
   },
   {
+    "key": "woolies_2024",
+    "label": "Woolworths 2024 EBA",
+    "module": "woolies_2024",
+    "class_name": "Woolies2024Rules"
+  },
+  {
+    "key": "woolies_auto",
+    "label": "Woolworths 2024 EBA (Auto)",
+    "module": "woolies_auto",
+    "class_name": "Woolies2024Rules"
+  },
+  {
+    "key": "woolies_combined",
+    "label": "Woolworths 2024 EBA (Combined)",
+    "module": "woolies_combined",
+    "class_name": "WooliesCombinedRules"
+  },
+  {
     "key": "child_care",
     "label": "Child Care Award",
     "module": "child_care_rules",
