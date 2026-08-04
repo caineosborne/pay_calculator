@@ -47,6 +47,10 @@ class PayCalculator:
         self.public_holidays = {
             (item.week, item.day) for item in data.public_holidays
         }
+        if self.public_holidays and "public_holiday" not in self.rules.config["day_rules"]:
+            raise ValueError(
+                "The selected ruleset does not define public-holiday treatment."
+            )
         self.long_day_used_weeks = set()
         self._minimum_expanded_ids = set()
         
@@ -178,8 +182,19 @@ class PayCalculator:
         # Phase 2: Apply appropriate overtime rate
         # Period overtime is reassigned after every shift has been processed.
         overtime_rate = self._overtime_multiplier(overtime_rate_key, shift.day, overtime_hours)
-        
-        # Phase 3: Calculate penalties (unified approach)
+        # BBS has priority over ordinary-hour penalties, but remains a loading
+        # on the final ordinary portion in this release.
+        gap_penalty = {'applies': False, 'penalty_rate': 0}
+        if self.previous_shift_end is not None and self.previous_shift_day is not None:
+            gap_penalty = self.rules.check_shift_gap_penalty(
+                shift.start, self.previous_shift_end, shift.day, self.previous_shift_day
+            )
+        gap_penalty_rate = gap_penalty.get('penalty_rate', 0)
+        gap_penalty_hours = ordinary_hours if gap_penalty.get('applies', False) else 0
+        if gap_penalty_hours > 0:
+            applied_rules.append(f"Gap Penalty ({int(gap_penalty_rate * 100)}%)")
+
+        # Phase 3: Calculate normal penalties (unified approach)
         # First, get weekend penalties if applicable
         penalty_rate = (
             holiday_rule.get("ordinary_loading", 0)
@@ -237,26 +252,9 @@ class PayCalculator:
             for penalty in hourly_penalties:
                 applied_rules.append(penalty.get('description', ''))
         
-        # Phase 6: Check for gap penalty (applied across all award types)
-        gap_penalty = {'applies': False, 'penalty_rate': 0}
-        if self.previous_shift_end is not None and self.previous_shift_day is not None:
-            gap_penalty = self.rules.check_shift_gap_penalty(
-                shift.start, 
-                self.previous_shift_end,
-                shift.day,
-                self.previous_shift_day
-            )
-            
         # Store the end time and day of this shift for future gap penalty calculations
         self.previous_shift_end = end_time
         self.previous_shift_day = shift.day
-        
-        # Apply gap penalty if applicable
-        gap_penalty_rate = gap_penalty.get('penalty_rate', 0)
-        gap_penalty_hours = ordinary_hours if gap_penalty.get('applies', False) else 0
-        
-        if gap_penalty_hours > 0:
-            applied_rules.append(f"Gap Penalty ({int(gap_penalty_rate * 100)}%)")
         
         return {
             'total': daily_hours,
