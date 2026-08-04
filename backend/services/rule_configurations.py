@@ -36,6 +36,15 @@ REQUIRED_RULE_ATTRIBUTES = {
     "WEEKEND_RULES",
     "TWO_TIER_OVERTIME",
 }
+CANONICAL_RULE_ATTRIBUTES = {
+    "ATTENDANCE_RULES",
+    "ORDINARY_TIME_RULES",
+    "DAY_RULES",
+    "PAY_RATES",
+    "BBS_RULE",
+    "PENALTIES",
+    "TOP_UP_RULES",
+}
 _SLUG_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
 
@@ -126,12 +135,11 @@ def validate_rule_source(award_key: str, source: str) -> dict:
             target.id for target in targets if isinstance(target, ast.Name)
         )
 
-    missing_attributes = sorted(
-        REQUIRED_RULE_ATTRIBUTES - assigned_attributes
-    )
-    if missing_attributes:
+    has_canonical_contract = CANONICAL_RULE_ATTRIBUTES <= assigned_attributes
+    missing_attributes = sorted(REQUIRED_RULE_ATTRIBUTES - assigned_attributes)
+    if missing_attributes and not has_canonical_contract:
         raise RuleConfigurationError(
-            "Rule class is missing required attributes: "
+            "Rule class is missing required attributes (or canonical grouped contract): "
             + ", ".join(missing_attributes)
         )
 
@@ -401,7 +409,10 @@ def _load_custom_rule_class_cached(
         for attribute in REQUIRED_RULE_ATTRIBUTES
         if not hasattr(rule_class, attribute)
     )
-    if missing_attributes:
+    has_canonical_contract = all(
+        hasattr(rule_class, attribute) for attribute in CANONICAL_RULE_ATTRIBUTES
+    )
+    if missing_attributes and not has_canonical_contract:
         raise RuleConfigurationError(
             "Loaded rule class is missing required attributes: "
             + ", ".join(missing_attributes)

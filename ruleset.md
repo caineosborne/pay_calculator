@@ -41,20 +41,27 @@ Example:
 Each award file defines one class with class attributes. The engine reads these
 attributes directly.
 
-### Required validation fields
+### Preferred grouped contract
 
-Built-in and custom rule classes must define all of the following fields:
+New built-in rulesets use the following grouped attributes. `ordinary` is
+defined in one place only: `ORDINARY_TIME_RULES`. Hours are temporary
+ordinary-eligible time while OT classifiers run, then final ordinary hours or
+overtime; a penalty is a loading, never a third hour bucket.
 
-- `ORDINARY_HOURS_LIMIT_DAILY`
-- `ORDINARY_HOURS_LIMIT_WEEKLY`
-- `DAY_WORKER_ORDINARY_HOURS_DAILY`
-- `DAY_WORKER_ORDINARY_HOURS_WEEKLY`
-- `STANDARD_OVERTIME_RATE`
-- `EXTENDED_OVERTIME_RATE`
-- `SUNDAY_OVERTIME_RATE`
-- `SATURDAY_OVERTIME_RATE`
-- `TWO_TIER_OVERTIME`
-- `WEEKEND_RULES`
+- `ATTENDANCE_RULES`: default unpaid break and worker-type minimum paid shift.
+- `ORDINARY_TIME_RULES`: ordinary time windows, daily limits, optional first
+  long-day-per-week exception, and period limits.
+- `DAY_RULES`: worker-type treatment for Saturday, Sunday and public holidays
+  (`base_classification`, `ordinary_loading`, `overtime_rate_key`).
+- `PAY_RATES`: total overtime multipliers keyed by source. A multiplier is
+  total pay (for example `1.5`); a loading is extra ordinary pay (for example
+  `0.25`).
+- `BBS_RULE`: minimum shift gap and its ordinary-hours loading.
+- `PENALTIES`: unified ordinary-hour shift/time loadings.
+- `TOP_UP_RULES`: contracted-hours overtime and top-up entitlement settings.
+
+Built-ins are projected into this contract at registry load. Saved custom
+rules may use the legacy fields below during migration.
 
 ### Supported calculation fields
 
@@ -83,15 +90,17 @@ status is described under [Legacy and compatibility fields](#legacy-and-compatib
 For each logical workday (one or more non-overlapping attendance periods), the
 calculator applies rules in this order:
 
-1. Calculate worked hours after the configured break.
-2. Mark all day-worker Saturday/Sunday hours as overtime when `WEEKEND_RULES` says `is_overtime: True`.
-3. Apply span overtime where `APPLY_SPAN_OVERTIME` is enabled. Span overtime currently applies to day workers only.
-4. Apply the daily ordinary-hours limit.
-5. Identify weekend, shift-based, and time-based penalty eligibility.
-6. Apply the gap penalty when the interval from the previous shift is below the configured threshold.
-7. After every day is classified, apply weekly/period overtime by converting the latest remaining ordinary hours to overtime.
-8. Apply any contracted-hours top-up.
-9. Calculate ordinary pay, overtime pay, and the separate penalty loadings.
+1. Expand minimum paid shifts and deduct an unpaid break from ordinary-span
+   time before OT time.
+2. Apply explicit/manual OT.
+3. Apply time-based OT: special days and ordinary-time span.
+4. Apply daily OT, including any configured first long day each week.
+5. Apply period OT to latest remaining ordinary-eligible hours.
+6. Finalise remaining hours as ordinary.
+7. Apply BBS/insufficient-gap loading.
+8. Apply public-holiday or normal ordinary-hour penalties. Public-holiday
+   treatment replaces normal ordinary-hour penalties; BBS remains separate.
+9. Apply any contracted-hours top-up and calculate pay.
 
 Overtime rates are calculated when pay is calculated. Two-tier overtime splits
 the first-tier and extended-tier hours instead of paying every overtime hour at

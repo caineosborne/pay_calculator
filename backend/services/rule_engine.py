@@ -17,6 +17,7 @@ Dependencies:
 """
 
 from .rules import get_rules_for_award
+from .rule_schema import canonical_rules
 
 class PayRules:
     """
@@ -50,6 +51,7 @@ class PayRules:
         self.active_rules = get_rules_for_award(
             award, configuration_identifier
         )
+        self.config = canonical_rules(self.active_rules)
     
     #
     # HOURS LIMIT METHODS - Basic configuration for calculating overtime
@@ -82,13 +84,15 @@ class PayRules:
         Returns:
             float: Maximum ordinary hours allowed per day before overtime applies
         """
-        configured = self._configured_overtime_limit(
-            'DAILY_OVERTIME_CONFIGURATION', worker_type, employment_type
-        )
-        if configured is not None:
-            return configured
-        rules = self.active_rules
-        return rules.DAY_WORKER_ORDINARY_HOURS_DAILY if worker_type == 'day' else rules.ORDINARY_HOURS_LIMIT_DAILY
+        configuration = self.config["ordinary_time"]["daily"]
+        if isinstance(configuration, dict):
+            variation = configuration.get("variation")
+            if variation == "default":
+                return configuration["default"]
+            if variation == "employment_type" and employment_type:
+                return configuration[employment_type]
+            return configuration[worker_type]
+        return configuration
 
     def calculate_weekly_ordinary_hours(self, hours: float, worker_type: str = 'shift', employment_type: str = 'full_time', contracted_hours: float = None, period_weeks: int = 1) -> float:
         """
@@ -103,21 +107,17 @@ class PayRules:
         Returns:
             float: Maximum ordinary hours allowed per week (capped at weekly limit)
         """
-        configured = self._configured_overtime_limit(
-            'WEEKLY_OVERTIME_CONFIGURATION', worker_type, employment_type
-        )
-        rules = self.active_rules
-        
-        # Get the standard weekly limit based on worker type
-        weekly_limit = (
-            configured
-            if configured is not None
-            else rules.DAY_WORKER_ORDINARY_HOURS_WEEKLY if worker_type == 'day' else rules.ORDINARY_HOURS_LIMIT_WEEKLY
-        )
+        configuration = self.config["ordinary_time"]["period"]
+        if configuration.get("variation") == "default":
+            weekly_limit = configuration["default"]
+        elif configuration.get("variation") == "employment_type" and employment_type:
+            weekly_limit = configuration[employment_type]
+        else:
+            weekly_limit = configuration[worker_type]
         
         # For part-time employees, use contracted hours if configured in the rules
         if employment_type == 'part_time' and contracted_hours is not None:
-            if hasattr(rules, 'USE_CONTRACTED_HOURS_FOR_PT_OVERTIME') and rules.USE_CONTRACTED_HOURS_FOR_PT_OVERTIME:
+            if self.config["top_up"].get("use_contracted_hours_for_pt_overtime", False):
                 weekly_limit = contracted_hours
                 
         return min(hours, weekly_limit * period_weeks)
@@ -137,21 +137,10 @@ class PayRules:
         Returns:
             bool: True if all hours on this day count as overtime, False otherwise
         """
-        rules = self.active_rules
-        
-        # For day workers, check if the weekend rules specify overtime
-        if worker_type == 'day' and day in ['Saturday', 'Sunday']:
-            # Try to get the rules for the specific worker type first, then fall back to direct access
-            if hasattr(rules, 'WEEKEND_RULES'):
-                if worker_type in rules.WEEKEND_RULES:
-                    weekend_rules = rules.WEEKEND_RULES.get(worker_type, {}).get(day, {})
-                else:
-                    weekend_rules = rules.WEEKEND_RULES.get(day, {})
-                return weekend_rules.get('is_overtime', True)  # Default to True for compatibility
-            
-        return False
+        rule = self.config["day_rules"].get(day, {}).get(worker_type, {})
+        return rule.get("base_classification") == "overtime"
 
-    def calculate_span_overtime(self, start_time: float, end_time: float, daily_hours: float, worker_type: str) -> float:
+    def calculate_span_overtime(self, start_time: float, end_time: float, daily_hours: float, worker_type: str, day: str | None = None) -> float:
         """
         Calculate overtime hours for work done outside the span of hours (typically after 6pm for day workers).
         This is the first overtime calculation to be applied.
@@ -165,18 +154,15 @@ class PayRules:
         Returns:
             float: Hours of span overtime to be applied
         """
-        rules = self.active_rules
-        
-        # Check if span overtime should be applied (some awards don't use it)
-        if hasattr(rules, 'APPLY_SPAN_OVERTIME') and not rules.APPLY_SPAN_OVERTIME:
-            return 0
-            
         # Span overtime only applies to day workers
         if worker_type != 'day':
             return 0
-            
-        after_cutoff = getattr(rules, 'SPAN_OVERTIME_HOUR', None)
-        before_cutoff = getattr(rules, 'SPAN_OVERTIME_START_HOUR', None)
+        windows = self.config["ordinary_time"].get("windows", {}).get(worker_type, {})
+        window = windows.get(day, windows.get("default", {}))
+        if not window.get("enabled", True):
+            return 0
+        after_cutoff = window.get("end")
+        before_cutoff = window.get("start")
         before_hours = (
             max(0, min(end_time, before_cutoff) - start_time)
             if before_cutoff is not None
@@ -200,32 +186,27 @@ class PayRules:
         Returns:
             float: Overtime rate multiplier (e.g., 1.5 for time-and-a-half)
         """
-        rules = self.active_rules
-
-        extended_overtime_days = getattr(
-            rules,
-            'EXTENDED_OVERTIME_DAYS',
-            ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-        )
+        overtime = self.config["pay_rates"]["overtime"]
+        tier = overtime.get("two_tier", {})
+        extended_overtime_days = tier.get("days", ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'])
 
         # Use segmented overtime on configured days.
         if (
             day in extended_overtime_days
-            and hasattr(rules, 'TWO_TIER_OVERTIME')
-            and rules.TWO_TIER_OVERTIME
+            and tier.get("enabled", False)
         ):
-            if hours_of_overtime > rules.TWO_TIER_OVERTIME_THRESHOLD:
-                return rules.EXTENDED_OVERTIME_RATE
-            return rules.STANDARD_OVERTIME_RATE
+            if hours_of_overtime > tier.get("threshold", 0):
+                return overtime["extended"]["multiplier"]
+            return overtime["weekday"]["multiplier"]
 
         # Different overtime rates for weekend days or rulesets without segmented overtime.
         if day == 'Sunday':
-            return rules.SUNDAY_OVERTIME_RATE
+            return overtime["sunday"]["multiplier"]
         elif day == 'Saturday':
-            return rules.SATURDAY_OVERTIME_RATE
+            return overtime["saturday"]["multiplier"]
 
         # Default to standard overtime rate for weekdays and flat-rate rulesets.
-        return rules.STANDARD_OVERTIME_RATE
+        return overtime["weekday"]["multiplier"]
 
     def calculate_overtime_pay(
         self, day: str, overtime_hours: float, hourly_rate: float
@@ -234,22 +215,19 @@ class PayRules:
         if overtime_hours <= 0:
             return 0
 
-        rules = self.active_rules
-        extended_days = getattr(
-            rules,
-            'EXTENDED_OVERTIME_DAYS',
-            ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-        )
+        overtime = self.config["pay_rates"]["overtime"]
+        tier = overtime.get("two_tier", {})
+        extended_days = tier.get("days", ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'])
         if (
             day in extended_days
-            and getattr(rules, 'TWO_TIER_OVERTIME', False)
+            and tier.get("enabled", False)
         ):
-            threshold = rules.TWO_TIER_OVERTIME_THRESHOLD
+            threshold = tier.get("threshold", 0)
             standard_hours = min(overtime_hours, threshold)
             extended_hours = max(overtime_hours - threshold, 0)
             return hourly_rate * (
-                standard_hours * rules.STANDARD_OVERTIME_RATE
-                + extended_hours * rules.EXTENDED_OVERTIME_RATE
+                standard_hours * overtime["weekday"]["multiplier"]
+                + extended_hours * overtime["extended"]["multiplier"]
             )
 
         return overtime_hours * hourly_rate * self.get_overtime_rate(
@@ -271,28 +249,10 @@ class PayRules:
         Returns:
             float: Penalty rate multiplier (e.g., 0.25 for 25% loading)
         """
-        rules = self.active_rules
-
-        if getattr(rules, 'WEEKEND_PENALTIES_USE_PENALTIES', False):
+        rule = self.config["day_rules"].get(day, {}).get(worker_type, {})
+        if rule.get("base_classification") == "overtime":
             return 0
-
-        # Only shift workers get penalty rates on weekends (day workers get overtime)
-        if day not in ['Saturday', 'Sunday']:
-            return 0
-            
-        # Get weekend rules for this worker type and day
-        if worker_type in rules.WEEKEND_RULES:
-            weekend_rules = rules.WEEKEND_RULES.get(worker_type, {}).get(day, {})
-        else:
-            weekend_rules = rules.WEEKEND_RULES.get(day, {})
-
-        # Day workers can use weekend penalty loadings as ordinary-time penalties.
-        if worker_type == 'day':
-            if weekend_rules.get('is_overtime', False):
-                return 0
-            return weekend_rules.get('penalty_rate', 0)
-
-        return weekend_rules.get('penalty_rate', 0)
+        return rule.get("ordinary_loading", 0)
     
     def calculate_shift_start_penalty(self, start_time: float, worker_type: str) -> dict:
         """
@@ -349,10 +309,8 @@ class PayRules:
             - applies (bool): Whether the gap penalty applies
             - penalty_rate (float): The penalty rate to apply
         """
-        rules = self.active_rules
-        
-        # Only apply if the award has gap penalty rules
-        if not hasattr(rules, 'GAP_PENALTY_HOURS'):
+        gap_rule = self.config["bbs"]
+        if not gap_rule.get("minimum_hours"):
             return {'applies': False, 'penalty_rate': 0}
         
         # Define the order of days in a week
@@ -386,10 +344,10 @@ class PayRules:
                 hours_between_shifts = (24 - previous_shift_end) + current_shift_start
         
         # Check if the gap penalty applies (shifts less than the required minimum hours apart)
-        if hours_between_shifts < rules.GAP_PENALTY_HOURS:
+        if hours_between_shifts < gap_rule["minimum_hours"]:
             return {
                 'applies': True,
-                'penalty_rate': rules.GAP_PENALTY_RATE
+                'penalty_rate': gap_rule.get("loading", 0)
             }
         
         return {'applies': False, 'penalty_rate': 0}
@@ -420,7 +378,12 @@ class PayRules:
         rules = self.active_rules
         
         # Only apply if the award has unified penalties structure
-        if not hasattr(rules, 'PENALTIES'):
+        penalties_config = (
+            getattr(rules, "PENALTIES")
+            if hasattr(rules, "PENALTIES")
+            else self.config["penalties"]
+        )
+        if not penalties_config:
             # Fall back to legacy methods if PENALTIES not defined
             penalties = []
             
@@ -456,7 +419,7 @@ class PayRules:
         penalties = []
         
         # Process each penalty definition
-        for penalty_name, penalty in rules.PENALTIES.items():
+        for penalty_name, penalty in penalties_config.items():
             # Skip if this penalty doesn't apply to this worker type
             if worker_type not in penalty.get('applies_to', []):
                 continue
