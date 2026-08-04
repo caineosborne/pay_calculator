@@ -63,6 +63,13 @@ class Shift(BaseModel):
     start: Optional[int] = Field(None, ge=0, le=47)  # Allow times up to 47 (24 + 23) for next day shifts
     end: Optional[int] = Field(None, ge=0, le=47)    # Allow times up to 47 (24 + 23) for next day shifts
     break_duration: Optional[float] = Field(default=0.5, ge=0, le=24)
+    manual_overtime: bool = False
+
+
+class WorkdayReference(BaseModel):
+    """A manually selected logical workday, used for public holidays."""
+    week: int = Field(ge=1, le=2)
+    day: str
 
 class PayRequest(BaseModel):
     """
@@ -83,3 +90,4 @@ class PayRequest(BaseModel):
     contracted_hours: Optional[float] = None
     rule_configuration: Optional[str] = Field(default=None, max_length=200)
     shifts: List[Shift]
+    public_holidays: List[WorkdayReference] = Field(default_factory=list)

@@ -15,6 +15,7 @@ const initialState = {
         contractedHours: null, // Default to null, will be set based on rules for part-time
     },
     shifts: initialShifts,
+    publicHolidays: [],
     calculations: {
         ordinaryHours: 0,
         overtimeHours: 0,
@@ -89,6 +90,12 @@ function payReducer(state, action) {
             return {
                 ...state,
                 shifts: action.payload,
+                calculationError: null,
+            };
+        case 'UPDATE_PUBLIC_HOLIDAYS':
+            return {
+                ...state,
+                publicHolidays: action.payload,
                 calculationError: null,
             };
         case 'UPDATE_CALCULATIONS':
