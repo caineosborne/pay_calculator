@@ -47,7 +47,7 @@ class PayCalculator:
         self.public_holidays = {
             (item.week, item.day) for item in data.public_holidays
         }
-        if self.public_holidays and "public_holiday" not in self.rules.config["day_rules"]:
+        if self.public_holidays and "public_holiday" not in self.rules.config["day_treatment"]:
             raise ValueError(
                 "The selected ruleset does not define public-holiday treatment."
             )
@@ -67,7 +67,7 @@ class PayCalculator:
         return (shift.week, shift.day) in self.public_holidays
 
     def _attendance_rules(self) -> dict:
-        return self.rules.config["attendance"]
+        return self.rules.config["shift"]
 
     def _overtime_multiplier(self, key: str, day: str, hours: float) -> float:
         rates = self.rules.config["pay_rates"]["overtime"]
@@ -77,9 +77,11 @@ class PayCalculator:
 
     def _expand_minimum_shift(self, shift: Shift) -> Shift:
         """Extend paid attendance to an award's minimum engagement."""
-        minimum = self._attendance_rules().get("minimum_paid_shift_hours", {}).get(
-            self.worker_type
-        )
+        minimum_rule = self._attendance_rules().get("minimum_paid_shift_hours", {})
+        if isinstance(minimum_rule, dict) and minimum_rule.get("variation") == "employment_type":
+            minimum = minimum_rule.get(self.employment_type)
+        else:
+            minimum = minimum_rule.get(self.employment_type, minimum_rule.get(self.worker_type))
         if not minimum or shift.start is None or shift.end is None:
             return shift
         end_time = self._normalized_end(shift)
@@ -149,7 +151,7 @@ class PayCalculator:
         ordinary_hours = daily_hours
         
         is_public_holiday = self._is_public_holiday(shift)
-        holiday_rule = self.rules.config["day_rules"].get("public_holiday", {}).get(self.worker_type, {})
+        holiday_rule = self.rules.config["day_treatment"].get("public_holiday", {}).get(self.worker_type, {})
         overtime_rate_key = "weekday"
 
         # Explicit/manual OT has the highest base-classification priority.
@@ -169,7 +171,7 @@ class PayCalculator:
         elif self.rules.is_overtime_day(shift.day, self.worker_type):
             overtime_hours = daily_hours
             ordinary_hours = 0
-            overtime_rate_key = self.rules.config["day_rules"].get(shift.day, {}).get(self.worker_type, {}).get("overtime_rate_key", shift.day.lower())
+            overtime_rate_key = self.rules.config["day_treatment"].get(shift.day, {}).get(self.worker_type, {}).get("overtime_rate_key", shift.day.lower())
             applied_rules.append(f"{shift.day} Overtime")
         else:
             # 1b. Check for span overtime outside the configured day-worker span.
@@ -645,7 +647,7 @@ class PayCalculator:
         span_hours_display = "N/A"
         span_rate_display = "N/A"
         
-        span = config["ordinary_time"].get("windows", {}).get(self.worker_type, {}).get("default", {})
+        span = config["ordinary_time"].get("span_overtime", {}).get(self.worker_type, {}).get("default", {})
         if span.get("enabled", True) and self.worker_type == 'day':
                 span_parts = []
                 if span.get("start") is not None:
@@ -667,7 +669,7 @@ class PayCalculator:
             float('inf'), self.worker_type, self.employment_type, None, 1
         ) * self.period_weeks
         if self.employment_type == 'part_time' and self.contracted_hours is not None:
-            if config["top_up"].get("use_contracted_hours_for_pt_overtime", False):
+            if config["ordinary_time"]["period"].get("part_time_uses_contracted_hours", False):
                 weekly_overtime_threshold = self.contracted_hours * self.period_weeks
             
         # Get the contracted hours top-up settings
@@ -687,20 +689,20 @@ class PayCalculator:
                 'threshold': weekly_overtime_threshold,
                 'rate': f"{overtime_rates['weekday']['multiplier']}x"
             },
-            saturday_rules=config["day_rules"].get("Saturday", {}).get(self.worker_type, {}),
-            sunday_rules=config["day_rules"].get("Sunday", {}).get(self.worker_type, {}),
+            saturday_rules=config["day_treatment"].get("Saturday", {}).get(self.worker_type, {}),
+            sunday_rules=config["day_treatment"].get("Sunday", {}).get(self.worker_type, {}),
             employment_type=self.employment_type,
             contracted_hours=self.contracted_hours,
-            use_contracted_hours_for_overtime=config["top_up"].get("use_contracted_hours_for_pt_overtime", False),
+            use_contracted_hours_for_overtime=config["ordinary_time"]["period"].get("part_time_uses_contracted_hours", False),
             pt_employees_entitled_to_contracted_topup=pt_entitled_to_topup,
             ft_employees_entitled_to_contracted_topup=ft_entitled_to_topup
         )
         
         # Add gap penalty rule if applicable (Aged Care award only)
-        if config["bbs"].get("minimum_hours"):
+        if config["gap_between_shifts"].get("minimum_hours"):
             ruleset.gap_penalty = {
-                'threshold': f"Less than {config['bbs']['minimum_hours']} hours between shifts",
-                'rate': f"{config['bbs'].get('loading', 0)}x penalty"
+                'threshold': f"Less than {config['gap_between_shifts']['minimum_hours']} hours between shifts",
+                'rate': f"{config['gap_between_shifts'].get('loading', 0)}x penalty"
             }
             
         # Add shift start penalties if applicable (Aged Care shift workers only)

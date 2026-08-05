@@ -44,24 +44,32 @@ def canonical_rules(rules) -> dict:
     """
     if hasattr(rules, "ORDINARY_TIME_RULES"):
         return {
-            "attendance": deepcopy(getattr(rules, "ATTENDANCE_RULES", {})),
+            "shift": deepcopy(getattr(rules, "SHIFT_RULES", {})),
             "ordinary_time": deepcopy(rules.ORDINARY_TIME_RULES),
-            "day_rules": deepcopy(getattr(rules, "DAY_RULES", {})),
+            "day_treatment": deepcopy(getattr(rules, "DAY_TREATMENT_RULES", {})),
             "pay_rates": deepcopy(getattr(rules, "PAY_RATES", {})),
-            "bbs": deepcopy(getattr(rules, "BBS_RULE", {})),
-            "penalties": deepcopy(getattr(rules, "PENALTIES", {})),
+            "gap_between_shifts": deepcopy(getattr(rules, "GAP_BETWEEN_SHIFTS_RULE", {})),
+            "penalties": deepcopy(getattr(rules, "ORDINARY_HOUR_PENALTIES", {})),
             "top_up": deepcopy(getattr(rules, "TOP_UP_RULES", {})),
         }
 
     daily = getattr(rules, "DAILY_OVERTIME_CONFIGURATION", None)
     weekly = getattr(rules, "WEEKLY_OVERTIME_CONFIGURATION", None)
+    period = deepcopy(weekly) if weekly else {
+        "variation": "worker_type",
+        "day": getattr(rules, "DAY_WORKER_ORDINARY_HOURS_WEEKLY"),
+        "shift": getattr(rules, "ORDINARY_HOURS_LIMIT_WEEKLY"),
+    }
+    period["part_time_uses_contracted_hours"] = getattr(
+        rules, "USE_CONTRACTED_HOURS_FOR_PT_OVERTIME", False
+    )
     return {
-        "attendance": {
+        "shift": {
             "default_break_hours": getattr(rules, "DEFAULT_BREAK", 0.5),
             "minimum_paid_shift_hours": {},
         },
         "ordinary_time": {
-            "windows": {
+            "span_overtime": {
                 "day": {
                     "default": {
                         "start": getattr(rules, "SPAN_OVERTIME_START_HOUR", None),
@@ -71,9 +79,9 @@ def canonical_rules(rules) -> dict:
                 }
             },
             "daily": daily or {"variation": "worker_type", "day": getattr(rules, "DAY_WORKER_ORDINARY_HOURS_DAILY"), "shift": getattr(rules, "ORDINARY_HOURS_LIMIT_DAILY")},
-            "period": weekly or {"variation": "worker_type", "day": getattr(rules, "DAY_WORKER_ORDINARY_HOURS_WEEKLY"), "shift": getattr(rules, "ORDINARY_HOURS_LIMIT_WEEKLY")},
+            "period": period,
         },
-        "day_rules": _legacy_day_rules(rules),
+        "day_treatment": _legacy_day_rules(rules),
         "pay_rates": {
             "overtime": {
                 "weekday": {"multiplier": getattr(rules, "STANDARD_OVERTIME_RATE")},
@@ -87,13 +95,12 @@ def canonical_rules(rules) -> dict:
                 },
             }
         },
-        "bbs": {
+        "gap_between_shifts": {
             "minimum_hours": getattr(rules, "GAP_PENALTY_HOURS", None),
             "loading": getattr(rules, "GAP_PENALTY_RATE", 0),
         },
         "penalties": deepcopy(getattr(rules, "PENALTIES", {})),
         "top_up": {
-            "use_contracted_hours_for_pt_overtime": getattr(rules, "USE_CONTRACTED_HOURS_FOR_PT_OVERTIME", False),
             "part_time": getattr(rules, "PT_EMPLOYEES_ENTITLED_TO_CONTRACTED_TOPUP", False),
             "full_time": getattr(rules, "FT_EMPLOYEES_ENTITLED_TO_CONTRACTED_TOPUP", False),
         },
@@ -109,9 +116,10 @@ def install_canonical_contract(rules) -> None:
     if hasattr(rules, "ORDINARY_TIME_RULES"):
         return
     config = canonical_rules(rules)
-    rules.ATTENDANCE_RULES = config["attendance"]
+    rules.SHIFT_RULES = config["shift"]
     rules.ORDINARY_TIME_RULES = config["ordinary_time"]
-    rules.DAY_RULES = config["day_rules"]
+    rules.DAY_TREATMENT_RULES = config["day_treatment"]
     rules.PAY_RATES = config["pay_rates"]
-    rules.BBS_RULE = config["bbs"]
+    rules.GAP_BETWEEN_SHIFTS_RULE = config["gap_between_shifts"]
+    rules.ORDINARY_HOUR_PENALTIES = config["penalties"]
     rules.TOP_UP_RULES = config["top_up"]

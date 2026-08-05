@@ -117,7 +117,7 @@ class PayRules:
         
         # For part-time employees, use contracted hours if configured in the rules
         if employment_type == 'part_time' and contracted_hours is not None:
-            if self.config["top_up"].get("use_contracted_hours_for_pt_overtime", False):
+            if configuration.get("part_time_uses_contracted_hours", False):
                 weekly_limit = contracted_hours
                 
         return min(hours, weekly_limit * period_weeks)
@@ -137,7 +137,7 @@ class PayRules:
         Returns:
             bool: True if all hours on this day count as overtime, False otherwise
         """
-        rule = self.config["day_rules"].get(day, {}).get(worker_type, {})
+        rule = self.config["day_treatment"].get(day, {}).get(worker_type, {})
         return rule.get("base_classification") == "overtime"
 
     def calculate_span_overtime(self, start_time: float, end_time: float, daily_hours: float, worker_type: str, day: str | None = None) -> float:
@@ -157,7 +157,7 @@ class PayRules:
         # Span overtime only applies to day workers
         if worker_type != 'day':
             return 0
-        windows = self.config["ordinary_time"].get("windows", {}).get(worker_type, {})
+        windows = self.config["ordinary_time"].get("span_overtime", {}).get(worker_type, {})
         window = windows.get(day, windows.get("default", {}))
         if not window.get("enabled", True):
             return 0
@@ -249,7 +249,7 @@ class PayRules:
         Returns:
             float: Penalty rate multiplier (e.g., 0.25 for 25% loading)
         """
-        rule = self.config["day_rules"].get(day, {}).get(worker_type, {})
+        rule = self.config["day_treatment"].get(day, {}).get(worker_type, {})
         if rule.get("base_classification") == "overtime":
             return 0
         return rule.get("ordinary_loading", 0)
@@ -309,7 +309,7 @@ class PayRules:
             - applies (bool): Whether the gap penalty applies
             - penalty_rate (float): The penalty rate to apply
         """
-        gap_rule = self.config["bbs"]
+        gap_rule = self.config["gap_between_shifts"]
         if not gap_rule.get("minimum_hours"):
             return {'applies': False, 'penalty_rate': 0}
         

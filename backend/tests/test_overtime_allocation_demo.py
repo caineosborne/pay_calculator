@@ -6,14 +6,13 @@ from models.request_models import PayRequest
 from services.pay_calculator import PayCalculator
 
 
-DEMO = "custom:woolies_2024:allocation-demo"
+DEMO = "woolies_2024_demo"
 
 
 def calculate(*shifts, worker_type="day", public_holidays=()):
     return PayCalculator(PayRequest(
         hourly_rate=20,
-        award="woolies_2024",
-        rule_configuration=DEMO,
+        award=DEMO,
         worker_type=worker_type,
         employment_type="full_time",
         public_holidays=list(public_holidays),
@@ -24,24 +23,24 @@ def calculate(*shifts, worker_type="day", public_holidays=()):
 class OvertimeAllocationDemoTests(unittest.TestCase):
     def test_span_break_is_deducted_from_ordinary_before_overtime(self):
         request = PayRequest(
-            hourly_rate=20, award="woolies_2024", rule_configuration=DEMO,
+            hourly_rate=20, award=DEMO,
             worker_type="day", employment_type="full_time", shifts=[
                 {"day": "Monday", "start": 14, "end": 20, "break_duration": .5}
             ],
         )
         calculator = PayCalculator(request)
-        calculator.rules.config["attendance"]["minimum_paid_shift_hours"] = {}
-        calculator.rules.config["ordinary_time"]["windows"]["day"]["default"]["end"] = 18
+        calculator.rules.config["shift"]["minimum_paid_shift_hours"] = {}
+        calculator.rules.config["ordinary_time"]["span_overtime"]["day"]["default"]["end"] = 18
         self.assertEqual(calculator.calculate_pay().overtime_hours, 2)
 
         calculator = PayCalculator(PayRequest(
-            hourly_rate=20, award="woolies_2024", rule_configuration=DEMO,
+            hourly_rate=20, award=DEMO,
             worker_type="day", employment_type="full_time", shifts=[
                 {"day": "Monday", "start": 18, "end": 22, "break_duration": .5}
             ],
         ))
-        calculator.rules.config["attendance"]["minimum_paid_shift_hours"] = {}
-        calculator.rules.config["ordinary_time"]["windows"]["day"]["default"]["end"] = 18
+        calculator.rules.config["shift"]["minimum_paid_shift_hours"] = {}
+        calculator.rules.config["ordinary_time"]["span_overtime"]["day"]["default"]["end"] = 18
         self.assertEqual(calculator.calculate_pay().overtime_hours, 3.5)
 
     def test_first_long_day_in_each_week_uses_eleven_hour_limit(self):
@@ -51,6 +50,19 @@ class OvertimeAllocationDemoTests(unittest.TestCase):
         )
         self.assertEqual(result.ordinary_hours, 19)
         self.assertEqual(result.overtime_hours, 3)
+
+    def test_daily_and_minimum_shift_rules_can_vary_by_employment_type(self):
+        calculator = PayCalculator(PayRequest(
+            hourly_rate=20, award=DEMO, worker_type="day",
+            employment_type="part_time", shifts=[
+                {"day": "Monday", "start": 9, "end": 16, "break_duration": 0},
+            ],
+        ))
+        calculator.rules.config["ordinary_time"]["daily"]["part_time"] = 6
+        calculator.rules.config["ordinary_time"]["long_day"]["uses_per_week"] = 0
+        result = calculator.calculate_pay()
+        self.assertEqual(result.ordinary_hours, 6)
+        self.assertEqual(result.overtime_hours, 1)
 
     def test_minimum_shift_and_manual_overtime(self):
         result = calculate({"day": "Monday", "start": 9, "end": 10, "break_duration": 0, "manual_overtime": True})
@@ -75,7 +87,7 @@ class OvertimeAllocationDemoTests(unittest.TestCase):
 
     def test_period_overtime_removes_sunday_ordinary_loading(self):
         calculator = PayCalculator(PayRequest(
-            hourly_rate=20, award="woolies_2024", rule_configuration=DEMO,
+            hourly_rate=20, award=DEMO,
             worker_type="day", employment_type="full_time", shifts=[
                 {"day": "Sunday", "start": 9, "end": 13, "break_duration": 0},
             ],

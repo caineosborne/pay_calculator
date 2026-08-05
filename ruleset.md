@@ -48,16 +48,17 @@ defined in one place only: `ORDINARY_TIME_RULES`. Hours are temporary
 ordinary-eligible time while OT classifiers run, then final ordinary hours or
 overtime; a penalty is a loading, never a third hour bucket.
 
-- `ATTENDANCE_RULES`: default unpaid break and worker-type minimum paid shift.
-- `ORDINARY_TIME_RULES`: ordinary time windows, daily limits, optional first
+- `SHIFT_RULES`: default unpaid break and minimum paid shift. The minimum may
+  vary by employment type (`full_time`, `part_time`, `casual`).
+- `ORDINARY_TIME_RULES`: span overtime, daily limits, optional first
   long-day-per-week exception, and period limits.
-- `DAY_RULES`: worker-type treatment for Saturday, Sunday and public holidays
+- `DAY_TREATMENT_RULES`: worker-type treatment for Saturday, Sunday and public holidays
   (`base_classification`, `ordinary_loading`, `overtime_rate_key`).
 - `PAY_RATES`: total overtime multipliers keyed by source. A multiplier is
   total pay (for example `1.5`); a loading is extra ordinary pay (for example
   `0.25`).
-- `BBS_RULE`: minimum shift gap and its ordinary-hours loading.
-- `PENALTIES`: unified ordinary-hour shift/time loadings.
+- `GAP_BETWEEN_SHIFTS_RULE`: minimum shift gap and its ordinary-hours loading.
+- `ORDINARY_HOUR_PENALTIES`: unified ordinary-hour shift/time loadings.
 - `TOP_UP_RULES`: contracted-hours overtime and top-up entitlement settings.
 
 Built-ins are projected into this contract at registry load. Saved custom
