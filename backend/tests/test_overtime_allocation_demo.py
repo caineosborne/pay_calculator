@@ -69,6 +69,20 @@ class OvertimeAllocationDemoTests(unittest.TestCase):
         self.assertEqual(result.total_hours, 4)
         self.assertEqual(result.overtime_hours, 4)
 
+    def test_two_tier_overtime_applies_to_configured_saturday(self):
+        calculator = PayCalculator(PayRequest(
+            hourly_rate=20, award=DEMO, worker_type="day",
+            employment_type="full_time", shifts=[
+                {"day": "Saturday", "start": 9, "end": 15, "break_duration": 0},
+            ],
+        ))
+        calculator.rules.config["day_treatment"]["Saturday"]["day"][
+            "base_classification"
+        ] = "overtime"
+        result = calculator.calculate_pay()
+        self.assertEqual(result.overtime_hours, 6)
+        self.assertEqual(result.overtime_pay, 210)  # 3 hours at 1.5x, then 3 at 2x
+
     def test_manual_ordinary_bypasses_overtime_but_keeps_weekend_penalty(self):
         result = calculate(
             {"day": "Sunday", "start": 9, "end": 13, "break_duration": 0, "manual_ordinary": True},
@@ -77,6 +91,15 @@ class OvertimeAllocationDemoTests(unittest.TestCase):
         self.assertEqual(result.overtime_hours, 0)
         self.assertEqual(result.penalty_pay, 40)
         self.assertIn("Manual Ordinary", result.daily_breakdown["Week 1 - Sunday"]["applied_rules"])
+
+    def test_casual_sunday_daily_overtime_uses_sunday_rate(self):
+        result = calculate(
+            {"day": "Sunday", "start": 7, "end": 21, "break_duration": 1},
+            worker_type="shift", employment_type="casual",
+        )
+        self.assertEqual(result.ordinary_hours, 11)
+        self.assertEqual(result.overtime_hours, 2)
+        self.assertEqual(result.overtime_pay, 90)  # 2 hours at Sunday casual 2.25x ($20 base)
 
     def test_public_holiday_profiles_replace_normal_penalties(self):
         result = calculate(
@@ -135,7 +158,7 @@ class OvertimeAllocationDemoTests(unittest.TestCase):
         }
         result = calculator.calculate_pay()
         self.assertEqual(result.overtime_hours, 4)
-        self.assertIn("Period Days Overtime", result.daily_breakdown["Week 1 - Wednesday"]["applied_rules"])
+        self.assertIn("Maximum day overtime", result.daily_breakdown["Week 1 - Wednesday"]["applied_rules"])
 
     def test_demo_period_overtime_varies_by_employment_type(self):
         shifts = [
@@ -154,8 +177,8 @@ class OvertimeAllocationDemoTests(unittest.TestCase):
             for day in days
         ]
         result = calculate(*shifts)
-        self.assertEqual(result.overtime_hours, 4)
-        self.assertIn("Period Days Overtime", result.daily_breakdown["Week 2 - Thursday"]["applied_rules"])
+        self.assertEqual(result.overtime_hours, 8)
+        self.assertIn("Maximum day overtime", result.daily_breakdown["Week 2 - Thursday"]["applied_rules"])
 
     def test_casual_values_are_explicit_for_ordinary_penalty_and_overtime(self):
         ordinary = calculate(
@@ -166,16 +189,16 @@ class OvertimeAllocationDemoTests(unittest.TestCase):
 
         penalty = calculate(
             {"day": "Saturday", "start": 9, "end": 13, "break_duration": 0},
-            employment_type="casual",
+            worker_type="shift", employment_type="casual",
         )
         self.assertEqual(penalty.ordinary_pay, 80)
-        self.assertEqual(penalty.penalty_pay, 32)  # 4 hours at the 0.40 loading
+        self.assertEqual(penalty.penalty_pay, 52)  # 4 hours at the 0.65 loading
 
         overtime = calculate(
             {"day": "Monday", "start": 9, "end": 13, "break_duration": 0, "manual_overtime": True},
             employment_type="casual",
         )
-        self.assertEqual(overtime.overtime_pay, 142)  # 4 hours at 1.775x
+        self.assertEqual(overtime.overtime_pay, 157.5)  # 3 hours at 1.875x, then 1 at 2.25x
 
 
 if __name__ == "__main__":

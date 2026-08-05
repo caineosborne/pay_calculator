@@ -12,8 +12,8 @@ class Woolies2024Rules:
         "minimum_paid_shift_hours": {
             "variation": "employment_type",
             "full_time": 4,
-            "part_time": 4,
-            "casual": 4,
+            "part_time": 2,
+            "casual": 2,
         },
     }
 
@@ -53,7 +53,7 @@ class Woolies2024Rules:
 
     DAY_TREATMENT_RULES = {
         "Saturday": {
-            "day": {"base_classification": "ordinary", "ordinary_loading": 0.25, "casual_rate": 0.40, "overtime_rate_key": "saturday"},
+            "day": {"base_classification": "overtime", "ordinary_loading": 0.25, "casual_rate": 0.40, "overtime_rate_key": "saturday"},
             "shift": {"base_classification": "ordinary", "ordinary_loading": 0.50, "casual_rate": 0.65, "overtime_rate_key": "saturday"},
         },
         "Sunday": {
@@ -68,11 +68,11 @@ class Woolies2024Rules:
 
     PAY_RATES = {
         "overtime": {
-            "weekday": {"multiplier": 1.5, "casual": 1.775},
-            "manual": {"multiplier": 1.5, "casual": 1.775},
-            "saturday": {"multiplier": 1.5, "casual": 1.775},
-            "sunday": {"multiplier": 2.0, "casual": 2.25},
-            "public_holiday": {"multiplier": 2.5, "casual": 2.5},
+            "weekday": {"multiplier": 1.5, "casual": 1.875},
+            "manual": {"multiplier": 1.5, "casual": 1.875},
+            "saturday": {"multiplier": 1.5, "casual": 1.875},
+            "sunday": {"multiplier": 2, "casual": 2.25},
+            "public_holiday": {"multiplier": 2.5, "casual": 3.5},
             "extended": {"multiplier": 2.0, "casual": 2.25},
             "two_tier": {"enabled": True, "threshold": 3, "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]},
         }
@@ -89,43 +89,6 @@ class Woolies2024Rules:
         }
     }
     TOP_UP_RULES = {
-        "part_time": True,
-        "full_time": True,
-    }
-
-    # Compatibility aliases for the current guided source editor. Runtime
-    # calculation reads the grouped contract above; these can disappear when
-    # the editor is migrated to author the grouped fields directly.
-    ORDINARY_HOURS_LIMIT_DAILY = 9
-    ORDINARY_HOURS_LIMIT_WEEKLY = 38
-    DAY_WORKER_ORDINARY_HOURS_DAILY = 9
-    DAY_WORKER_ORDINARY_HOURS_WEEKLY = 38
-    STANDARD_OVERTIME_RATE = 1.5
-    EXTENDED_OVERTIME_RATE = 2.0
-    SATURDAY_OVERTIME_RATE = 1.5
-    SUNDAY_OVERTIME_RATE = 2.0
-    TWO_TIER_OVERTIME = True
-    TWO_TIER_OVERTIME_THRESHOLD = 3
-    EXTENDED_OVERTIME_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
-    APPLY_SPAN_OVERTIME = True
-    SPAN_OVERTIME_START_HOUR = 7
-    SPAN_OVERTIME_HOUR = 23
-    GAP_PENALTY_HOURS = 10
-    GAP_PENALTY_RATE = 1.0
-    USE_CONTRACTED_HOURS_FOR_PT_OVERTIME = False
-    PT_EMPLOYEES_ENTITLED_TO_CONTRACTED_TOPUP = True
-    FT_EMPLOYEES_ENTITLED_TO_CONTRACTED_TOPUP = True
-    DEFAULT_BREAK = 0.5
-    WEEKEND_RULES = {
-        "day": {"Saturday": {"is_overtime": False, "penalty_rate": 0.25}, "Sunday": {"is_overtime": False, "penalty_rate": 0.5}},
-        "shift": {"Saturday": {"is_overtime": False, "penalty_rate": 0.5}, "Sunday": {"is_overtime": False, "penalty_rate": 0.75}},
-    }
-    PENALTIES = {
-        "evening_hours_6pm_to_11pm": {
-            "type": "time_based", "basis": "time", "start": 18, "end": 23,
-            "rate": 0.25, "casual_rate": 0.40,
-            "description": "Evening hours loading (25%)",
-            "applies_to": ["day", "shift"],
-            "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-        }
+        "part_time": False,
+        "full_time": False,
     }

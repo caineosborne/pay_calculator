@@ -12,6 +12,9 @@ export default function ShiftResults() {
                 <td className="px-2 py-2"></td>
                 <td className="px-2 py-2"></td>
                 <td className="px-2 py-2"></td>
+                <td className="px-2 py-2"></td>
+                <td className="px-2 py-2"></td>
+                <td className="px-2 py-2"></td>
                 <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-900">
                     {state.calculations.totalHours || '0.00'}
                 </td>

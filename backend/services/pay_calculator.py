@@ -53,6 +53,7 @@ class PayCalculator:
             )
         self.long_day_used_weeks = set()
         self._minimum_expanded_ids = set()
+        self._minimum_expansion_hours = {}
         
         self.total_hours = 0
         self.total_ordinary_hours = 0
@@ -119,17 +120,22 @@ class PayCalculator:
         key = breakdown.get("overtime_rate_key", "weekday")
         if hours <= 0:
             return 0
-        if self.employment_type != "casual" and key == "weekday":
-            return self.rules.calculate_overtime_pay(day, hours, self.data.hourly_rate)
-
         rates = self.rules.config["pay_rates"]["overtime"]
         tier = rates.get("two_tier", {})
-        if key == "weekday" and tier.get("enabled", False) and day in tier.get("days", []):
+        # A two-tier rule applies to every configured work day, regardless of
+        # whether that day's OT uses the weekday, manual, Saturday or Sunday
+        # base rate.  Public-holiday treatment remains a separately configured
+        # fixed rate.
+        if (
+            key != "public_holiday"
+            and tier.get("enabled", False)
+            and day in tier.get("days", [])
+        ):
             threshold = tier.get("threshold", 0)
             standard_hours = min(hours, threshold)
             extended_hours = max(hours - threshold, 0)
             return self.data.hourly_rate * (
-                standard_hours * self._overtime_multiplier("weekday", day, hours)
+                standard_hours * self._overtime_multiplier(key, day, hours)
                 + extended_hours * self._overtime_multiplier("extended", day, hours)
             )
         return hours * self.data.hourly_rate * self._overtime_multiplier(key, day, hours)
@@ -150,6 +156,7 @@ class PayCalculator:
             return shift
         expanded = shift.model_copy(update={"end": required_end})
         self._minimum_expanded_ids.add(id(expanded))
+        self._minimum_expansion_hours[id(expanded)] = minimum
         return expanded
 
     @staticmethod
@@ -180,6 +187,28 @@ class PayCalculator:
         breakdown["gap_penalty"] = (
             ordinary_hours if breakdown.get("gap_penalty_rate", 0) > 0 else 0
         )
+        # Penalties are allocated only after every overtime pass. Time-window
+        # penalties use their qualifying hours less OT already assigned before
+        # period allocation; later period OT has already been removed from the
+        # candidate by _remove_hourly_penalty_hours.
+        preallocated_overtime = breakdown.get("preallocated_overtime", 0)
+        for penalty in breakdown.get("hourly_penalties", []):
+            penalty["hours"] = round(max(0, penalty.get("hours", 0) - preallocated_overtime), 6)
+
+        applied_rules = breakdown["applied_rules"]
+        for hours_key, rate_key, label_key in (
+            ("penalty", "penalty_rate", "penalty_label"),
+            ("shift_penalty", "shift_penalty_rate", "shift_penalty_label"),
+            ("gap_penalty", "gap_penalty_rate", "gap_penalty_label"),
+        ):
+            if breakdown.get(hours_key, 0) > 0 and breakdown.get(rate_key, 0) > 0:
+                label = breakdown.get(label_key)
+                if label and label not in applied_rules:
+                    applied_rules.append(label)
+        for penalty in breakdown.get("hourly_penalties", []):
+            label = penalty.get("description")
+            if penalty.get("hours", 0) > 0 and label and label not in applied_rules:
+                applied_rules.append(label)
         # Casual ordinary loading is only for ordinary time without another
         # ordinary-hours loading. Penalty rates already contain the award's
         # explicit casual loading where one applies.
@@ -226,7 +255,19 @@ class PayCalculator:
         
         is_public_holiday = self._is_public_holiday(shift)
         holiday_rule = self.rules.config["day_treatment"].get("public_holiday", {}).get(self.worker_type, {})
-        overtime_rate_key = "weekday"
+        # An OT conversion on an ordinary weekend (for example, daily or
+        # period OT on Sunday) still uses that day's OT rate.  Weekend base
+        # classification determines whether all hours are OT; it does not
+        # determine the rate for OT that arises later.
+        day_rule = self.rules.config["day_treatment"].get(shift.day, {}).get(
+            self.worker_type, {}
+        )
+        overtime_rate_key = day_rule.get("overtime_rate_key", "weekday")
+
+        if id(shift) in self._minimum_expansion_hours:
+            applied_rules.append(
+                f"Minimum paid shift ({self._minimum_expansion_hours[id(shift)]} hours)"
+            )
 
         # Explicit classifications take precedence over every overtime rule.
         # Manual ordinary remains eligible for the ordinary-hour penalties below.
@@ -248,7 +289,7 @@ class PayCalculator:
         elif self.rules.is_overtime_day(shift.day, self.worker_type):
             overtime_hours = daily_hours
             ordinary_hours = 0
-            overtime_rate_key = self.rules.config["day_treatment"].get(shift.day, {}).get(self.worker_type, {}).get("overtime_rate_key", shift.day.lower())
+            overtime_rate_key = day_rule.get("overtime_rate_key", shift.day.lower())
             applied_rules.append(f"{shift.day} Overtime")
         else:
             # 1b. Check for span overtime outside the configured day-worker span.
@@ -270,7 +311,7 @@ class PayCalculator:
             ):
                 daily_limit = long_day.get("ordinary_limit_hours", daily_limit)
                 self.long_day_used_weeks.add(shift.week)
-                applied_rules.append("Weekly Long Day Allowance")
+                applied_rules.append("Long day")
             if ordinary_hours > daily_limit:
                 daily_ot = ordinary_hours - daily_limit
                 overtime_hours += daily_ot
@@ -290,8 +331,10 @@ class PayCalculator:
             )
         gap_penalty_rate = gap_penalty.get('penalty_rate', 0)
         gap_penalty_hours = 0
-        if gap_penalty.get('applies', False):
-            applied_rules.append(f"Gap Penalty ({int(gap_penalty_rate * 100)}%)")
+        gap_penalty_label = (
+            f"Gap Penalty ({int(gap_penalty_rate * 100)}%)"
+            if gap_penalty.get('applies', False) else None
+        )
 
         # Phase 3: Calculate normal penalties (unified approach)
         # First, get weekend penalties if applicable
@@ -304,9 +347,10 @@ class PayCalculator:
             )
         )
         penalty_hours = ordinary_hours if penalty_rate > 0 else 0
-        if penalty_hours > 0:
-            label = "Public Holiday Loading" if is_public_holiday else f"{shift.day} Penalty"
-            applied_rules.append(f"{label} ({int(penalty_rate * 100)}%)")
+        penalty_label = (
+            f"{'Public Holiday Loading' if is_public_holiday else f'{shift.day} Penalty'} ({int(penalty_rate * 100)}%)"
+            if penalty_rate > 0 else None
+        )
         
         # Then, calculate all other penalties using the unified approach
         all_penalties = [] if is_public_holiday else self.rules.calculate_penalties(
@@ -319,13 +363,13 @@ class PayCalculator:
         hourly_penalty_details = []
         
         # Process each penalty from the unified structure
+        shift_penalty_label = None
         for penalty in all_penalties:
-            applied_rules.append(penalty.get('description', ''))
-            
             if penalty['type'] == 'shift_based':
                 # For shift-based penalties, apply to all ordinary hours
                 shift_penalty_rate = penalty['rate']
                 shift_penalty_hours = ordinary_hours
+                shift_penalty_label = penalty.get('description')
             elif penalty['type'] == 'time_based':
                 # For time-based penalties, add to the hourly penalty details
                 hourly_penalty_details.append({
@@ -336,11 +380,6 @@ class PayCalculator:
                     'description': penalty['description']
                 })
 
-        # A time loading can never attach to base overtime.  The detailed
-        # interval allocator later removes any hours converted by period OT.
-        for penalty in hourly_penalty_details:
-            penalty['hours'] = min(penalty['hours'], ordinary_hours)
-        
         # For backward compatibility, also calculate using the old methods
         if not all_penalties:
             # Legacy Phase 4: Apply shift start penalties for Aged Care shift workers
@@ -349,13 +388,11 @@ class PayCalculator:
             shift_penalty_hours = ordinary_hours if shift_penalty.get('applies', False) else 0
             
             if shift_penalty_hours > 0:
-                applied_rules.append(shift_penalty.get('description', ''))
+                shift_penalty_label = shift_penalty.get('description', '')
             
             # Legacy Phase 5: Apply hourly penalties for Hospitality workers (both day and shift)
             hourly_penalties = self.rules.calculate_hourly_penalties(shift.start, end_time, shift.day)
             hourly_penalty_details = hourly_penalties
-            for penalty in hourly_penalties:
-                applied_rules.append(penalty.get('description', ''))
         
         # Store the end time and day of this shift for future gap penalty calculations
         self.previous_shift_end = end_time
@@ -367,14 +404,18 @@ class PayCalculator:
             'overtime': overtime_hours,
             'penalty': penalty_hours,
             'penalty_rate': penalty_rate,
+            'penalty_label': penalty_label,
             'overtime_rate': overtime_rate,
             'overtime_rate_key': overtime_rate_key,
             'break': break_duration,
             'gap_penalty': gap_penalty_hours,
             'gap_penalty_rate': gap_penalty_rate,
+            'gap_penalty_label': gap_penalty_label,
             'shift_penalty': shift_penalty_hours,
             'shift_penalty_rate': shift_penalty_rate,
+            'shift_penalty_label': shift_penalty_label,
             'hourly_penalties': hourly_penalty_details,
+            'preallocated_overtime': overtime_hours,
             'manual_ordinary': shift.manual_ordinary,
             'topup': 0,  # Initialize topup to 0
             'applied_rules': applied_rules
@@ -457,6 +498,7 @@ class PayCalculator:
         )
         breakdown['break'] = total_break
         breakdown['manual_ordinary'] = combined_shift.manual_ordinary
+        breakdown['preallocated_overtime'] = overtime_hours
         breakdown['penalty'] = (
             ordinary_hours
             if self.rules.get_penalty_rate(
@@ -494,6 +536,11 @@ class PayCalculator:
                     self.rules.calculate_hourly_penalties(item.start, item_end, item.day)
                 )
         breakdown['hourly_penalties'] = hourly_penalties
+        for period in ordered_periods:
+            minimum = self._minimum_expansion_hours.get(id(period))
+            label = f"Minimum paid shift ({minimum} hours)" if minimum else None
+            if label and label not in breakdown['applied_rules']:
+                breakdown['applied_rules'].append(label)
 
         # The original method labels the same rules while calculating the
         # elapsed span. Keep labels useful without repeating them per period.
@@ -549,10 +596,14 @@ class PayCalculator:
             'penalty': 0,
             'gap_penalty': 0,
             'gap_penalty_rate': 0,
+            'gap_penalty_label': None,
             'shift_penalty': 0,
             'shift_penalty_rate': 0,
+            'shift_penalty_label': None,
             'casual_ordinary': 0,
             'manual_ordinary': False,
+            'penalty_label': None,
+            'preallocated_overtime': 0,
             'overtime_rate_key': 'weekday',
             'hourly_penalties': [],
             'topup': 0,  # Add topup field
@@ -591,19 +642,27 @@ class PayCalculator:
         max_days = period_config.get("max_work_days")
         if max_days is not None:
             for group in self._period_day_groups(days_basis):
-                for day in group[max_days:]:
+                eligible_days = [
+                    day for day in group
+                    if not self.breakdown[day].get("manual_ordinary", False)
+                ]
+                for day in eligible_days[max_days:]:
                     self._convert_ordinary_to_overtime(
-                        day, self.breakdown[day]['ordinary'], "Period Days Overtime"
+                        day, self.breakdown[day]['ordinary'], "Maximum day overtime"
                     )
 
         for group in self._period_day_groups(basis):
-            ordinary_hours = sum(self.breakdown[day]['ordinary'] for day in group)
+            eligible_days = [
+                day for day in group
+                if not self.breakdown[day].get("manual_ordinary", False)
+            ]
+            ordinary_hours = sum(self.breakdown[day]['ordinary'] for day in eligible_days)
             limit = self.rules.calculate_weekly_ordinary_hours(
                 ordinary_hours, self.worker_type, self.employment_type,
                 self.contracted_hours, self.period_weeks if basis == "pay_period" else 1, basis,
             )
             remaining = max(ordinary_hours - limit, 0)
-            for day in reversed(group):
+            for day in reversed(eligible_days):
                 if remaining == 0:
                     break
                 remaining -= self._convert_ordinary_to_overtime(

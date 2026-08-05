@@ -265,8 +265,8 @@ class RuleConfigurationTests(unittest.TestCase):
             )
         ).calculate_pay()
 
-        self.assertEqual(result.time_based_penalty_hours, 2)
-        self.assertEqual(result.hourly_penalty_pay, 4)
+        self.assertEqual(result.time_based_penalty_hours, 0)
+        self.assertEqual(result.hourly_penalty_pay, 0)
 
     def test_custom_rule_classes_are_cached_until_the_file_changes(self):
         custom = create_custom_rule(

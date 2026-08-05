@@ -33,7 +33,7 @@ export default function ShiftTable() {
                     </td>
                     <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-600">{breakdown?.hours?.ordinary || '0.00'}</td>
                     <td className="px-2 py-1 whitespace-nowrap text-sm text-red-600">{breakdown?.hours?.overtime || '0.00'}</td>
-                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-600">{breakdown?.applied_rules?.join(', ') || '-'}</td>
+                    <td className="min-w-64 px-2 py-1 text-sm text-gray-600 whitespace-normal">{breakdown?.applied_rules?.join(', ') || '-'}</td>
                 </> : <td colSpan="4" className="px-2 py-1 text-xs italic text-gray-500">Combined with the workday above</td>}
             </tr>
         );

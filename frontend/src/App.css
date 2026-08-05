@@ -3,7 +3,7 @@
 #root { min-height: 100vh; }
 
 .pay-app { min-height: 100vh; padding: 24px; background: #edf2ef; color: #17231f; }
-.pay-shell { width: min(1180px, 100%); margin: 0 auto; }
+.pay-shell { width: 100%; max-width: none; margin: 0; }
 .pay-header { display: flex; justify-content: space-between; gap: 28px; align-items: end; padding: 20px 0 26px; border-bottom: 1px solid #cbd8d0; }
 .pay-brand { display: flex; align-items: center; gap: 14px; }
 .brand-mark { display: grid; place-items: center; width: 48px; height: 48px; color: #e9f7f1; background: #146c5a; border-radius: 14px 14px 14px 3px; font-size: 24px; }
@@ -26,7 +26,7 @@
 .config-panel .text-gray-600, .config-panel .text-gray-700 { color: #3e554b !important; }
 .shift-card { overflow-x: auto; overflow-y: hidden; }
 .shift-card::before { display: block; padding: 15px 18px 12px; color: #517064; border-bottom: 1px solid #d5e0da; background: #f8fbf9; content: 'Your fortnight · use 0–6 for next-day times'; font: 500 11px/1.2 'DM Mono', monospace; letter-spacing: .04em; text-transform: uppercase; }
-.shift-card table { min-width: 940px; }
+.shift-card table { min-width: 1160px; }
 .shift-card thead { background: #f0f6f3 !important; }
 .shift-card th { padding: 11px 12px !important; color: #517064 !important; font: 500 10px/1.2 'DM Mono', monospace !important; letter-spacing: .07em; }
 .shift-card td { padding: 8px 12px !important; color: #283c33 !important; font: 500 13px 'DM Sans', sans-serif; }
