@@ -73,6 +73,20 @@ class OvertimeAllocationDemoTests(unittest.TestCase):
         self.assertEqual(result.ordinary_hours, 4)
         self.assertEqual(result.penalty_pay, 120)
 
+    def test_period_overtime_removes_sunday_ordinary_loading(self):
+        calculator = PayCalculator(PayRequest(
+            hourly_rate=20, award="woolies_2024", rule_configuration=DEMO,
+            worker_type="day", employment_type="full_time", shifts=[
+                {"day": "Sunday", "start": 9, "end": 13, "break_duration": 0},
+            ],
+        ))
+        calculator.rules.config["ordinary_time"]["period"] = {
+            "variation": "default", "default": 0,
+        }
+        result = calculator.calculate_pay()
+        self.assertEqual(result.overtime_hours, 4)
+        self.assertEqual(result.penalty_pay, 0)
+
 
 if __name__ == "__main__":
     unittest.main()

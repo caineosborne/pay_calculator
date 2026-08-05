@@ -102,6 +102,25 @@ class PayCalculator:
             if remaining <= 0:
                 break
 
+    @staticmethod
+    def _finalize_ordinary_loadings(breakdown: dict) -> None:
+        """Apply ordinary-only loadings after period OT has finished.
+
+        Eligibility is assessed while processing a workday, but no loading
+        hours are final until all remaining ordinary hours have survived the
+        period OT pass.
+        """
+        ordinary_hours = breakdown.get("ordinary", 0)
+        breakdown["penalty"] = (
+            ordinary_hours if breakdown.get("penalty_rate", 0) > 0 else 0
+        )
+        breakdown["shift_penalty"] = (
+            ordinary_hours if breakdown.get("shift_penalty_rate", 0) > 0 else 0
+        )
+        breakdown["gap_penalty"] = (
+            ordinary_hours if breakdown.get("gap_penalty_rate", 0) > 0 else 0
+        )
+
     def _calculate_single_shift_hours(self, shift: Shift) -> dict:
         """Calculate hours breakdown for a single shift.
         
@@ -190,8 +209,8 @@ class PayCalculator:
                 shift.start, self.previous_shift_end, shift.day, self.previous_shift_day
             )
         gap_penalty_rate = gap_penalty.get('penalty_rate', 0)
-        gap_penalty_hours = ordinary_hours if gap_penalty.get('applies', False) else 0
-        if gap_penalty_hours > 0:
+        gap_penalty_hours = 0
+        if gap_penalty.get('applies', False):
             applied_rules.append(f"Gap Penalty ({int(gap_penalty_rate * 100)}%)")
 
         # Phase 3: Calculate normal penalties (unified approach)
@@ -508,6 +527,11 @@ class PayCalculator:
                     'Period Overtime'
                 )
             weekly_overtime_remaining -= overtime_from_ordinary
+
+        # BBS and other whole-day loadings are paid only on the final ordinary
+        # balance, after period OT has completed its reverse allocation.
+        for day in self.breakdown.values():
+            self._finalize_ordinary_loadings(day)
 
         # Apply a contracted-hours top-up only when the employee's total worked
         # hours fall short of their contracted-period target. Overtime counts as
