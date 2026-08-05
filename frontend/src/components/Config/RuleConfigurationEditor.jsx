@@ -38,7 +38,7 @@ function FieldIssues({ path, issues }) {
     );
 }
 
-function OvertimeLimitField({ label, record, disabled, issues, path, onChange }) {
+function OvertimeLimitField({ label, record, disabled, issues, path, onChange, periodSettings = false }) {
     const value = record?.answer || { variation: 'default', default: null };
     const variation = value.variation || 'default';
     const fields = variation === 'worker_type'
@@ -47,6 +47,17 @@ function OvertimeLimitField({ label, record, disabled, issues, path, onChange })
           ? [['full_time', 'Full-time employees'], ['part_time', 'Part-time employees'], ['casual', 'Casual employees']]
           : [['default', 'All employees']];
     const update = (key, nextValue) => onChange({ ...value, [key]: nextValue });
+    const periodBasisFields = variation === 'employment_type'
+        ? [['full_time', 'Full-time employees'], ['part_time', 'Part-time employees'], ['casual', 'Casual employees']]
+        : [['default', 'All employees']];
+    const updatePeriodBasis = (key, nextValue) => {
+        if (variation === 'employment_type') {
+            const current = typeof value.basis === 'object' && value.basis ? value.basis : {};
+            update('basis', { ...current, [key]: nextValue });
+            return;
+        }
+        update('basis', nextValue);
+    };
 
     return (
         <div className="md:col-span-2 rounded-md border border-gray-200 p-3 dark:border-gray-600">
@@ -81,6 +92,21 @@ function OvertimeLimitField({ label, record, disabled, issues, path, onChange })
                     </label>
                 ))}
             </div>
+            {periodSettings && <div className="mt-3 grid gap-3 md:grid-cols-2">
+                {periodBasisFields.map(([key, fieldLabel]) => <label key={key} className="text-xs">Overtime period{variation === 'employment_type' ? ` — ${fieldLabel}` : ''}
+                    <select aria-label={`${label} basis ${fieldLabel}`} value={(typeof value.basis === 'object' ? value.basis?.[key] : value.basis) || 'weekly'} disabled={disabled}
+                        onChange={(event) => updatePeriodBasis(key, event.target.value)} className={inputClass}>
+                        <option value="weekly">Each week</option>
+                        <option value="pay_period">Entire pay period</option>
+                    </select>
+                </label>)}
+                <label className="text-xs">Maximum worked days (optional)
+                    <input aria-label={`${label} maximum worked days`} type="number" min="1" step="1"
+                        value={value.max_work_days ?? ''} disabled={disabled}
+                        onChange={(event) => update('max_work_days', event.target.value === '' ? null : Number(event.target.value))}
+                        className={inputClass} />
+                </label>
+            </div>}
             <FieldIssues path={path} issues={issues} />
         </div>
     );
@@ -121,8 +147,9 @@ function SimpleField({
     const isDisabled = disabled || dependentDisabled;
     let control;
 
-    if (type === 'overtime_limits') {
-        return <OvertimeLimitField label={label} record={record} disabled={disabled} issues={issues} path={path} onChange={onChange} />;
+    if (type === 'overtime_limits' || type === 'period_overtime_limits') {
+        const periodSettings = type === 'period_overtime_limits';
+        return <OvertimeLimitField label={label} record={record} disabled={disabled} issues={issues} path={path} onChange={onChange} periodSettings={periodSettings} />;
     } else if (type === 'boolean') {
         control = (
             <select

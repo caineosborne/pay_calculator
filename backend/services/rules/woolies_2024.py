@@ -20,8 +20,17 @@ class Woolies2024Rules:
       }
 
     WEEKLY_OVERTIME_CONFIGURATION = {
-          "variation": "default",
-          "default": 38,
+          "variation": "employment_type",
+          "full_time": 76,
+          "part_time": 38,
+          "casual": 38,
+          "basis": {
+              "full_time": "pay_period",
+              "part_time": "weekly",
+              "casual": "weekly",
+          },
+          "max_work_days": 10,
+          "max_work_days_basis": "pay_period",
       }
 
     # Part time overtime rules
@@ -78,4 +87,3 @@ class Woolies2024Rules:
             'Sunday': {'penalty_rate': 0.75}     # Penalty rate for non-overtime hours
         }
     }
-

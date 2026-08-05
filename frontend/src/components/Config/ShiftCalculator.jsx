@@ -45,12 +45,15 @@ export function ShiftCalculator({ children }) {
                     rule_configuration: state.config.ruleConfiguration,
                     employment_type: state.config.employmentType,
                     contracted_hours: state.config.contractedHours,
+                    public_holidays: state.publicHolidays,
                     shifts: validShifts.map(shift => ({
                         week: shift.week || 1,
                         day: shift.day,
                         start: parseTimeValue(shift.start),
                         end: parseTimeValue(shift.end),
-                        break_duration: parseFloat(shift.break_duration) || 0
+                        break_duration: parseFloat(shift.break_duration) || 0,
+                        manual_overtime: Boolean(shift.manual_overtime),
+                        manual_ordinary: Boolean(shift.manual_ordinary),
                     }))
                 };
 
@@ -126,6 +129,7 @@ export function ShiftCalculator({ children }) {
         };
     }, [
         state.shifts,
+        state.publicHolidays,
         state.config.hourlyRate,
         state.config.workerType,
         state.config.award,

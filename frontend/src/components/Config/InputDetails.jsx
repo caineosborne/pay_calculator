@@ -56,9 +56,9 @@ export function InputDetails() {
     useEffect(() => {
         // Full-time contracted hours follow the active ruleset's period limit.
         if (state.config.employmentType === 'full_time') {
-            const fortnightlyLimit = state.calculations?.appliedRules?.weekly_overtime?.threshold;
-            const weeklyLimit = fortnightlyLimit
-                ? Number(fortnightlyLimit) / 2
+            const periodRule = state.calculations?.appliedRules?.weekly_overtime;
+            const weeklyLimit = periodRule?.threshold
+                ? Number(periodRule.threshold) / (periodRule.basis === 'pay_period' ? 2 : 1)
                 : 38;
 
             dispatch({

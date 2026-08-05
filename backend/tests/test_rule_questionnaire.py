@@ -90,7 +90,8 @@ class RuleQuestionnaireTests(unittest.TestCase):
                     "variation": "worker_type", "day": 7, "shift": 9
                 },
                 "weekly_overtime_configuration": {
-                    "variation": "worker_type", "day": 35, "shift": 36
+                    "variation": "worker_type", "day": 35, "shift": 36,
+                    "basis": "pay_period", "max_work_days": 10,
                 },
                 "part_time_contracted_hours_overtime": False,
                 "standard_overtime_rate": 1.7,

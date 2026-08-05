@@ -18,6 +18,12 @@
     "class_name": "Woolies2024Rules"
   },
   {
+    "key": "woolies_2024_demo",
+    "label": "Woolworths 2024 EBA (Allocation Demo)",
+    "module": "woolies_2024_demo",
+    "class_name": "Woolies2024Rules"
+  },
+  {
     "key": "woolies_auto",
     "label": "Woolworths 2024 EBA (Auto)",
     "module": "woolies_auto",

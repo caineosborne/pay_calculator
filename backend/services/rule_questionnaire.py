@@ -240,6 +240,86 @@ def _literal(
         return None, "not_found"
 
 
+def _synthetic_literal(value: Any) -> tuple[ast.AST, ast.AST]:
+    """Create an in-memory assignment so the legacy questionnaire can read a canonical ruleset.
+
+    This adapter is deliberately read-only: it lets the Guided Rule Editor
+    display grouped rules without requiring duplicate flat attributes in the
+    source class.
+    """
+    statement = ast.parse("value = " + pprint.pformat(value)).body[0]
+    return statement, statement.value
+
+
+def _canonical_questionnaire_aliases(
+    assignments: dict[str, tuple[ast.AST, ast.AST]],
+) -> dict[str, tuple[ast.AST, ast.AST]]:
+    """Project grouped values into the editor's historical field vocabulary."""
+    required = {
+        "SHIFT_RULES",
+        "ORDINARY_TIME_RULES",
+        "DAY_TREATMENT_RULES",
+        "PAY_RATES",
+        "GAP_BETWEEN_SHIFTS_RULE",
+        "ORDINARY_HOUR_PENALTIES",
+        "TOP_UP_RULES",
+    }
+    if not required <= assignments.keys():
+        return assignments
+    try:
+        shift = ast.literal_eval(assignments["SHIFT_RULES"][1])
+        ordinary = ast.literal_eval(assignments["ORDINARY_TIME_RULES"][1])
+        treatments = ast.literal_eval(assignments["DAY_TREATMENT_RULES"][1])
+        overtime = ast.literal_eval(assignments["PAY_RATES"][1])["overtime"]
+        gap = ast.literal_eval(assignments["GAP_BETWEEN_SHIFTS_RULE"][1])
+        penalties = ast.literal_eval(assignments["ORDINARY_HOUR_PENALTIES"][1])
+        top_up = ast.literal_eval(assignments["TOP_UP_RULES"][1])
+    except (ValueError, TypeError, KeyError):
+        return assignments
+
+    projected = dict(assignments)
+
+    def add(name: str, value: Any) -> None:
+        projected.setdefault(name, _synthetic_literal(value))
+
+    daily = ordinary.get("daily", {})
+    period = ordinary.get("period", {})
+    span = ordinary.get("span_overtime", {}).get("day", {}).get("default", {})
+    add("DAY_WORKER_ORDINARY_HOURS_DAILY", daily.get("day", daily.get("default")))
+    add("ORDINARY_HOURS_LIMIT_DAILY", daily.get("shift", daily.get("default")))
+    add("DAY_WORKER_ORDINARY_HOURS_WEEKLY", period.get("day", period.get("default")))
+    add("ORDINARY_HOURS_LIMIT_WEEKLY", period.get("shift", period.get("default")))
+    add("DAILY_OVERTIME_CONFIGURATION", daily)
+    add("WEEKLY_OVERTIME_CONFIGURATION", period)
+    add("STANDARD_OVERTIME_RATE", overtime.get("weekday", {}).get("multiplier"))
+    add("EXTENDED_OVERTIME_RATE", overtime.get("extended", {}).get("multiplier"))
+    add("SATURDAY_OVERTIME_RATE", overtime.get("saturday", {}).get("multiplier"))
+    add("SUNDAY_OVERTIME_RATE", overtime.get("sunday", {}).get("multiplier"))
+    tier = overtime.get("two_tier", {})
+    add("TWO_TIER_OVERTIME", tier.get("enabled", False))
+    add("TWO_TIER_OVERTIME_THRESHOLD", tier.get("threshold", 0))
+    add("EXTENDED_OVERTIME_DAYS", tier.get("days", []))
+    add("APPLY_SPAN_OVERTIME", span.get("enabled", True))
+    add("SPAN_OVERTIME_START_HOUR", span.get("start"))
+    add("SPAN_OVERTIME_HOUR", span.get("end"))
+    add("GAP_PENALTY_HOURS", gap.get("minimum_hours", 0))
+    add("GAP_PENALTY_RATE", gap.get("loading", 0))
+    add("USE_CONTRACTED_HOURS_FOR_PT_OVERTIME", period.get("part_time_uses_contracted_hours", False))
+    add("PT_EMPLOYEES_ENTITLED_TO_CONTRACTED_TOPUP", top_up.get("part_time", False))
+    add("FT_EMPLOYEES_ENTITLED_TO_CONTRACTED_TOPUP", top_up.get("full_time", False))
+    add("DEFAULT_BREAK", shift.get("default_break_hours", 0.5))
+    add("PENALTIES", penalties)
+    weekend: dict[str, dict[str, dict]] = {}
+    for day in ("Saturday", "Sunday"):
+        for worker, rule in treatments.get(day, {}).items():
+            weekend.setdefault(worker, {})[day] = {
+                "is_overtime": rule.get("base_classification") == "overtime",
+                "penalty_rate": rule.get("ordinary_loading", 0),
+            }
+    add("WEEKEND_RULES", weekend)
+    return projected
+
+
 def _overtime_configuration(
     assignments: dict[str, tuple[ast.AST, ast.AST]],
     attribute: str,
@@ -285,6 +365,7 @@ def project_rule_source(
             "structural_issues": issues,
             "advanced_attributes": [],
         }
+    assignments = _canonical_questionnaire_aliases(assignments)
 
     for path, attribute in DIRECT_FIELDS.items():
         section, field = path.split(".", 1)
@@ -607,6 +688,25 @@ def _validate_overtime_configuration(questionnaire: dict, path: str, issues: lis
         if isinstance(number, bool) or not isinstance(number, (int, float)) or number <= 0:
             issues.append(_issue(path + f".{field}", "Enter a limit greater than zero.", "error"))
 
+    if path == "overtime.weekly_overtime_configuration":
+        basis = value.get("basis", "weekly")
+        valid_bases = {"weekly", "pay_period"}
+        if isinstance(basis, dict):
+            if variation != "employment_type" or any(
+                basis.get(employment_type) not in valid_bases
+                for employment_type in ("full_time", "part_time", "casual")
+            ):
+                issues.append(_issue(path + ".basis", "Set weekly or pay-period overtime for each employment type.", "error"))
+        elif basis not in valid_bases:
+            issues.append(_issue(path + ".basis", "Choose weekly or pay-period overtime.", "error"))
+        max_work_days = value.get("max_work_days")
+        if max_work_days is not None and (
+            isinstance(max_work_days, bool)
+            or not isinstance(max_work_days, int)
+            or max_work_days < 1
+        ):
+            issues.append(_issue(path + ".max_work_days", "Enter a whole number of at least 1, or leave it blank.", "error"))
+
 
 def validate_questionnaire(questionnaire: dict) -> list[dict]:
     """Return executable-structure errors for questionnaire values."""
@@ -848,6 +948,11 @@ def patch_rule_source(award_key: str, source: str, questionnaire: dict) -> str:
     class_node, assignments, parse_issues = _class_assignments(award_key, source)
     if class_node is None:
         raise ValueError(parse_issues[0]["message"])
+    if "ORDINARY_TIME_RULES" in assignments:
+        raise ValueError(
+            "The Guided Rule Editor is read-only for canonical grouped rulesets. "
+            "Edit the grouped rules directly to keep this ruleset free of legacy attributes."
+        )
 
     # Build the exact class values owned by the Review Helper. Everything not
     # listed here stays untouched in the raw Python source.

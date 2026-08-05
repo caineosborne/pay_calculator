@@ -31,6 +31,15 @@ export default function ShiftTimeInput({ renderRow }) {
         resetCalculationsIfEmpty(newShifts);
     };
 
+    const togglePublicHoliday = (shift) => {
+        const current = state.publicHolidays || [];
+        const exists = current.some((item) => item.week === shift.week && item.day === shift.day);
+        const next = exists
+            ? current.filter((item) => item.week !== shift.week || item.day !== shift.day)
+            : [...current, { week: shift.week, day: shift.day }];
+        dispatch({ type: 'UPDATE_PUBLIC_HOLIDAYS', payload: next });
+    };
+
     const formatTimeDisplay = (value) => {
         if (!value && value !== 0) return '';
         const numValue = parseInt(value);
@@ -233,6 +242,32 @@ export default function ShiftTimeInput({ renderRow }) {
                             </> : <button onClick={() => removeShift(idx)} className="day-action ml-2" title="Remove this shift period">Remove</button>}
                         </div>
                     </div>
+                </td>
+                <td className="px-2 py-1 whitespace-nowrap text-center">
+                    <input
+                        aria-label={`Week ${shift.week || 1} ${shift.day} manual overtime`}
+                        type="checkbox"
+                        checked={Boolean(shift.manual_overtime)}
+                        disabled={Boolean(shift.manual_ordinary)}
+                        onChange={(event) => handleShiftChange(idx, 'manual_overtime', event.target.checked)}
+                    />
+                </td>
+                <td className="px-2 py-1 whitespace-nowrap text-center">
+                    <input
+                        aria-label={`Week ${shift.week || 1} ${shift.day} manual ordinary`}
+                        type="checkbox"
+                        checked={Boolean(shift.manual_ordinary)}
+                        disabled={Boolean(shift.manual_overtime)}
+                        onChange={(event) => handleShiftChange(idx, 'manual_ordinary', event.target.checked)}
+                    />
+                </td>
+                <td className="px-2 py-1 whitespace-nowrap text-center">
+                    {isPrimary && <input
+                        aria-label={`Week ${shift.week || 1} ${shift.day} public holiday`}
+                        type="checkbox"
+                        checked={(state.publicHolidays || []).some((item) => item.week === shift.week && item.day === shift.day)}
+                        onChange={() => togglePublicHoliday(shift)}
+                    />}
                 </td>
             </>
         );

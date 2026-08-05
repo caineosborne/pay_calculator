@@ -1,9 +1,12 @@
 // context/PayContext.jsx
-import React, { createContext, useContext, useReducer } from 'react';
+import React, { createContext, useContext, useEffect, useReducer } from 'react';
 import { initialShifts } from '../components/Config/shifts';
 
 const PayContext = createContext();
-const defaultAward = 'hospitality';
+const savedAward = typeof window !== 'undefined'
+    ? window.localStorage.getItem('pay-checker.award')
+    : null;
+const defaultAward = savedAward || 'hospitality';
 
 const initialState = {
     config: {
@@ -15,6 +18,7 @@ const initialState = {
         contractedHours: null, // Default to null, will be set based on rules for part-time
     },
     shifts: initialShifts,
+    publicHolidays: [],
     calculations: {
         ordinaryHours: 0,
         overtimeHours: 0,
@@ -91,6 +95,12 @@ function payReducer(state, action) {
                 shifts: action.payload,
                 calculationError: null,
             };
+        case 'UPDATE_PUBLIC_HOLIDAYS':
+            return {
+                ...state,
+                publicHolidays: action.payload,
+                calculationError: null,
+            };
         case 'UPDATE_CALCULATIONS':
             return {
                 ...state,
@@ -114,6 +124,10 @@ function payReducer(state, action) {
 
 export function PayProvider({ children }) {
     const [state, dispatch] = useReducer(payReducer, initialState);
+
+    useEffect(() => {
+        window.localStorage.setItem('pay-checker.award', state.config.award);
+    }, [state.config.award]);
 
     return (
         <PayContext.Provider value={{ state, dispatch }}>
