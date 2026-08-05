@@ -5,7 +5,7 @@ export const QUESTIONNAIRE_SECTIONS = [
         description: 'Set the rates for standard, higher-rate, and weekend overtime.',
         fields: [
             ['daily_overtime_configuration', 'Daily ordinary-hours limit', 'overtime_limits'],
-            ['weekly_overtime_configuration', 'Weekly ordinary-hours limit', 'overtime_limits'],
+            ['weekly_overtime_configuration', 'Period ordinary-hours and days limit', 'period_overtime_limits'],
             [
                 'part_time_contracted_hours_overtime',
                 'Does overtime start after a part-time employee’s contracted hours?',

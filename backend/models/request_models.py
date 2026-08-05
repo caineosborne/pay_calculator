@@ -64,6 +64,7 @@ class Shift(BaseModel):
     end: Optional[int] = Field(None, ge=0, le=47)    # Allow times up to 47 (24 + 23) for next day shifts
     break_duration: Optional[float] = Field(default=0.5, ge=0, le=24)
     manual_overtime: bool = False
+    manual_ordinary: bool = False
 
 
 class WorkdayReference(BaseModel):

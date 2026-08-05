@@ -52,7 +52,8 @@ export function ShiftCalculator({ children }) {
                         start: parseTimeValue(shift.start),
                         end: parseTimeValue(shift.end),
                         break_duration: parseFloat(shift.break_duration) || 0,
-                        manual_overtime: Boolean(shift.manual_overtime)
+                        manual_overtime: Boolean(shift.manual_overtime),
+                        manual_ordinary: Boolean(shift.manual_ordinary),
                     }))
                 };
 

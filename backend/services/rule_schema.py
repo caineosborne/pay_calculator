@@ -63,6 +63,10 @@ def canonical_rules(rules) -> dict:
     period["part_time_uses_contracted_hours"] = getattr(
         rules, "USE_CONTRACTED_HOURS_FOR_PT_OVERTIME", False
     )
+    # Historical rulesets describe this as a weekly limit.  Retain that
+    # behaviour until an award explicitly opts into a whole-pay-period limit.
+    period.setdefault("basis", "weekly")
+    period.setdefault("max_work_days", None)
     return {
         "shift": {
             "default_break_hours": getattr(rules, "DEFAULT_BREAK", 0.5),

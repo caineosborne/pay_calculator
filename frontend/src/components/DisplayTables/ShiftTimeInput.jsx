@@ -248,7 +248,17 @@ export default function ShiftTimeInput({ renderRow }) {
                         aria-label={`Week ${shift.week || 1} ${shift.day} manual overtime`}
                         type="checkbox"
                         checked={Boolean(shift.manual_overtime)}
+                        disabled={Boolean(shift.manual_ordinary)}
                         onChange={(event) => handleShiftChange(idx, 'manual_overtime', event.target.checked)}
+                    />
+                </td>
+                <td className="px-2 py-1 whitespace-nowrap text-center">
+                    <input
+                        aria-label={`Week ${shift.week || 1} ${shift.day} manual ordinary`}
+                        type="checkbox"
+                        checked={Boolean(shift.manual_ordinary)}
+                        disabled={Boolean(shift.manual_overtime)}
+                        onChange={(event) => handleShiftChange(idx, 'manual_ordinary', event.target.checked)}
                     />
                 </td>
                 <td className="px-2 py-1 whitespace-nowrap text-center">

@@ -36,9 +36,9 @@ class WooliesCombinedRules:
     GAP_PENALTY_RATE = 1.0
 
     # Contracted-hours treatment.
-    USE_CONTRACTED_HOURS_FOR_PT_OVERTIME = True
-    PT_EMPLOYEES_ENTITLED_TO_CONTRACTED_TOPUP = True
-    FT_EMPLOYEES_ENTITLED_TO_CONTRACTED_TOPUP = True
+    USE_CONTRACTED_HOURS_FOR_PT_OVERTIME = False
+    PT_EMPLOYEES_ENTITLED_TO_CONTRACTED_TOPUP = False #temporarily changed
+    FT_EMPLOYEES_ENTITLED_TO_CONTRACTED_TOPUP = False #temporarily changed
     DEFAULT_BREAK = 0.5
 
     # Applies Monday to Friday; weekend loadings are configured separately.

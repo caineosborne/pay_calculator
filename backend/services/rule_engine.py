@@ -94,7 +94,7 @@ class PayRules:
             return configuration[worker_type]
         return configuration
 
-    def calculate_weekly_ordinary_hours(self, hours: float, worker_type: str = 'shift', employment_type: str = 'full_time', contracted_hours: float = None, period_weeks: int = 1) -> float:
+    def calculate_weekly_ordinary_hours(self, hours: float, worker_type: str = 'shift', employment_type: str = 'full_time', contracted_hours: float = None, period_weeks: int = 1, basis: str | None = None) -> float:
         """
         Calculate ordinary hours for the week.
         
@@ -120,7 +120,17 @@ class PayRules:
             if configuration.get("part_time_uses_contracted_hours", False):
                 weekly_limit = contracted_hours
                 
-        return min(hours, weekly_limit * period_weeks)
+        # A pay-period threshold is supplied as its total (for example 76 for
+        # a fortnight); a weekly threshold applies independently each week.
+        configured_basis = configuration.get("basis", "weekly")
+        if basis is None:
+            basis = (
+                configured_basis.get(employment_type, "weekly")
+                if isinstance(configured_basis, dict)
+                else configured_basis
+            )
+        multiplier = period_weeks if basis == "weekly" else 1
+        return min(hours, weekly_limit * multiplier)
     
     #
     # OVERTIME METHODS - For calculating various types of overtime
@@ -238,7 +248,9 @@ class PayRules:
     # PENALTY METHODS - For calculating various types of penalties
     #
     
-    def get_penalty_rate(self, day: str, worker_type: str) -> float:
+    def get_penalty_rate(
+        self, day: str, worker_type: str, employment_type: str | None = None
+    ) -> float:
         """
         Get the penalty rate for non-overtime hours on weekends for shift workers.
         
@@ -252,6 +264,8 @@ class PayRules:
         rule = self.config["day_treatment"].get(day, {}).get(worker_type, {})
         if rule.get("base_classification") == "overtime":
             return 0
+        if employment_type == "casual":
+            return rule.get("casual_rate", rule.get("ordinary_loading", 0))
         return rule.get("ordinary_loading", 0)
     
     def calculate_shift_start_penalty(self, start_time: float, worker_type: str) -> dict:
@@ -291,7 +305,8 @@ class PayRules:
         return {'applies': False, 'penalty_rate': 0, 'description': ''}
     
     def check_shift_gap_penalty(self, current_shift_start: float, previous_shift_end: float,
-                               current_day: str = None, previous_day: str = None) -> dict:
+                               current_day: str = None, previous_day: str = None,
+                               employment_type: str | None = None) -> dict:
         """
         Check if a gap penalty should be applied between two shifts.
         
@@ -347,12 +362,18 @@ class PayRules:
         if hours_between_shifts < gap_rule["minimum_hours"]:
             return {
                 'applies': True,
-                'penalty_rate': gap_rule.get("loading", 0)
+                'penalty_rate': (
+                    gap_rule.get("casual_rate", gap_rule.get("loading", 0))
+                    if employment_type == "casual" else gap_rule.get("loading", 0)
+                )
             }
         
         return {'applies': False, 'penalty_rate': 0}
     
-    def calculate_penalties(self, start_time: float, end_time: float, day: str, worker_type: str) -> list:
+    def calculate_penalties(
+        self, start_time: float, end_time: float, day: str, worker_type: str,
+        employment_type: str | None = None,
+    ) -> list:
         """
         Calculate all applicable penalties for a shift using the unified penalty structure.
         
@@ -379,9 +400,9 @@ class PayRules:
         
         # Only apply if the award has unified penalties structure
         penalties_config = (
-            getattr(rules, "PENALTIES")
-            if hasattr(rules, "PENALTIES")
-            else self.config["penalties"]
+            self.config["penalties"]
+            if getattr(rules, "CANONICAL_RULESET", False)
+            else getattr(rules, "PENALTIES", self.config["penalties"])
         )
         if not penalties_config:
             # Fall back to legacy methods if PENALTIES not defined
@@ -449,7 +470,7 @@ class PayRules:
                     if min_duration <= duration_hours < max_duration:
                         penalties.append({
                             'type': 'shift_based',
-                            'rate': penalty['rate'],
+                            'rate': self._selected_penalty_rate(penalty, employment_type),
                             'description': penalty['description'],
                             'hours': duration_hours,
                             'basis': 'duration'
@@ -470,7 +491,7 @@ class PayRules:
                     if shift_starts_in_window and shift_ends_in_window:
                         penalties.append({
                             'type': 'shift_based',
-                            'rate': penalty['rate'],
+                            'rate': self._selected_penalty_rate(penalty, employment_type),
                             'description': penalty['description'],
                             'hours': normalized_end_time - start_time,
                             'basis': 'start_and_end'
@@ -482,7 +503,7 @@ class PayRules:
                     total_hours = normalized_end_time - start_time
                     penalties.append({
                         'type': 'shift_based',
-                        'rate': penalty['rate'],
+                        'rate': self._selected_penalty_rate(penalty, employment_type),
                         'description': penalty['description'],
                         'hours': total_hours,
                         'basis': match_on
@@ -512,13 +533,25 @@ class PayRules:
                         'type': 'time_based',
                         'start': display_start,
                         'end': display_end,
-                        'rate': penalty['rate'],
+                        'rate': self._selected_penalty_rate(penalty, employment_type),
                         'description': penalty['description'],
                         'hours': overlap_hours,
                         'basis': 'time'
                     })
                     
         return penalties
+
+    @staticmethod
+    def _selected_penalty_rate(penalty: dict, employment_type: str | None) -> float:
+        """Choose an explicitly configured casual loading when one exists.
+
+        Penalty rates are additional loadings.  This selector does not combine
+        rates or infer an interaction: award-specific functions and values
+        define the result directly.
+        """
+        if employment_type == "casual":
+            return penalty.get("casual_rate", penalty["rate"])
+        return penalty["rate"]
 
     @staticmethod
     def _time_in_window(time_value: float, window_start: float, window_end: float) -> bool:

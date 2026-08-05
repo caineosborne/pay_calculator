@@ -2,7 +2,7 @@ const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Satur
 
 const shiftId = (week, day, sequence = 1) => `shift-${week}-${day}-${sequence}`;
 
-export const createShift = ({ week, day, sequence = 1, isPrimary = sequence === 1, start = '', end = '', break_duration = '0.5', manual_overtime = false }) => ({
+export const createShift = ({ week, day, sequence = 1, isPrimary = sequence === 1, start = '', end = '', break_duration = '0.5', manual_overtime = false, manual_ordinary = false }) => ({
     id: shiftId(week, day, sequence),
     week,
     day,
@@ -11,6 +11,7 @@ export const createShift = ({ week, day, sequence = 1, isPrimary = sequence === 
     end,
     break_duration,
     manual_overtime,
+    manual_ordinary,
 });
 
 export const createFortnightShifts = (includeDefaultHours = false, includeSecondWeekDefault = false) => [1, 2].flatMap((week) =>

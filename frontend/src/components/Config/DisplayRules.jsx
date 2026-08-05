@@ -94,7 +94,8 @@ export function DisplayRules({ showRules }) {
             <div className="rule-grid">
                 <div className="rule-row"><span>Span of hours</span><strong>{rules.span_hours?.threshold === 'N/A' ? 'Not applicable' : formatSpan(rules.span_hours)}</strong></div>
                 <div className="rule-row"><span>Daily overtime</span><strong>{formatOvertime(rules.daily_overtime)}</strong></div>
-                <div className="rule-row"><span>Fortnightly overtime</span><strong>{formatOvertime(rules.weekly_overtime)}</strong></div>
+                <div className="rule-row"><span>{rules.weekly_overtime?.basis === 'weekly' ? 'Weekly overtime' : 'Pay-period overtime'}</span><strong>{formatOvertime(rules.weekly_overtime)}</strong></div>
+                {rules.weekly_overtime?.max_work_days && <div className="rule-row"><span>Maximum worked days</span><strong>{rules.weekly_overtime.max_work_days} per {rules.weekly_overtime.basis === 'weekly' ? 'week' : 'pay period'}</strong></div>}
                 <div className="rule-row"><span>Saturday</span><strong>{formatWeekendRule(rules.saturday_rules)}</strong></div>
                 <div className="rule-row"><span>Sunday</span><strong>{formatWeekendRule(rules.sunday_rules)}</strong></div>
                 {gapPenalty && <div className="rule-row"><span>Short break between shifts</span><strong>{gapPenalty}</strong></div>}

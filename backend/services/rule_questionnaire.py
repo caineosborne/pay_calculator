@@ -607,6 +607,25 @@ def _validate_overtime_configuration(questionnaire: dict, path: str, issues: lis
         if isinstance(number, bool) or not isinstance(number, (int, float)) or number <= 0:
             issues.append(_issue(path + f".{field}", "Enter a limit greater than zero.", "error"))
 
+    if path == "overtime.weekly_overtime_configuration":
+        basis = value.get("basis", "weekly")
+        valid_bases = {"weekly", "pay_period"}
+        if isinstance(basis, dict):
+            if variation != "employment_type" or any(
+                basis.get(employment_type) not in valid_bases
+                for employment_type in ("full_time", "part_time", "casual")
+            ):
+                issues.append(_issue(path + ".basis", "Set weekly or pay-period overtime for each employment type.", "error"))
+        elif basis not in valid_bases:
+            issues.append(_issue(path + ".basis", "Choose weekly or pay-period overtime.", "error"))
+        max_work_days = value.get("max_work_days")
+        if max_work_days is not None and (
+            isinstance(max_work_days, bool)
+            or not isinstance(max_work_days, int)
+            or max_work_days < 1
+        ):
+            issues.append(_issue(path + ".max_work_days", "Enter a whole number of at least 1, or leave it blank.", "error"))
+
 
 def validate_questionnaire(questionnaire: dict) -> list[dict]:
     """Return executable-structure errors for questionnaire values."""
