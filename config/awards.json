@@ -1,74 +1,27 @@
 [
   {
-    "key": "hospitality",
-    "label": "Hospitality Award",
-    "module": "hospitality_rules",
-    "class_name": "HospitalityRules"
-  },
-  {
     "key": "fast_food",
-    "label": "Fast Food Industry Award (Draft)",
+    "label": "Fast Food Award 2026",
     "module": "fast_food_award",
-    "class_name": "FastFoodAward2026Rules"
+    "class_name": "FastFoodAward2026Rules",
+    "default": true
   },
   {
-    "key": "aged_care",
-    "label": "Aged Care Award",
-    "module": "aged_care_rules",
-    "class_name": "AgedCareRules"
+    "key": "coles_2024",
+    "label": "Coles EA 2024",
+    "module": "coles_2024_rules",
+    "class_name": "Coles2024Rules"
   },
   {
-    "key": "woolies_2024",
-    "label": "Woolworths 2024 EBA",
-    "module": "woolies_2024",
-    "class_name": "Woolies2024Rules"
+    "key": "gria_2026",
+    "label": "General Retail Industry Award 2026 (GRIA)",
+    "module": "gris_config",
+    "class_name": "GRIA2026Rules"
   },
   {
     "key": "woolies_2024_demo",
-    "label": "Woolworths 2024 EBA (Allocation Demo)",
+    "label": "Woolies EA 2024",
     "module": "woolies_2024_demo",
     "class_name": "Woolies2024Rules"
-  },
-  {
-    "key": "woolies_auto",
-    "label": "Woolworths 2024 EBA (Auto)",
-    "module": "woolies_auto",
-    "class_name": "Woolies2024Rules"
-  },
-  {
-    "key": "woolies_combined",
-    "label": "Woolworths 2024 EBA (Combined)",
-    "module": "woolies_combined",
-    "class_name": "WooliesCombinedRules"
-  },
-  {
-    "key": "child_care",
-    "label": "Child Care Award",
-    "module": "child_care_rules",
-    "class_name": "ChildCareRules"
-  },
-  {
-    "key": "nurses_award",
-    "label": "Nurses & Midwives Award",
-    "module": "nurses_award_rules",
-    "class_name": "NursesAwardRules"
-  },
-  {
-    "key": "eb11",
-    "label": "Queensland Health EB11",
-    "module": "eb11_rules",
-    "class_name": "EB11Rules"
-  },
-  {
-    "key": "clerks_private_sector",
-    "label": "Clerks Private Sector Award",
-    "module": "clerks_private_sector_rules",
-    "class_name": "ClerksPrivateSectorRules"
-  },
-  {
-    "key": "ma000018",
-    "label": "Auto ChildCare",
-    "module": "MA000018_ruleset",
-    "class_name": "MA000018Rules"
   }
 ]

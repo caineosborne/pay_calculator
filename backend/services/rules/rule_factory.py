@@ -13,9 +13,6 @@ from services.rule_configurations import (
     RuleConfigurationError,
     load_custom_rule_class,
 )
-from services.rule_schema import install_canonical_contract
-
-
 # Built-ins are immutable modules, so resolve them once when the service starts.
 BUILTIN_RULES = {}
 for award_definition in load_awards():
@@ -26,7 +23,6 @@ for award_definition in load_awards():
         award_module,
         award_definition["class_name"],
     )
-    install_canonical_contract(rule_class)
     BUILTIN_RULES[award_definition["key"]] = rule_class
 
 

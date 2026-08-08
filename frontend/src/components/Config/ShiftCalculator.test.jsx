@@ -13,8 +13,8 @@ const stateForRate = (hourlyRate) => ({
     config: {
         hourlyRate,
         workerType: 'shift',
-        award: 'hospitality',
-        ruleConfiguration: 'builtin:hospitality',
+        award: 'fast_food',
+        ruleConfiguration: 'builtin:fast_food',
         employmentType: 'casual',
         contractedHours: null,
     },

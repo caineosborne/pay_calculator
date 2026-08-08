@@ -1,0 +1,342 @@
+{
+  "core_hours": {
+    "day_worker_daily_limit_hours": {
+      "answer": 8,
+      "status": "derived",
+      "source_ruleset_keys": [],
+      "source_rule_ids": [],
+      "clause_references": [],
+      "reasoning_summary": "Loaded from Python attribute DAY_WORKER_ORDINARY_HOURS_DAILY.",
+      "special_case_notes": []
+    },
+    "shift_worker_daily_limit_hours": {
+      "answer": 10,
+      "status": "derived",
+      "source_ruleset_keys": [],
+      "source_rule_ids": [],
+      "clause_references": [],
+      "reasoning_summary": "Loaded from Python attribute ORDINARY_HOURS_LIMIT_DAILY.",
+      "special_case_notes": []
+    },
+    "day_worker_weekly_limit_hours": {
+      "answer": 38,
+      "status": "derived",
+      "source_ruleset_keys": [],
+      "source_rule_ids": [],
+      "clause_references": [],
+      "reasoning_summary": "Loaded from Python attribute DAY_WORKER_ORDINARY_HOURS_WEEKLY.",
+      "special_case_notes": []
+    },
+    "shift_worker_weekly_limit_hours": {
+      "answer": 38,
+      "status": "derived",
+      "source_ruleset_keys": [],
+      "source_rule_ids": [],
+      "clause_references": [],
+      "reasoning_summary": "Loaded from Python attribute ORDINARY_HOURS_LIMIT_WEEKLY.",
+      "special_case_notes": []
+    }
+  },
+  "overtime": {
+    "daily_overtime_configuration": {
+      "answer": {
+        "variation": "default",
+        "default": 10
+      },
+      "status": "derived",
+      "source_ruleset_keys": [],
+      "source_rule_ids": [],
+      "clause_references": [],
+      "reasoning_summary": "Loaded from Python attribute DAILY_OVERTIME_CONFIGURATION.",
+      "special_case_notes": []
+    },
+    "weekly_overtime_configuration": {
+      "answer": {
+        "variation": "default",
+        "default": 38
+      },
+      "status": "derived",
+      "source_ruleset_keys": [],
+      "source_rule_ids": [],
+      "clause_references": [],
+      "reasoning_summary": "Loaded from Python attribute WEEKLY_OVERTIME_CONFIGURATION.",
+      "special_case_notes": []
+    },
+    "standard_overtime_rate": {
+      "answer": 1.5,
+      "status": "derived",
+      "source_ruleset_keys": [],
+      "source_rule_ids": [],
+      "clause_references": [],
+      "reasoning_summary": "Loaded from Python attribute STANDARD_OVERTIME_RATE.",
+      "special_case_notes": []
+    },
+    "two_tier_overtime": {
+      "answer": true,
+      "status": "derived",
+      "source_ruleset_keys": [],
+      "source_rule_ids": [],
+      "clause_references": [],
+      "reasoning_summary": "Loaded from Python attribute TWO_TIER_OVERTIME.",
+      "special_case_notes": []
+    },
+    "extended_overtime_rate": {
+      "answer": 2,
+      "status": "derived",
+      "source_ruleset_keys": [],
+      "source_rule_ids": [],
+      "clause_references": [],
+      "reasoning_summary": "Loaded from Python attribute EXTENDED_OVERTIME_RATE.",
+      "special_case_notes": []
+    },
+    "two_tier_overtime_threshold": {
+      "answer": 2,
+      "status": "derived",
+      "source_ruleset_keys": [],
+      "source_rule_ids": [],
+      "clause_references": [],
+      "reasoning_summary": "Loaded from Python attribute TWO_TIER_OVERTIME_THRESHOLD.",
+      "special_case_notes": []
+    },
+    "extended_overtime_days": {
+      "answer": [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday"
+      ],
+      "status": "derived",
+      "source_ruleset_keys": [],
+      "source_rule_ids": [],
+      "clause_references": [],
+      "reasoning_summary": "Loaded from Python attribute EXTENDED_OVERTIME_DAYS.",
+      "special_case_notes": []
+    },
+    "saturday_overtime_rate": {
+      "answer": 2.5,
+      "status": "derived",
+      "source_ruleset_keys": [],
+      "source_rule_ids": [],
+      "clause_references": [],
+      "reasoning_summary": "Loaded from Python attribute SATURDAY_OVERTIME_RATE.",
+      "special_case_notes": []
+    },
+    "sunday_overtime_rate": {
+      "answer": 2.5,
+      "status": "derived",
+      "source_ruleset_keys": [],
+      "source_rule_ids": [],
+      "clause_references": [],
+      "reasoning_summary": "Loaded from Python attribute SUNDAY_OVERTIME_RATE.",
+      "special_case_notes": []
+    },
+    "part_time_contracted_hours_overtime": {
+      "answer": false,
+      "status": "derived",
+      "source_ruleset_keys": [],
+      "source_rule_ids": [],
+      "clause_references": [],
+      "reasoning_summary": "Loaded from Python attribute USE_CONTRACTED_HOURS_FOR_PT_OVERTIME.",
+      "special_case_notes": []
+    }
+  },
+  "span_overtime": {
+    "applies": {
+      "answer": true,
+      "status": "derived",
+      "source_ruleset_keys": [],
+      "source_rule_ids": [],
+      "clause_references": [],
+      "reasoning_summary": "Loaded from Python attribute APPLY_SPAN_OVERTIME.",
+      "special_case_notes": []
+    },
+    "before_cutoff_hour": {
+      "answer": 6,
+      "status": "defaulted",
+      "source_ruleset_keys": [],
+      "source_rule_ids": [],
+      "clause_references": [],
+      "reasoning_summary": "Loaded from Python attribute SPAN_OVERTIME_START_HOUR.",
+      "special_case_notes": []
+    },
+    "cutoff_hour": {
+      "answer": 18,
+      "status": "derived",
+      "source_ruleset_keys": [],
+      "source_rule_ids": [],
+      "clause_references": [],
+      "reasoning_summary": "Loaded from Python attribute SPAN_OVERTIME_HOUR.",
+      "special_case_notes": []
+    }
+  },
+  "weekend_treatment": {
+    "day_saturday_treatment": {
+      "answer": "overtime",
+      "status": "derived",
+      "source_ruleset_keys": [],
+      "source_rule_ids": [],
+      "clause_references": [],
+      "reasoning_summary": "Loaded from Python attribute WEEKEND_RULES.",
+      "special_case_notes": []
+    },
+    "day_saturday_penalty_loading": {
+      "answer": null,
+      "status": "derived",
+      "source_ruleset_keys": [],
+      "source_rule_ids": [],
+      "clause_references": [],
+      "reasoning_summary": "Loaded from Python attribute WEEKEND_RULES.",
+      "special_case_notes": []
+    },
+    "day_sunday_treatment": {
+      "answer": "overtime",
+      "status": "derived",
+      "source_ruleset_keys": [],
+      "source_rule_ids": [],
+      "clause_references": [],
+      "reasoning_summary": "Loaded from Python attribute WEEKEND_RULES.",
+      "special_case_notes": []
+    },
+    "day_sunday_penalty_loading": {
+      "answer": null,
+      "status": "derived",
+      "source_ruleset_keys": [],
+      "source_rule_ids": [],
+      "clause_references": [],
+      "reasoning_summary": "Loaded from Python attribute WEEKEND_RULES.",
+      "special_case_notes": []
+    },
+    "shift_saturday_treatment": {
+      "answer": "penalty",
+      "status": "derived",
+      "source_ruleset_keys": [],
+      "source_rule_ids": [],
+      "clause_references": [],
+      "reasoning_summary": "Loaded from Python attribute WEEKEND_RULES.",
+      "special_case_notes": []
+    },
+    "shift_saturday_penalty_loading": {
+      "answer": 0.25,
+      "status": "derived",
+      "source_ruleset_keys": [],
+      "source_rule_ids": [],
+      "clause_references": [],
+      "reasoning_summary": "Loaded from Python attribute WEEKEND_RULES.",
+      "special_case_notes": []
+    },
+    "shift_sunday_treatment": {
+      "answer": "penalty",
+      "status": "derived",
+      "source_ruleset_keys": [],
+      "source_rule_ids": [],
+      "clause_references": [],
+      "reasoning_summary": "Loaded from Python attribute WEEKEND_RULES.",
+      "special_case_notes": []
+    },
+    "shift_sunday_penalty_loading": {
+      "answer": 0.5,
+      "status": "derived",
+      "source_ruleset_keys": [],
+      "source_rule_ids": [],
+      "clause_references": [],
+      "reasoning_summary": "Loaded from Python attribute WEEKEND_RULES.",
+      "special_case_notes": []
+    }
+  },
+  "gap_between_shifts": {
+    "applies": {
+      "answer": true,
+      "status": "derived",
+      "source_ruleset_keys": [],
+      "source_rule_ids": [],
+      "clause_references": [],
+      "reasoning_summary": "Loaded from Python attribute GAP_PENALTY_HOURS / GAP_PENALTY_RATE.",
+      "special_case_notes": []
+    },
+    "minimum_hours": {
+      "answer": 10,
+      "status": "derived",
+      "source_ruleset_keys": [],
+      "source_rule_ids": [],
+      "clause_references": [],
+      "reasoning_summary": "Loaded from Python attribute GAP_PENALTY_HOURS.",
+      "special_case_notes": []
+    },
+    "penalty_rate": {
+      "answer": 1,
+      "status": "derived",
+      "source_ruleset_keys": [],
+      "source_rule_ids": [],
+      "clause_references": [],
+      "reasoning_summary": "Loaded from Python attribute GAP_PENALTY_RATE.",
+      "special_case_notes": []
+    }
+  },
+  "weekday_penalties": {
+    "shift_based_penalties": {
+      "answer": [],
+      "status": "derived",
+      "source_ruleset_keys": [],
+      "source_rule_ids": [],
+      "clause_references": [],
+      "reasoning_summary": "Loaded from Python attribute PENALTIES.",
+      "special_case_notes": []
+    },
+    "time_based_penalties": {
+      "answer": [
+        {
+          "code_name": "time_based_loading_1",
+          "type": "time_based",
+          "basis": "time",
+          "start_hour": 14,
+          "end_hour": 16,
+          "finish_start_hour": null,
+          "finish_end_hour": null,
+          "rate": 0.1,
+          "description": "time_based_loading_1",
+          "applies_to": [
+            "day",
+            "shift"
+          ],
+          "extra": {}
+        }
+      ],
+      "status": "derived",
+      "source_ruleset_keys": [],
+      "source_rule_ids": [],
+      "clause_references": [],
+      "reasoning_summary": "Loaded from Python attribute PENALTIES.",
+      "special_case_notes": []
+    }
+  },
+  "employment_defaults": {
+    "default_break": {
+      "answer": 0.5,
+      "status": "defaulted",
+      "source_ruleset_keys": [],
+      "source_rule_ids": [],
+      "clause_references": [],
+      "reasoning_summary": "Loaded from Python attribute DEFAULT_BREAK.",
+      "special_case_notes": []
+    },
+    "part_time_top_up_entitlement": {
+      "answer": false,
+      "status": "derived",
+      "source_ruleset_keys": [],
+      "source_rule_ids": [],
+      "clause_references": [],
+      "reasoning_summary": "Loaded from Python attribute PT_EMPLOYEES_ENTITLED_TO_CONTRACTED_TOPUP.",
+      "special_case_notes": []
+    },
+    "full_time_top_up_entitlement": {
+      "answer": true,
+      "status": "derived",
+      "source_ruleset_keys": [],
+      "source_rule_ids": [],
+      "clause_references": [],
+      "reasoning_summary": "Loaded from Python attribute FT_EMPLOYEES_ENTITLED_TO_CONTRACTED_TOPUP.",
+      "special_case_notes": []
+    }
+  }
+}

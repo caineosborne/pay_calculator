@@ -37,12 +37,12 @@ const buildQuestionnaire = () => {
 };
 
 const configuration = () => ({
-    id: 'builtin:hospitality',
-    name: 'Hospitality Award',
-    base_award: 'hospitality',
-    class_name: 'HospitalityRules',
+    id: 'builtin:fast_food',
+    name: 'Fast Food Industry Award',
+    base_award: 'fast_food',
+    class_name: 'FastFoodAward2026Rules',
     kind: 'builtin',
-    source: 'class HospitalityRules:\n    VALUE = 1\n',
+    source: 'class FastFoodAward2026Rules:\n    VALUE = 1\n',
     questionnaire: buildQuestionnaire(),
     structural_issues: [],
     advanced_attributes: ['VALUE'],
@@ -63,7 +63,7 @@ describe('RuleConfigurationEditor', () => {
         vi.spyOn(api, 'createRuleConfiguration').mockImplementation(
             async (_award, _name, source, questionnaire) => ({
                 ...configuration(),
-                id: 'custom:hospitality:reviewed',
+                id: 'custom:fast_food:reviewed',
                 kind: 'custom',
                 source,
                 questionnaire: questionnaire || buildQuestionnaire(),
@@ -74,7 +74,7 @@ describe('RuleConfigurationEditor', () => {
     it('locks raw Python during guided edits and discard unlocks it', async () => {
         render(
             <RuleConfigurationEditor
-                configurationId="builtin:hospitality"
+                configurationId="builtin:fast_food"
                 onConfigurationSaved={vi.fn()}
             />
         );
@@ -95,19 +95,19 @@ describe('RuleConfigurationEditor', () => {
         refreshed.overtime.standard_overtime_rate.answer = 1.7;
         api.validateRuleConfiguration.mockResolvedValueOnce({
             valid: true,
-            source: 'class HospitalityRules:\n    VALUE = 7\n',
+            source: 'class FastFoodAward2026Rules:\n    VALUE = 7\n',
             questionnaire: refreshed,
             structural_issues: [],
         });
         render(
             <RuleConfigurationEditor
-                configurationId="builtin:hospitality"
+                configurationId="builtin:fast_food"
                 onConfigurationSaved={vi.fn()}
             />
         );
         const source = await screen.findByLabelText('Rule class source');
         fireEvent.change(source, {
-            target: { value: 'class HospitalityRules:\n    VALUE = 7\n' },
+            target: { value: 'class FastFoodAward2026Rules:\n    VALUE = 7\n' },
         });
         expect(
                 screen.getByLabelText('Standard overtime rate')
@@ -124,7 +124,7 @@ describe('RuleConfigurationEditor', () => {
     it('switches to text-only mode when there are no unsaved edits', async () => {
         render(
             <RuleConfigurationEditor
-                configurationId="builtin:hospitality"
+                configurationId="builtin:fast_food"
                 onConfigurationSaved={vi.fn()}
             />
         );
@@ -141,7 +141,7 @@ describe('RuleConfigurationEditor', () => {
     it('supports repeatable penalty rows', async () => {
         render(
             <RuleConfigurationEditor
-                configurationId="builtin:hospitality"
+                configurationId="builtin:fast_food"
                 onConfigurationSaved={vi.fn()}
             />
         );
@@ -202,7 +202,7 @@ describe('RuleConfigurationEditor', () => {
         });
         render(
             <RuleConfigurationEditor
-                configurationId="builtin:hospitality"
+                configurationId="builtin:fast_food"
                 onConfigurationSaved={vi.fn()}
             />
         );
@@ -225,7 +225,7 @@ describe('RuleConfigurationEditor', () => {
         const onConfigurationSaved = vi.fn();
         render(
             <RuleConfigurationEditor
-                configurationId="builtin:hospitality"
+                configurationId="builtin:fast_food"
                 onConfigurationSaved={onConfigurationSaved}
             />
         );
@@ -243,7 +243,7 @@ describe('RuleConfigurationEditor', () => {
         expect(api.createRuleConfiguration.mock.calls[0][3]).not.toBeNull();
         expect(onConfigurationSaved).toHaveBeenCalledWith(
             expect.objectContaining({
-                id: 'custom:hospitality:reviewed',
+                id: 'custom:fast_food:reviewed',
             })
         );
     });
@@ -258,43 +258,43 @@ describe('RuleConfigurationEditor', () => {
         );
         const { rerender } = render(
             <RuleConfigurationEditor
-                configurationId="custom:hospitality:first"
+                configurationId="custom:fast_food:first"
                 onConfigurationSaved={vi.fn()}
             />
         );
         await waitFor(() =>
-            expect(pending['custom:hospitality:first']).toBeTypeOf('function')
+            expect(pending['custom:fast_food:first']).toBeTypeOf('function')
         );
 
         rerender(
             <RuleConfigurationEditor
-                configurationId="custom:hospitality:second"
+                configurationId="custom:fast_food:second"
                 onConfigurationSaved={vi.fn()}
             />
         );
         await waitFor(() =>
-            expect(pending['custom:hospitality:second']).toBeTypeOf('function')
+            expect(pending['custom:fast_food:second']).toBeTypeOf('function')
         );
 
-        pending['custom:hospitality:second']({
+        pending['custom:fast_food:second']({
             ...configuration(),
-            id: 'custom:hospitality:second',
+            id: 'custom:fast_food:second',
             kind: 'custom',
-            source: 'class HospitalityRules:\n    VALUE = 2\n',
+            source: 'class FastFoodAward2026Rules:\n    VALUE = 2\n',
         });
         expect(await screen.findByLabelText('Rule class source')).toHaveValue(
-            'class HospitalityRules:\n    VALUE = 2\n'
+            'class FastFoodAward2026Rules:\n    VALUE = 2\n'
         );
 
-        pending['custom:hospitality:first']({
+        pending['custom:fast_food:first']({
             ...configuration(),
-            id: 'custom:hospitality:first',
+            id: 'custom:fast_food:first',
             kind: 'custom',
-            source: 'class HospitalityRules:\n    VALUE = 1\n',
+            source: 'class FastFoodAward2026Rules:\n    VALUE = 1\n',
         });
         await waitFor(() =>
             expect(screen.getByLabelText('Rule class source')).toHaveValue(
-                'class HospitalityRules:\n    VALUE = 2\n'
+                'class FastFoodAward2026Rules:\n    VALUE = 2\n'
             )
         );
     });

@@ -10,7 +10,7 @@ def request_for(periods, worker_type="day"):
     return PayRequest(
         hourly_rate=20,
         worker_type=worker_type,
-        award="hospitality",
+        award="fast_food",
         employment_type="casual",
         shifts=periods,
     )
@@ -21,7 +21,7 @@ class MultiShiftDayTests(unittest.TestCase):
         result = PayCalculator(PayRequest(
             hourly_rate=20,
             worker_type="shift",
-            award="aged_care",
+            award="fast_food",
             employment_type="full_time",
             shifts=[{"day": "Friday", "start": 22, "end": 3, "break_duration": 0}],
         )).calculate_pay()
@@ -38,7 +38,7 @@ class MultiShiftDayTests(unittest.TestCase):
         result = PayCalculator(PayRequest(
             hourly_rate=20,
             worker_type="shift",
-            award="aged_care",
+            award="woolies_2024_demo",
             employment_type="full_time",
             shifts=[
                 {"day": "Friday", "start": 22, "end": 3, "break_duration": 0},
@@ -59,8 +59,8 @@ class MultiShiftDayTests(unittest.TestCase):
             {"day": "Monday", "start": 17, "end": 23, "break_duration": 0},
         ])).calculate_pay()
 
-        self.assertEqual(result.ordinary_hours, 8)
-        self.assertEqual(result.overtime_hours, 4)
+        self.assertEqual(result.ordinary_hours, 11)
+        self.assertEqual(result.overtime_hours, 1)
         self.assertEqual(list(result.daily_breakdown), ["Week 1 - Monday"])
         self.assertEqual(result.daily_breakdown["Week 1 - Monday"]["pay"], result.total_pay)
 
@@ -69,7 +69,7 @@ class MultiShiftDayTests(unittest.TestCase):
             {"day": "Monday", "start": 6, "end": 10, "break_duration": 0},
             {"day": "Monday", "start": 17, "end": 20, "break_duration": 0},
         ], worker_type="shift"))
-        calculator.rules.active_rules.PENALTIES = {
+        calculator.rules.config["penalties"] = {
             "afternoon_shift": {
                 "type": "shift_based",
                 "basis": "start_and_end",
@@ -101,11 +101,11 @@ class MultiShiftDayTests(unittest.TestCase):
         calculator = PayCalculator(PayRequest(
             hourly_rate=20,
             worker_type="shift",
-            award="aged_care",
+            award="fast_food",
             employment_type="full_time",
             shifts=[{"day": "Monday", "start": 22, "end": 3, "break_duration": 0}],
         ))
-        calculator.rules.active_rules.PENALTIES = {
+        calculator.rules.config["penalties"] = {
             "evening": {
                 "type": "time_based", "start": 19, "end": 23,
                 "rate": 0.1, "description": "Evening", "applies_to": ["shift"],

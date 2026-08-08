@@ -43,8 +43,7 @@ export function DisplayRules({ showRules }) {
 
     if (!showRules || !rules) return null;
 
-    // The response may contain unified, legacy hourly, and legacy shift-start
-    // penalties. Normalize all three sources before rendering one list.
+    // Normalize the canonical penalty dictionary into one readable list.
     const penalties = Object.entries(rules.penalties || {})
         .map(([name, penalty]) => {
             if (!penalty || typeof penalty !== 'object') return null;

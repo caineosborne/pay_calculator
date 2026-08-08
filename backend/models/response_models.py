@@ -19,11 +19,9 @@ class RulesetSummary(BaseModel):
         weekly_overtime (dict): Rules for weekly overtime
         saturday_rules (dict): Rules for Saturday work
         sunday_rules (dict): Rules for Sunday work
-        gap_penalty (dict, optional): Rules for minimum break between shifts (Aged Care only)
-        shift_start_penalties (dict, optional): Rules for shift start penalties (Aged Care only)
-        hourly_penalties (dict, optional): Rules for hourly time-based penalties (Hospitality only)
-        penalties (dict, optional): Rules from the unified PENALTIES section filtered by worker type
-        configuration (dict, optional): Complete normalized award configuration
+        gap_penalty (dict, optional): Rules for minimum break between shifts
+        penalties (dict, optional): Canonical penalty rules filtered by worker type
+        configuration (dict, optional): Complete canonical award configuration
         employment_type (str, optional): Type of employment (full_time, part_time, casual)
         contracted_hours (float, optional): Contracted hours for part-time employees
         use_contracted_hours_for_overtime (bool, optional): Whether part-time employees get overtime after contracted hours
@@ -34,8 +32,6 @@ class RulesetSummary(BaseModel):
     saturday_rules: dict
     sunday_rules: dict
     gap_penalty: dict = None
-    shift_start_penalties: dict = None
-    hourly_penalties: dict = None
     penalties: dict = None
     configuration: dict = None
     employment_type: str = None
@@ -59,9 +55,9 @@ class PayResponse(BaseModel):
         overtime_pay (float): Pay at overtime rate
         topup_pay (float): Pay for contracted hours top-up
         penalty_pay (float): Additional penalty rate pay
-        gap_penalty_pay (float, optional): Pay for gap penalty (Aged Care only)
-        shift_penalty_pay (float, optional): Pay for shift start penalties (Aged Care only)
-        hourly_penalty_pay (float, optional): Pay for hourly time-based penalties (Hospitality only)
+        gap_penalty_pay (float, optional): Pay for a configured insufficient-gap loading
+        shift_penalty_pay (float, optional): Pay for whole-shift penalties
+        hourly_penalty_pay (float, optional): Pay for time-based penalties
         applied_rules (RulesetSummary): Summary of rules applied in calculation
     """
     total_hours: float

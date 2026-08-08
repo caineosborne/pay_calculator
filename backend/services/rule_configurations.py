@@ -25,18 +25,6 @@ CUSTOM_ID_PREFIX = "custom:"
 BUILTIN_ID_PREFIX = "builtin:"
 MAX_SOURCE_BYTES = 500_000
 REQUIRED_RULE_ATTRIBUTES = {
-    "ORDINARY_HOURS_LIMIT_DAILY",
-    "ORDINARY_HOURS_LIMIT_WEEKLY",
-    "DAY_WORKER_ORDINARY_HOURS_DAILY",
-    "DAY_WORKER_ORDINARY_HOURS_WEEKLY",
-    "STANDARD_OVERTIME_RATE",
-    "EXTENDED_OVERTIME_RATE",
-    "SUNDAY_OVERTIME_RATE",
-    "SATURDAY_OVERTIME_RATE",
-    "WEEKEND_RULES",
-    "TWO_TIER_OVERTIME",
-}
-CANONICAL_RULE_ATTRIBUTES = {
     "SHIFT_RULES",
     "ORDINARY_TIME_RULES",
     "DAY_TREATMENT_RULES",
@@ -135,11 +123,10 @@ def validate_rule_source(award_key: str, source: str) -> dict:
             target.id for target in targets if isinstance(target, ast.Name)
         )
 
-    has_canonical_contract = CANONICAL_RULE_ATTRIBUTES <= assigned_attributes
     missing_attributes = sorted(REQUIRED_RULE_ATTRIBUTES - assigned_attributes)
-    if missing_attributes and not has_canonical_contract:
+    if missing_attributes:
         raise RuleConfigurationError(
-            "Rule class is missing required attributes (or canonical grouped contract): "
+            "Rule class is missing required canonical attributes: "
             + ", ".join(missing_attributes)
         )
 
@@ -409,10 +396,7 @@ def _load_custom_rule_class_cached(
         for attribute in REQUIRED_RULE_ATTRIBUTES
         if not hasattr(rule_class, attribute)
     )
-    has_canonical_contract = all(
-        hasattr(rule_class, attribute) for attribute in CANONICAL_RULE_ATTRIBUTES
-    )
-    if missing_attributes and not has_canonical_contract:
+    if missing_attributes:
         raise RuleConfigurationError(
             "Loaded rule class is missing required attributes: "
             + ", ".join(missing_attributes)

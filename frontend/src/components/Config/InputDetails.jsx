@@ -10,7 +10,7 @@ export function InputDetails() {
     const [showConfigurationEditor, setShowConfigurationEditor] = useState(false);
     const [awards, setAwards] = useState([]);
     const [ruleConfigurations, setRuleConfigurations] = useState([]);
-    const defaultAward = awards.find((award) => award.default)?.key || 'hospitality';
+    const defaultAward = awards.find((award) => award.default)?.key || 'fast_food';
 
     // Keep handlers named when several controls share them or when one action
     // coordinates more than one state update.
@@ -309,8 +309,7 @@ export function InputDetails() {
                                 Effective Contracted Hours per Week
                             </label>
                             <div className="mt-1 py-2 px-3 bg-gray-100 dark:bg-gray-700 rounded-md text-gray-700 dark:text-gray-200">
-                                {state.config.contractedHours ||
-                                    (state.config.award === 'aged_care' ? 40 : 38)}
+                                {state.config.contractedHours || 38}
                             </div>
                         </div>
                     )}

@@ -29,7 +29,7 @@ if uploaded:
         st.subheader("Employee configurations")
         st.caption("Each employee can have a different rate, award and employment settings. The same profile applies to all of that employee's uploaded shifts.")
         profile_rows = [{
-            "Employee": employee, "Hourly rate": 30.0, "Award": "aged_care", "Worker type": "shift",
+            "Employee": employee, "Hourly rate": 30.0, "Award": "fast_food", "Worker type": "shift",
             "Employment type": "full_time", "Contracted hours": 38.0, "Fortnight starts": "Monday",
             "First Week 1 start": "", "Custom configuration": "",
         } for employee in employees]

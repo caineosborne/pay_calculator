@@ -8,12 +8,6 @@ contract. Comments identify the relevant award clauses and any deliberate
 proxy/manual treatment.
 
 Known limitations:
-- Overnight calendar-day treatment is incomplete. The engine currently carries
-  a shift-worker weekend loading into the post-midnight portion, but it does
-  not split weekday time-based penalties at midnight. For example, a Monday
-  10:00 pm–Tuesday 3:00 am shift may miss the Tuesday 12:00 am–6:00 am
-  loading. It also does not convert a day worker's post-midnight hours to the
-  next calendar day's overtime treatment.
 - Clauses 20.2 and 20.3: the award's 5-days-per-week rule permits 6 days in
   one week where ordinary hours are worked on no more than 4 days in the
   following week. The engine uses a 10-worked-days-per-pay-period proxy.
@@ -31,8 +25,6 @@ Known limitations:
 
 
 class FastFoodAward2026Rules:
-    CANONICAL_RULESET = True
-
     SHIFT_RULES = {
         # Clause 10.2 and 10.3(e):
         # Part-time employees must be rostered for at least 3 consecutive hours.

@@ -333,7 +333,7 @@ class PayCalculator:
         1. Detect if hours are overtime (span, daily limit, weekly limit, or weekend for day workers)
         2. Calculate overtime rates (2x on Sunday, 1.5x otherwise)
         3. For remaining ordinary hours, calculate penalties for shift workers on weekends
-        4. Apply gap penalty if this shift starts too soon after the previous one (Aged Care award only)
+        4. Apply a configured gap penalty if this shift starts too soon after the previous one
         """
         if not (shift.start is not None and shift.end is not None):
             return self._get_empty_day_breakdown()
@@ -495,20 +495,6 @@ class PayCalculator:
                     'description': penalty['description']
                 })
 
-        # For backward compatibility, also calculate using the old methods
-        if not self.rules.config["penalties"]:
-            # Legacy Phase 4: Apply shift start penalties for Aged Care shift workers
-            shift_penalty = self.rules.calculate_shift_start_penalty(shift.start, self.worker_type)
-            shift_penalty_rate = shift_penalty.get('penalty_rate', 0)
-            shift_penalty_hours = ordinary_hours if shift_penalty.get('applies', False) else 0
-            
-            if shift_penalty_hours > 0:
-                shift_penalty_label = shift_penalty.get('description', '')
-            
-            # Legacy Phase 5: Apply hourly penalties for Hospitality workers (both day and shift)
-            hourly_penalties = self.rules.calculate_hourly_penalties(shift.start, end_time, shift.day)
-            hourly_penalty_details.extend(hourly_penalties)
-        
         # Store the end time and day of this shift for future gap penalty calculations
         self.previous_shift_end = end_time
         self.previous_shift_day = shift.day
@@ -575,10 +561,6 @@ class PayCalculator:
             for item in ordered_periods
         ]
         total_hours = sum(period_hours)
-        rules = self.rules.active_rules
-        config = self.rules.config
-        overtime_rates = config["pay_rates"]["overtime"]
-
         if combined_shift.manual_ordinary:
             ordinary_hours = total_hours
             overtime_hours = 0
@@ -660,10 +642,6 @@ class PayCalculator:
                             'rate': penalty['rate'],
                             'description': penalty['description'],
                         })
-                if not self.rules.config["penalties"]:
-                    hourly_penalties.extend(
-                        self.rules.calculate_hourly_penalties(item.start, item_end, item.day)
-                    )
         breakdown['hourly_penalties'] = hourly_penalties
         for period in ordered_periods:
             minimum = self._minimum_expansion_hours.get(id(period))
@@ -806,7 +784,6 @@ class PayCalculator:
         # Apply a contracted-hours top-up only when the employee's total worked
         # hours fall short of their contracted-period target. Overtime counts as
         # worked time; it must not create a top-up entitlement.
-        rules = self.rules.active_rules
         config = self.rules.config
         overtime_rates = config["pay_rates"]["overtime"]
         is_entitled_to_topup = (
@@ -889,21 +866,21 @@ class PayCalculator:
         )
         penalty_pay = round(penalty_pay, 2)
         
-        # Calculate gap penalty pay (Aged Care award only)
+        # Calculate configured gap penalty pay.
         gap_penalty_pay = sum(
             self.breakdown[day].get('gap_penalty', 0) * self.data.hourly_rate * self.breakdown[day].get('gap_penalty_rate', 0)
             for day in self.breakdown
         )
         gap_penalty_pay = round(gap_penalty_pay, 2)
         
-        # Calculate shift start penalty pay (Aged Care shift workers only)
+        # Calculate whole-shift penalty pay.
         shift_penalty_pay = sum(
             self.breakdown[day].get('shift_penalty', 0) * self.data.hourly_rate * self.breakdown[day].get('shift_penalty_rate', 0)
             for day in self.breakdown
         )
         shift_penalty_pay = round(shift_penalty_pay, 2)
         
-        # Calculate hourly time-based penalties (Hospitality award)
+        # Calculate time-based penalty pay.
         hourly_penalty_pay = 0
         time_based_penalty_hours = 0
         for day in self.breakdown:
@@ -982,40 +959,13 @@ class PayCalculator:
             ft_employees_entitled_to_contracted_topup=ft_entitled_to_topup
         )
         
-        # Add gap penalty rule if applicable (Aged Care award only)
+        # Add the gap rule when configured.
         if config["gap_between_shifts"].get("minimum_hours"):
             ruleset.gap_penalty = {
                 'threshold': f"Less than {config['gap_between_shifts']['minimum_hours']} hours between shifts",
                 'rate': f"{config['gap_between_shifts'].get('loading', 0)}x penalty"
             }
             
-        # Add shift start penalties if applicable (Aged Care shift workers only)
-        if hasattr(rules, 'SHIFT_PEN_RULES') and self.worker_type == 'shift':
-            shift_rules = rules.SHIFT_PEN_RULES.get('shift', {})
-            if 'first_window' in shift_rules:
-                ruleset.shift_start_penalties = {
-                    'first_window': f"{shift_rules['first_window']['start']}:00-{shift_rules['first_window']['end']}:00 ({int(shift_rules['first_window']['rate'] * 100)}%)",
-                    'second_window': f"{shift_rules['second_window']['start']}:00-{shift_rules['second_window']['end']}:00 ({int(shift_rules['second_window']['rate'] * 100)}%)",
-                    'third_window': f"{shift_rules['third_window']['start']}:00-{shift_rules['third_window']['end']}:00 ({int(shift_rules['third_window']['rate'] * 100)}%)"
-                }
-                
-        # Add hourly time penalties if applicable (Hospitality award)
-        if hasattr(rules, 'HOURS_PEN_RULES'):
-            hours_rules = rules.HOURS_PEN_RULES
-            hourly_penalties = {}
-            
-            # Only add entries for penalties that exist in the rules
-            if 'evening' in hours_rules:
-                hourly_penalties['evening'] = f"{hours_rules['evening']['start']}:00-{hours_rules['evening']['end']}:00 ({int(hours_rules['evening']['rate'] * 100)}%)"
-            
-            if 'night' in hours_rules:
-                hourly_penalties['night'] = f"{hours_rules['night']['start']}:00-{hours_rules['night']['end']}:00 ({int(hours_rules['night']['rate'] * 100)}%)"
-            
-            if hourly_penalties:  # Only add note if we have penalties
-                hourly_penalties['note'] = "Applies on weekdays only (not on weekends)"
-                
-            ruleset.hourly_penalties = hourly_penalties
-
         penalties = {}
         for penalty_name, penalty in config["penalties"].items():
             applies_to = penalty.get('applies_to', [])

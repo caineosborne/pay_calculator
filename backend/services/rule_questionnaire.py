@@ -13,40 +13,14 @@ from typing import Any
 from services.award_registry import load_awards
 
 
-DIRECT_FIELDS = {
-    "core_hours.day_worker_daily_limit_hours": "DAY_WORKER_ORDINARY_HOURS_DAILY",
-    "core_hours.shift_worker_daily_limit_hours": "ORDINARY_HOURS_LIMIT_DAILY",
-    "core_hours.day_worker_weekly_limit_hours": "DAY_WORKER_ORDINARY_HOURS_WEEKLY",
-    "core_hours.shift_worker_weekly_limit_hours": "ORDINARY_HOURS_LIMIT_WEEKLY",
-    "overtime.standard_overtime_rate": "STANDARD_OVERTIME_RATE",
-    "overtime.two_tier_overtime": "TWO_TIER_OVERTIME",
-    "overtime.extended_overtime_rate": "EXTENDED_OVERTIME_RATE",
-    "overtime.two_tier_overtime_threshold": "TWO_TIER_OVERTIME_THRESHOLD",
-    "overtime.extended_overtime_days": "EXTENDED_OVERTIME_DAYS",
-    "overtime.saturday_overtime_rate": "SATURDAY_OVERTIME_RATE",
-    "overtime.sunday_overtime_rate": "SUNDAY_OVERTIME_RATE",
-    "span_overtime.applies": "APPLY_SPAN_OVERTIME",
-    "span_overtime.cutoff_hour": "SPAN_OVERTIME_HOUR",
-    "employment_defaults.default_break": "DEFAULT_BREAK",
-    "overtime.part_time_contracted_hours_overtime": (
-        "USE_CONTRACTED_HOURS_FOR_PT_OVERTIME"
-    ),
-    "employment_defaults.part_time_top_up_entitlement": (
-        "PT_EMPLOYEES_ENTITLED_TO_CONTRACTED_TOPUP"
-    ),
-    "employment_defaults.full_time_top_up_entitlement": (
-        "FT_EMPLOYEES_ENTITLED_TO_CONTRACTED_TOPUP"
-    ),
-}
-
-MANAGED_ATTRIBUTES = set(DIRECT_FIELDS.values()) | {
-    "DAILY_OVERTIME_CONFIGURATION",
-    "WEEKLY_OVERTIME_CONFIGURATION",
-    "SPAN_OVERTIME_START_HOUR",
-    "WEEKEND_RULES",
-    "GAP_PENALTY_HOURS",
-    "GAP_PENALTY_RATE",
-    "PENALTIES",
+MANAGED_ATTRIBUTES = {
+    "SHIFT_RULES",
+    "ORDINARY_TIME_RULES",
+    "DAY_TREATMENT_RULES",
+    "PAY_RATES",
+    "GAP_BETWEEN_SHIFTS_RULE",
+    "ORDINARY_HOUR_PENALTIES",
+    "TOP_UP_RULES",
 }
 
 WEEKEND_FIELDS = {
@@ -69,12 +43,6 @@ WEEKEND_FIELDS = {
 }
 
 SECTION_FIELDS = {
-    "core_hours": [
-        "day_worker_daily_limit_hours",
-        "shift_worker_daily_limit_hours",
-        "day_worker_weekly_limit_hours",
-        "shift_worker_weekly_limit_hours",
-    ],
     "overtime": [
         "daily_overtime_configuration",
         "weekly_overtime_configuration",
@@ -105,27 +73,6 @@ SECTION_FIELDS = {
         "full_time_top_up_entitlement",
     ],
 }
-
-IMPORT_ALIASES = {
-    "overtime.standard_overtime_rate": "overtime.standard_overtime_multiplier",
-    "overtime.two_tier_overtime": "overtime.has_two_tier_overtime",
-    "overtime.extended_overtime_rate": "overtime.extended_overtime_multiplier",
-    "overtime.two_tier_overtime_threshold": (
-        "overtime.higher_overtime_starts_after_hours"
-    ),
-    "overtime.saturday_overtime_rate": "overtime.saturday_overtime_multiplier",
-    "overtime.sunday_overtime_rate": "overtime.sunday_overtime_multiplier",
-    "span_overtime.applies": "span.day_workers_have_span_overtime",
-    "span_overtime.cutoff_hour": "span.live_span_cutoff_hour",
-    "gap_between_shifts.applies": "gap_between_shifts.minimum_break_required",
-    "gap_between_shifts.minimum_hours": (
-        "gap_between_shifts.standard_minimum_break_hours"
-    ),
-    "gap_between_shifts.penalty_rate": (
-        "gap_between_shifts.breach_penalty_multiplier"
-    ),
-}
-
 
 def _issue(field_path: str, message: str, severity: str = "warning") -> dict:
     return {
@@ -214,19 +161,11 @@ def _literal(
     attribute: str,
     path: str,
     issues: list[dict],
-    default: Any = None,
-    default_message: str | None = None,
-    silently_default_if_missing: bool = False,
 ) -> tuple[Any, str]:
     assignment = assignments.get(attribute)
     if assignment is None:
-        if silently_default_if_missing:
-            return default, "defaulted"
-        if default_message is not None:
-            issues.append(_issue(path, default_message))
-            return default, "defaulted"
         issues.append(_issue(path, f"Python attribute {attribute} is missing."))
-        return default, "not_found"
+        return None, "not_found"
     try:
         return ast.literal_eval(assignment[1]), "derived"
     except (ValueError, TypeError):
@@ -240,120 +179,10 @@ def _literal(
         return None, "not_found"
 
 
-def _synthetic_literal(value: Any) -> tuple[ast.AST, ast.AST]:
-    """Create an in-memory assignment so the legacy questionnaire can read a canonical ruleset.
-
-    This adapter is deliberately read-only: it lets the Guided Rule Editor
-    display grouped rules without requiring duplicate flat attributes in the
-    source class.
-    """
-    statement = ast.parse("value = " + pprint.pformat(value)).body[0]
-    return statement, statement.value
-
-
-def _canonical_questionnaire_aliases(
-    assignments: dict[str, tuple[ast.AST, ast.AST]],
-) -> dict[str, tuple[ast.AST, ast.AST]]:
-    """Project grouped values into the editor's historical field vocabulary."""
-    required = {
-        "SHIFT_RULES",
-        "ORDINARY_TIME_RULES",
-        "DAY_TREATMENT_RULES",
-        "PAY_RATES",
-        "GAP_BETWEEN_SHIFTS_RULE",
-        "ORDINARY_HOUR_PENALTIES",
-        "TOP_UP_RULES",
-    }
-    if not required <= assignments.keys():
-        return assignments
-    try:
-        shift = ast.literal_eval(assignments["SHIFT_RULES"][1])
-        ordinary = ast.literal_eval(assignments["ORDINARY_TIME_RULES"][1])
-        treatments = ast.literal_eval(assignments["DAY_TREATMENT_RULES"][1])
-        overtime = ast.literal_eval(assignments["PAY_RATES"][1])["overtime"]
-        gap = ast.literal_eval(assignments["GAP_BETWEEN_SHIFTS_RULE"][1])
-        penalties = ast.literal_eval(assignments["ORDINARY_HOUR_PENALTIES"][1])
-        top_up = ast.literal_eval(assignments["TOP_UP_RULES"][1])
-    except (ValueError, TypeError, KeyError):
-        return assignments
-
-    projected = dict(assignments)
-
-    def add(name: str, value: Any) -> None:
-        projected.setdefault(name, _synthetic_literal(value))
-
-    daily = ordinary.get("daily", {})
-    period = ordinary.get("period", {})
-    span = ordinary.get("span_overtime", {}).get("day", {}).get("default", {})
-    add("DAY_WORKER_ORDINARY_HOURS_DAILY", daily.get("day", daily.get("default")))
-    add("ORDINARY_HOURS_LIMIT_DAILY", daily.get("shift", daily.get("default")))
-    add("DAY_WORKER_ORDINARY_HOURS_WEEKLY", period.get("day", period.get("default")))
-    add("ORDINARY_HOURS_LIMIT_WEEKLY", period.get("shift", period.get("default")))
-    add("DAILY_OVERTIME_CONFIGURATION", daily)
-    add("WEEKLY_OVERTIME_CONFIGURATION", period)
-    add("STANDARD_OVERTIME_RATE", overtime.get("weekday", {}).get("multiplier"))
-    add("EXTENDED_OVERTIME_RATE", overtime.get("extended", {}).get("multiplier"))
-    add("SATURDAY_OVERTIME_RATE", overtime.get("saturday", {}).get("multiplier"))
-    add("SUNDAY_OVERTIME_RATE", overtime.get("sunday", {}).get("multiplier"))
-    tier = overtime.get("two_tier", {})
-    add("TWO_TIER_OVERTIME", tier.get("enabled", False))
-    add("TWO_TIER_OVERTIME_THRESHOLD", tier.get("threshold", 0))
-    add("EXTENDED_OVERTIME_DAYS", tier.get("days", []))
-    add("APPLY_SPAN_OVERTIME", span.get("enabled", True))
-    add("SPAN_OVERTIME_START_HOUR", span.get("start"))
-    add("SPAN_OVERTIME_HOUR", span.get("end"))
-    add("GAP_PENALTY_HOURS", gap.get("minimum_hours", 0))
-    add("GAP_PENALTY_RATE", gap.get("loading", 0))
-    add("USE_CONTRACTED_HOURS_FOR_PT_OVERTIME", period.get("part_time_uses_contracted_hours", False))
-    add("PT_EMPLOYEES_ENTITLED_TO_CONTRACTED_TOPUP", top_up.get("part_time", False))
-    add("FT_EMPLOYEES_ENTITLED_TO_CONTRACTED_TOPUP", top_up.get("full_time", False))
-    add("DEFAULT_BREAK", shift.get("default_break_hours", 0.5))
-    add("PENALTIES", penalties)
-    weekend: dict[str, dict[str, dict]] = {}
-    for day in ("Saturday", "Sunday"):
-        for worker, rule in treatments.get(day, {}).items():
-            weekend.setdefault(worker, {})[day] = {
-                "is_overtime": rule.get("base_classification") == "overtime",
-                "penalty_rate": rule.get("ordinary_loading", 0),
-            }
-    add("WEEKEND_RULES", weekend)
-    return projected
-
-
-def _overtime_configuration(
-    assignments: dict[str, tuple[ast.AST, ast.AST]],
-    attribute: str,
-    day_attribute: str,
-    shift_attribute: str,
-    path: str,
-    issues: list[dict],
-) -> tuple[dict, str]:
-    """Read the optional enhanced configuration or derive the current limits."""
-    configured, status = _literal(
-        assignments,
-        attribute,
-        path,
-        issues,
-        silently_default_if_missing=True,
-    )
-    if isinstance(configured, dict):
-        return configured, status
-
-    day_value, day_status = _literal(assignments, day_attribute, path, issues)
-    shift_value, shift_status = _literal(assignments, shift_attribute, path, issues)
-    if day_value == shift_value:
-        return {"variation": "default", "default": shift_value}, day_status
-    return {
-        "variation": "worker_type",
-        "day": day_value,
-        "shift": shift_value,
-    }, "derived" if day_status == shift_status == "derived" else "not_found"
-
-
 def project_rule_source(
     award_key: str, source: str, imported_context: dict | None = None
 ) -> dict:
-    """Build the 30-field questionnaire from the authoritative Python source."""
+    """Build the guided questionnaire from canonical grouped rule dictionaries."""
     class_node, assignments, issues = _class_assignments(award_key, source)
     questionnaire = {
         section: {field: _record(None, status="not_found") for field in fields}
@@ -365,144 +194,97 @@ def project_rule_source(
             "structural_issues": issues,
             "advanced_attributes": [],
         }
-    assignments = _canonical_questionnaire_aliases(assignments)
+    groups = {}
+    for attribute in MANAGED_ATTRIBUTES:
+        value, _ = _literal(assignments, attribute, attribute, issues)
+        groups[attribute] = value if isinstance(value, dict) else {}
 
-    for path, attribute in DIRECT_FIELDS.items():
-        section, field = path.split(".", 1)
-        if attribute == "DEFAULT_BREAK":
-            value, status = _literal(
-                assignments,
-                attribute,
-                path,
-                issues,
-                default=0.5,
-                silently_default_if_missing=True,
-            )
-        else:
-            value, status = _literal(assignments, attribute, path, issues)
-        questionnaire[section][field] = _record(value, attribute, status)
+    shift_rules = groups["SHIFT_RULES"]
+    ordinary = groups["ORDINARY_TIME_RULES"]
+    treatments = groups["DAY_TREATMENT_RULES"]
+    overtime = groups["PAY_RATES"].get("overtime", {})
+    gap = groups["GAP_BETWEEN_SHIFTS_RULE"]
+    penalties = groups["ORDINARY_HOUR_PENALTIES"]
+    top_up = groups["TOP_UP_RULES"]
 
-    for field, attribute, day_attribute, shift_attribute in (
-        (
-            "daily_overtime_configuration",
-            "DAILY_OVERTIME_CONFIGURATION",
-            "DAY_WORKER_ORDINARY_HOURS_DAILY",
-            "ORDINARY_HOURS_LIMIT_DAILY",
+    daily = ordinary.get("daily", {})
+    period = ordinary.get("period", {})
+    questionnaire["overtime"]["daily_overtime_configuration"] = _record(
+        daily, "ORDINARY_TIME_RULES", "derived"
+    )
+    questionnaire["overtime"]["weekly_overtime_configuration"] = _record(
+        period, "ORDINARY_TIME_RULES", "derived"
+    )
+
+    tier = overtime.get("two_tier", {})
+    overtime_answers = {
+        "part_time_contracted_hours_overtime": period.get(
+            "part_time_uses_contracted_hours", False
         ),
-        (
-            "weekly_overtime_configuration",
-            "WEEKLY_OVERTIME_CONFIGURATION",
-            "DAY_WORKER_ORDINARY_HOURS_WEEKLY",
-            "ORDINARY_HOURS_LIMIT_WEEKLY",
-        ),
-    ):
-        value, status = _overtime_configuration(
-            assignments,
-            attribute,
-            day_attribute,
-            shift_attribute,
-            f"overtime.{field}",
-            issues,
+        "standard_overtime_rate": overtime.get("weekday", {}).get("multiplier"),
+        "two_tier_overtime": tier.get("enabled", False),
+        "extended_overtime_rate": overtime.get("extended", {}).get("multiplier"),
+        "two_tier_overtime_threshold": tier.get("threshold", 0),
+        "extended_overtime_days": tier.get("days", []),
+        "saturday_overtime_rate": overtime.get("saturday", {}).get("multiplier"),
+        "sunday_overtime_rate": overtime.get("sunday", {}).get("multiplier"),
+    }
+    for field, value in overtime_answers.items():
+        questionnaire["overtime"][field] = _record(
+            value, "PAY_RATES", "derived"
         )
-        questionnaire["overtime"][field] = _record(value, attribute, status)
 
-    before_span, before_span_status = _literal(
-        assignments,
-        "SPAN_OVERTIME_START_HOUR",
-        "span_overtime.before_cutoff_hour",
-        issues,
-        silently_default_if_missing=True,
-    )
-    questionnaire["span_overtime"]["before_cutoff_hour"] = _record(
-        before_span, "SPAN_OVERTIME_START_HOUR", before_span_status
-    )
+    span = ordinary.get("span_overtime", {}).get("day", {}).get("default", {})
+    span_answers = {
+        "applies": bool(span.get("enabled", False)),
+        "before_cutoff_hour": span.get("start"),
+        "cutoff_hour": span.get("end"),
+    }
+    for field, value in span_answers.items():
+        questionnaire["span_overtime"][field] = _record(
+            value, "ORDINARY_TIME_RULES", "derived"
+        )
 
-    weekend_rules, weekend_status = _literal(
-        assignments,
-        "WEEKEND_RULES",
-        "weekend_treatment",
-        issues,
-    )
     for (worker, day), (treatment_path, loading_path) in WEEKEND_FIELDS.items():
         treatment_section, treatment_field = treatment_path.split(".", 1)
         loading_section, loading_field = loading_path.split(".", 1)
-        worker_rules = (
-            weekend_rules.get(worker)
-            if isinstance(weekend_rules, dict)
-            else None
-        )
-        rule = (
-            worker_rules.get(day)
-            if isinstance(worker_rules, dict)
-            else None
-        )
+        rule = treatments.get(day, {}).get(worker)
         treatment = None
         loading = None
         if isinstance(rule, dict):
-            if rule.get("is_overtime") is True:
+            if rule.get("base_classification") == "overtime":
                 treatment = "overtime"
-            elif (
-                rule.get("is_overtime") is False
-                or "penalty_rate" in rule
-            ):
-                loading = rule.get("penalty_rate", rule.get("rate", 0))
+            else:
+                loading = rule.get("ordinary_loading", 0)
                 treatment = (
                     "penalty"
                     if loading not in (None, 0, 0.0)
                     else "not_applicable"
                 )
-        status = weekend_status if rule is not None else "not_found"
         if rule is None:
             issues.append(
                 _issue(
                     treatment_path,
-                    f"WEEKEND_RULES has no {worker} worker {day} entry.",
+                    f"DAY_TREATMENT_RULES has no {worker} worker {day} entry.",
                 )
             )
         questionnaire[treatment_section][treatment_field] = _record(
-            treatment, "WEEKEND_RULES", status
+            treatment, "DAY_TREATMENT_RULES", "derived" if rule else "not_found"
         )
         questionnaire[loading_section][loading_field] = _record(
-            loading, "WEEKEND_RULES", status
+            loading, "DAY_TREATMENT_RULES", "derived" if rule else "not_found"
         )
 
-    gap_hours, gap_hours_status = _literal(
-        assignments,
-        "GAP_PENALTY_HOURS",
-        "gap_between_shifts.minimum_hours",
-        issues,
-        default=0,
-        default_message=(
-            "GAP_PENALTY_HOURS is absent; the gap rule is treated as disabled."
-        ),
-    )
-    gap_rate, gap_rate_status = _literal(
-        assignments,
-        "GAP_PENALTY_RATE",
-        "gap_between_shifts.penalty_rate",
-        issues,
-        default=0,
-        default_message=(
-            "GAP_PENALTY_RATE is absent; the gap rule is treated as disabled."
-        ),
-    )
+    gap_hours = gap.get("minimum_hours", 0)
+    gap_rate = gap.get("loading", 0)
     questionnaire["gap_between_shifts"] = {
         "applies": _record(
-            bool(gap_hours and gap_rate),
-            "GAP_PENALTY_HOURS / GAP_PENALTY_RATE",
-            "derived"
-            if gap_hours_status == gap_rate_status == "derived"
-            else "defaulted",
+            bool(gap_hours), "GAP_BETWEEN_SHIFTS_RULE", "derived"
         ),
-        "minimum_hours": _record(
-            gap_hours, "GAP_PENALTY_HOURS", gap_hours_status
-        ),
-        "penalty_rate": _record(gap_rate, "GAP_PENALTY_RATE", gap_rate_status),
+        "minimum_hours": _record(gap_hours, "GAP_BETWEEN_SHIFTS_RULE", "derived"),
+        "penalty_rate": _record(gap_rate, "GAP_BETWEEN_SHIFTS_RULE", "derived"),
     }
 
-    penalties, penalties_status = _literal(
-        assignments, "PENALTIES", "weekday_penalties", issues, default={}
-    )
     shift_rows: list[dict] = []
     time_rows: list[dict] = []
     if isinstance(penalties, dict):
@@ -569,15 +351,29 @@ def project_rule_source(
         issues.append(
             _issue(
                 "weekday_penalties",
-                "PENALTIES must be a dictionary to use the Review Helper.",
+                "ORDINARY_HOUR_PENALTIES must be a dictionary.",
             )
         )
     questionnaire["weekday_penalties"] = {
         "shift_based_penalties": _record(
-            shift_rows, "PENALTIES", penalties_status
+            shift_rows, "ORDINARY_HOUR_PENALTIES", "derived"
         ),
-        "time_based_penalties": _record(time_rows, "PENALTIES", penalties_status),
+        "time_based_penalties": _record(
+            time_rows, "ORDINARY_HOUR_PENALTIES", "derived"
+        ),
     }
+
+    employment_answers = {
+        "default_break": shift_rules.get("default_break_hours", 0.5),
+        "part_time_top_up_entitlement": top_up.get("part_time", False),
+        "full_time_top_up_entitlement": top_up.get("full_time", False),
+    }
+    for field, value in employment_answers.items():
+        questionnaire["employment_defaults"][field] = _record(
+            value,
+            "SHIFT_RULES" if field == "default_break" else "TOP_UP_RULES",
+            "derived",
+        )
 
     _merge_imported_context(questionnaire, imported_context)
     issues.extend(validate_questionnaire(questionnaire))
@@ -600,9 +396,7 @@ def _merge_imported_context(questionnaire: dict, imported_context: dict | None) 
         return
     for section, fields in questionnaire.items():
         for field, record in fields.items():
-            imported_path = IMPORT_ALIASES.get(
-                f"{section}.{field}", f"{section}.{field}"
-            )
+            imported_path = f"{section}.{field}"
             imported_section_name, imported_field_name = imported_path.split(
                 ".", 1
             )
@@ -847,10 +641,7 @@ def validate_questionnaire(questionnaire: dict) -> list[dict]:
             allowed_bases = (
                 {"start", "end", "duration", "start_and_end"}
                 if expected_type == "shift_based"
-                # Time-based penalties always use time overlap. Retain the
-                # earlier values here so existing saved questionnaires remain
-                # valid while the editor normalizes new rows to "time".
-                else {"time", "start", "end", "duration"}
+                else {"time"}
             )
             if row.get("basis") not in allowed_bases:
                 issues.append(
@@ -948,73 +739,89 @@ def patch_rule_source(award_key: str, source: str, questionnaire: dict) -> str:
     class_node, assignments, parse_issues = _class_assignments(award_key, source)
     if class_node is None:
         raise ValueError(parse_issues[0]["message"])
-    if "ORDINARY_TIME_RULES" in assignments:
-        raise ValueError(
-            "The Guided Rule Editor is read-only for canonical grouped rulesets. "
-            "Edit the grouped rules directly to keep this ruleset free of legacy attributes."
-        )
+    values = {}
+    for attribute in MANAGED_ATTRIBUTES:
+        try:
+            values[attribute] = copy.deepcopy(
+                ast.literal_eval(assignments[attribute][1])
+            )
+        except (KeyError, ValueError, TypeError):
+            raise ValueError(
+                f"{attribute} must be a literal dictionary."
+            ) from None
 
-    # Build the exact class values owned by the Review Helper. Everything not
-    # listed here stays untouched in the raw Python source.
-    values = {
-        attribute: _answer(questionnaire, path)
-        for path, attribute in DIRECT_FIELDS.items()
-    }
-    values["DAILY_OVERTIME_CONFIGURATION"] = _answer(
+    values["SHIFT_RULES"]["default_break_hours"] = _answer(
+        questionnaire, "employment_defaults.default_break"
+    )
+
+    ordinary = values["ORDINARY_TIME_RULES"]
+    ordinary["daily"] = _answer(
         questionnaire, "overtime.daily_overtime_configuration"
     )
-    values["WEEKLY_OVERTIME_CONFIGURATION"] = _answer(
+    ordinary["period"] = _answer(
         questionnaire, "overtime.weekly_overtime_configuration"
     )
-    values["SPAN_OVERTIME_START_HOUR"] = _answer(
-        questionnaire, "span_overtime.before_cutoff_hour"
+    ordinary["period"]["part_time_uses_contracted_hours"] = _answer(
+        questionnaire, "overtime.part_time_contracted_hours_overtime"
     )
-    gap_applies = _answer(questionnaire, "gap_between_shifts.applies")
-    values["GAP_PENALTY_HOURS"] = (
-        _answer(questionnaire, "gap_between_shifts.minimum_hours")
-        if gap_applies
-        else 0
-    )
-    values["GAP_PENALTY_RATE"] = (
-        _answer(questionnaire, "gap_between_shifts.penalty_rate")
-        if gap_applies
-        else 0
-    )
-
-    current_weekend = {}
-    if "WEEKEND_RULES" in assignments:
-        try:
-            current_weekend = ast.literal_eval(
-                assignments["WEEKEND_RULES"][1]
-            )
-        except (ValueError, TypeError):
-            pass
-    weekend_rules = (
-        copy.deepcopy(current_weekend)
-        if isinstance(current_weekend, dict)
-        else {}
-    )
-    for (worker, day), (treatment_path, loading_path) in WEEKEND_FIELDS.items():
-        worker_rules = weekend_rules.setdefault(worker, {})
-        current_day_rule = worker_rules.get(day)
-        day_rule = (
-            copy.deepcopy(current_day_rule)
-            if isinstance(current_day_rule, dict)
-            else {}
+    if _answer(questionnaire, "span_overtime.applies"):
+        span_rules = ordinary.setdefault("span_overtime", {}).setdefault("day", {})
+        default_span = span_rules.setdefault("default", {})
+        default_span.update(
+            {
+                "start": _answer(
+                    questionnaire, "span_overtime.before_cutoff_hour"
+                ),
+                "end": _answer(questionnaire, "span_overtime.cutoff_hour"),
+                "enabled": True,
+            }
         )
+    else:
+        ordinary["span_overtime"] = {}
+
+    overtime = values["PAY_RATES"].setdefault("overtime", {})
+    for rate_key, field in (
+        ("weekday", "standard_overtime_rate"),
+        ("extended", "extended_overtime_rate"),
+        ("saturday", "saturday_overtime_rate"),
+        ("sunday", "sunday_overtime_rate"),
+    ):
+        overtime.setdefault(rate_key, {})["multiplier"] = _answer(
+            questionnaire, f"overtime.{field}"
+        )
+    overtime["two_tier"] = {
+        "enabled": _answer(questionnaire, "overtime.two_tier_overtime"),
+        "threshold": _answer(
+            questionnaire, "overtime.two_tier_overtime_threshold"
+        ),
+        "days": _answer(questionnaire, "overtime.extended_overtime_days"),
+    }
+
+    day_treatments = values["DAY_TREATMENT_RULES"]
+    for (worker, day), (treatment_path, loading_path) in WEEKEND_FIELDS.items():
+        day_rule = day_treatments.setdefault(day, {}).setdefault(worker, {})
         treatment = _answer(questionnaire, treatment_path)
         if treatment == "overtime":
-            day_rule["is_overtime"] = True
-            day_rule.pop("penalty_rate", None)
+            day_rule["base_classification"] = "overtime"
+            day_rule["ordinary_loading"] = 0
         else:
-            day_rule["is_overtime"] = False
-            day_rule["penalty_rate"] = (
+            day_rule["base_classification"] = "ordinary"
+            day_rule["ordinary_loading"] = (
                 _answer(questionnaire, loading_path)
                 if treatment == "penalty"
                 else 0
             )
-        worker_rules[day] = day_rule
-    values["WEEKEND_RULES"] = weekend_rules
+
+    if _answer(questionnaire, "gap_between_shifts.applies"):
+        gap = values["GAP_BETWEEN_SHIFTS_RULE"]
+        gap["minimum_hours"] = _answer(
+            questionnaire, "gap_between_shifts.minimum_hours"
+        )
+        gap["loading"] = _answer(
+            questionnaire, "gap_between_shifts.penalty_rate"
+        )
+    else:
+        values["GAP_BETWEEN_SHIFTS_RULE"] = {}
 
     penalties = {}
     for field in ("shift_based_penalties", "time_based_penalties"):
@@ -1038,7 +845,13 @@ def patch_rule_source(award_key: str, source: str, questionnaire: dict) -> str:
                 penalty["finish_start"] = row["finish_start_hour"]
                 penalty["finish_end"] = row["finish_end_hour"]
             penalties[row["code_name"]] = penalty
-    values["PENALTIES"] = penalties
+    values["ORDINARY_HOUR_PENALTIES"] = penalties
+    values["TOP_UP_RULES"]["part_time"] = _answer(
+        questionnaire, "employment_defaults.part_time_top_up_entitlement"
+    )
+    values["TOP_UP_RULES"]["full_time"] = _answer(
+        questionnaire, "employment_defaults.full_time_top_up_entitlement"
+    )
 
     lines = source.splitlines(keepends=True)
     replacements: list[tuple[int, int, str]] = []
@@ -1065,10 +878,10 @@ def patch_rule_source(award_key: str, source: str, questionnaire: dict) -> str:
             if comment_index >= 0:
                 trailing_comment = "  " + suffix[comment_index:].rstrip()
         preserved_comments = []
-        # PENALTIES is fully generated by the guided editor. Inline comments
+        # The penalty group is fully generated by the guided editor. Inline comments
         # from an older literal do not describe its current rows and used to be
         # moved above the regenerated assignment on every save.
-        if attribute != "PENALTIES":
+        if attribute != "ORDINARY_HOUR_PENALTIES":
             try:
                 tokens = tokenize.generate_tokens(io.StringIO(original).readline)
                 for token in tokens:

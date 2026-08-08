@@ -6,7 +6,13 @@ const PayContext = createContext();
 const savedAward = typeof window !== 'undefined'
     ? window.localStorage.getItem('pay-checker.award')
     : null;
-const defaultAward = savedAward || 'hospitality';
+const liveAwards = new Set([
+    'fast_food',
+    'coles_2024',
+    'gria_2026',
+    'woolies_2024_demo',
+]);
+const defaultAward = liveAwards.has(savedAward) ? savedAward : 'fast_food';
 
 const initialState = {
     config: {

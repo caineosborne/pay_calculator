@@ -106,8 +106,8 @@ class OvertimeAllocationDemoTests(unittest.TestCase):
             {"day": "Monday", "start": 9, "end": 13, "break_duration": 0},
             public_holidays=[{"week": 1, "day": "Monday"}],
         )
-        self.assertEqual(result.overtime_hours, 4)
-        self.assertEqual(result.overtime_pay, 200)
+        self.assertEqual(result.ordinary_hours, 4)
+        self.assertEqual(result.penalty_pay, 100)
 
         result = calculate(
             {"day": "Monday", "start": 9, "end": 13, "break_duration": 0},
@@ -115,7 +115,7 @@ class OvertimeAllocationDemoTests(unittest.TestCase):
             public_holidays=[{"week": 1, "day": "Monday"}],
         )
         self.assertEqual(result.ordinary_hours, 4)
-        self.assertEqual(result.penalty_pay, 120)
+        self.assertEqual(result.penalty_pay, 100)
 
     def test_period_overtime_removes_sunday_ordinary_loading(self):
         calculator = PayCalculator(PayRequest(
@@ -177,7 +177,7 @@ class OvertimeAllocationDemoTests(unittest.TestCase):
             for day in days
         ]
         result = calculate(*shifts)
-        self.assertEqual(result.overtime_hours, 8)
+        self.assertEqual(result.overtime_hours, 4)
         self.assertIn("Maximum day overtime", result.daily_breakdown["Week 2 - Thursday"]["applied_rules"])
 
     def test_casual_values_are_explicit_for_ordinary_penalty_and_overtime(self):
@@ -192,13 +192,13 @@ class OvertimeAllocationDemoTests(unittest.TestCase):
             worker_type="shift", employment_type="casual",
         )
         self.assertEqual(penalty.ordinary_pay, 80)
-        self.assertEqual(penalty.penalty_pay, 52)  # 4 hours at the 0.65 loading
+        self.assertEqual(penalty.penalty_pay, 60)  # 4 hours at the 0.75 loading
 
         overtime = calculate(
             {"day": "Monday", "start": 9, "end": 13, "break_duration": 0, "manual_overtime": True},
             employment_type="casual",
         )
-        self.assertEqual(overtime.overtime_pay, 157.5)  # 3 hours at 1.875x, then 1 at 2.25x
+        self.assertEqual(overtime.overtime_pay, 150)  # 3 hours at 1.75x, then 1 at 2.25x
 
 
 if __name__ == "__main__":

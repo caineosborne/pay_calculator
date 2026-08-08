@@ -1,9 +1,8 @@
 """
 Rule engine for pay calculations.
 
-This module contains the pay calculation rules interface that adapts to
-different awards. It uses the rule factory to get the appropriate rule set
-based on the specified award.
+This module contains the calculation interface for the canonical grouped rule
+contract used by the live Fast Food, Coles, GRIA, and Woolies rulesets.
 
 The rule engine implements methods in the following logical order:
 1. Basic award settings (ordinary hours limits, worker types)
@@ -16,17 +15,12 @@ Dependencies:
 - rules module for award-specific rule sets
 """
 
+from copy import deepcopy
+
 from .rules import get_rules_for_award
-from .rule_schema import canonical_rules
 
 class PayRules:
-    """
-    Adapter class for award-specific calculation rules.
-    
-    This class dynamically adapts to the selected award by using
-    the appropriate rule set from the rules module. It provides a unified
-    interface for accessing rules across different awards, handling differences
-    in rule structures gracefully.
+    """Calculation helpers over the canonical grouped rule contract.
     
     The rule engine is structured to follow a natural progression of calculations:
     - First setting up the rule context
@@ -35,8 +29,8 @@ class PayRules:
     - Then period overtime
     - Finally applying penalties
     
-    All methods are designed to be self-contained and handle edge cases across
-    different awards.
+    Both live rulesets expose the same seven grouped dictionaries, so calculation
+    code never needs award-specific attribute fallbacks.
     """
     
     def __init__(
@@ -51,27 +45,22 @@ class PayRules:
         self.active_rules = get_rules_for_award(
             award, configuration_identifier
         )
-        self.config = canonical_rules(self.active_rules)
+        self.config = {
+            "shift": deepcopy(self.active_rules.SHIFT_RULES),
+            "ordinary_time": deepcopy(self.active_rules.ORDINARY_TIME_RULES),
+            "day_treatment": deepcopy(self.active_rules.DAY_TREATMENT_RULES),
+            "pay_rates": deepcopy(self.active_rules.PAY_RATES),
+            "gap_between_shifts": deepcopy(
+                self.active_rules.GAP_BETWEEN_SHIFTS_RULE
+            ),
+            "penalties": deepcopy(self.active_rules.ORDINARY_HOUR_PENALTIES),
+            "top_up": deepcopy(self.active_rules.TOP_UP_RULES),
+        }
     
     #
     # HOURS LIMIT METHODS - Basic configuration for calculating overtime
     #
     
-    def _configured_overtime_limit(
-        self, attribute: str, worker_type: str, employment_type: str | None
-    ) -> float | None:
-        configuration = getattr(self.active_rules, attribute, None)
-        if not isinstance(configuration, dict):
-            return None
-        variation = configuration.get('variation')
-        if variation == 'default':
-            return configuration.get('default')
-        if variation == 'worker_type':
-            return configuration.get(worker_type)
-        if variation == 'employment_type' and employment_type is not None:
-            return configuration.get(employment_type)
-        return None
-
     def get_ordinary_hours_daily_limit(
         self, worker_type: str, employment_type: str | None = None
     ) -> float:
@@ -218,32 +207,6 @@ class PayRules:
         # Default to standard overtime rate for weekdays and flat-rate rulesets.
         return overtime["weekday"]["multiplier"]
 
-    def calculate_overtime_pay(
-        self, day: str, overtime_hours: float, hourly_rate: float
-    ) -> float:
-        """Calculate overtime pay, splitting configured two-tier rates."""
-        if overtime_hours <= 0:
-            return 0
-
-        overtime = self.config["pay_rates"]["overtime"]
-        tier = overtime.get("two_tier", {})
-        extended_days = tier.get("days", ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'])
-        if (
-            day in extended_days
-            and tier.get("enabled", False)
-        ):
-            threshold = tier.get("threshold", 0)
-            standard_hours = min(overtime_hours, threshold)
-            extended_hours = max(overtime_hours - threshold, 0)
-            return hourly_rate * (
-                standard_hours * overtime["weekday"]["multiplier"]
-                + extended_hours * overtime["extended"]["multiplier"]
-            )
-
-        return overtime_hours * hourly_rate * self.get_overtime_rate(
-            day, overtime_hours
-        )
-
     #
     # PENALTY METHODS - For calculating various types of penalties
     #
@@ -268,50 +231,14 @@ class PayRules:
             return rule.get("casual_rate", rule.get("ordinary_loading", 0))
         return rule.get("ordinary_loading", 0)
     
-    def calculate_shift_start_penalty(self, start_time: float, worker_type: str) -> dict:
-        """
-        Calculate penalty rate based on shift start time (primarily for Aged Care shift workers).
-        
-        Args:
-            start_time: Start time of the shift (in 24-hour format)
-            worker_type: Type of worker ('shift' or 'day')
-            
-        Returns:
-            dict with keys:
-            - applies (bool): Whether the shift start penalty applies
-            - penalty_rate (float): The penalty rate to apply
-            - description (str): Description of the penalty for reporting
-        """
-        rules = self.active_rules
-        
-        # Only apply if the award has shift start time penalty rules
-        if not hasattr(rules, 'SHIFT_PEN_RULES'):
-            return {'applies': False, 'penalty_rate': 0, 'description': ''}
-            
-        # Get the shift penalty rules for this worker type
-        shift_pen_rules = rules.SHIFT_PEN_RULES.get(worker_type, {})
-        if not shift_pen_rules:
-            return {'applies': False, 'penalty_rate': 0, 'description': ''}
-            
-        # Check if the shift start time falls within any of the penalty windows
-        for window_name, window in shift_pen_rules.items():
-            if window['start'] <= start_time < window['end']:
-                return {
-                    'applies': True,
-                    'penalty_rate': window['rate'],
-                    'description': f"Shift Pen after {window['start']}:00 ({int(window['rate'] * 100)}%)"
-                }
-                
-        return {'applies': False, 'penalty_rate': 0, 'description': ''}
-    
     def check_shift_gap_penalty(self, current_shift_start: float, previous_shift_end: float,
                                current_day: str = None, previous_day: str = None,
                                employment_type: str | None = None) -> dict:
         """
         Check if a gap penalty should be applied between two shifts.
         
-        This rule is primarily for the Aged Care award, which requires a minimum
-        gap between shifts. If shifts are too close together, a penalty applies.
+        If the active grouped rules require a minimum gap between shifts, a
+        shorter gap attracts the configured loading.
         
         Args:
             current_shift_start: Start time of the current shift (in hours)
@@ -377,8 +304,8 @@ class PayRules:
         """
         Calculate all applicable penalties for a shift using the unified penalty structure.
         
-        This method processes both shift-based and time-based penalties from the PENALTIES
-        property of the active ruleset. It handles shifts that cross midnight and correctly
+        This method processes both shift-based and time-based penalties from the
+        canonical penalty group. It handles shifts that cross midnight and correctly
         calculates penalty rates for each segment of the shift.
         
         Args:
@@ -396,41 +323,9 @@ class PayRules:
             - rate (float): Penalty rate for this period
             - description (str): Description of the penalty for reporting
         """
-        rules = self.active_rules
-        
-        # Only apply if the award has unified penalties structure
-        penalties_config = (
-            self.config["penalties"]
-            if getattr(rules, "CANONICAL_RULESET", False)
-            else getattr(rules, "PENALTIES", self.config["penalties"])
-        )
+        penalties_config = self.config["penalties"]
         if not penalties_config:
-            # Fall back to legacy methods if PENALTIES not defined
-            penalties = []
-            
-            # Try shift penalties
-            shift_penalty = self.calculate_shift_start_penalty(start_time, worker_type)
-            if shift_penalty['applies']:
-                penalties.append({
-                    'type': 'shift_based',
-                    'rate': shift_penalty['penalty_rate'],
-                    'description': shift_penalty['description'],
-                    'hours': end_time - start_time if end_time > start_time else (24 - start_time) + end_time
-                })
-                
-            # Try hourly penalties
-            hourly_penalties = self.calculate_hourly_penalties(start_time, end_time, day)
-            for hp in hourly_penalties:
-                penalties.append({
-                    'type': 'time_based',
-                    'start': hp['start'],
-                    'end': hp['end'],
-                    'rate': hp['rate'],
-                    'description': hp['description'],
-                    'hours': hp['hours']
-                })
-                
-            return penalties
+            return []
             
         # Normalize end time (handle shifts that go past midnight)
         normalized_end_time = end_time
@@ -606,60 +501,3 @@ class PayRules:
                 time_value += 24
 
         return window_start <= time_value < window_end
-    
-    def calculate_hourly_penalties(self, start_time: float, end_time: float, day: str = None) -> list:
-        """
-        Calculate hourly penalties for specific time periods.
-        
-        This method identifies penalty periods when shifts overlap with defined
-        penalty windows (e.g., overnight hours). It handles shifts that cross midnight
-        and correctly calculates penalty rates for each segment of the shift.
-        
-        Args:
-            start_time: Start time of the shift (in 24-hour format)
-            end_time: End time of the shift (in 24-hour format)
-            day: Day of the week for the shift
-            
-        Returns:
-            List of dicts with keys:
-            - start (float): Start time of the penalty period
-            - end (float): End time of the penalty period
-            - hours (float): Number of hours in this penalty period
-            - rate (float): Penalty rate for this period
-            - description (str): Description of the penalty for reporting
-        """
-        rules = self.active_rules
-        
-        # Only apply if the award has hourly penalty rules
-        if not hasattr(rules, 'HOURS_PEN_RULES'):
-            return []
-            
-        # Don't apply hourly penalties on weekends (they have their own penalty rates)
-        if day in ['Saturday', 'Sunday']:
-            return []
-            
-        # Normalize end time (handle shifts that go past midnight)
-        normalized_end_time = end_time
-        if end_time < start_time:
-            normalized_end_time += 24
-            
-        penalty_periods = []
-        
-        # Check each penalty window
-        for window_name, window in rules.HOURS_PEN_RULES.items():
-            window_start = window['start']
-            window_end = window['end']
-            
-            for overlap_start, overlap_end in self._time_window_overlaps(
-                start_time, normalized_end_time, window_start, window_end
-            ):
-                penalty_hours = overlap_end - overlap_start
-                penalty_periods.append({
-                    'start': overlap_start % 24,  # Normalize back to 0-24 range
-                    'end': overlap_end % 24,      # Normalize back to 0-24 range
-                    'hours': penalty_hours,
-                    'rate': window['rate'],
-                    'description': f"Hours Pen {int(window_start)}:00-{int(window_end % 24)}:00 ({int(window['rate'] * 100)}%)"
-                })
-                
-        return penalty_periods

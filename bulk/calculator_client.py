@@ -17,7 +17,7 @@ WEEKDAYS = (
 )
 REQUIRED_COLUMNS = {"shift_date", "start_time", "end_time"}
 EMD_COLUMNS = ("employee", "hourly_rate", "award", "worker_type", "employment_type", "contracted_hours", "pay_cycle_start_day", "pay_cycle_anchor", "rule_configuration")
-AWARDS = {"aged_care", "hospitality", "child_care", "nurses", "clerks_private_sector", "MA000018", "MA000120", "eb11"}
+AWARDS = {"fast_food", "coles_2024", "gria_2026", "woolies_2024_demo"}
 
 
 class BulkImportError(ValueError):
