@@ -7,16 +7,62 @@ const parseTimeValue = (value) => {
         return null;
     }
 
-    // A trailing "n" is the UI's explicit marker for a next-day time.
-    if (value.toString().endsWith('n')) {
-        const hour = Number.parseInt(value, 10);
-        return Number.isNaN(hour) || hour < 0 || hour > 23
-            ? null
-            : hour + 24;
+    const match = /^(\d{1,2}):(\d{2})$/.exec(value.toString().trim());
+    const numericValue = value.toString().trim();
+    const inputHours = match ? Number.parseInt(match[1], 10) : null;
+    const inputMinutes = match ? Number.parseInt(match[2], 10) : null;
+    const time = match && inputHours <= 23 && inputMinutes <= 59
+        ? inputHours + (inputMinutes / 60)
+        : /^\d+(?:\.\d+)?$/.test(numericValue)
+            ? Number.parseFloat(numericValue)
+            : Number.NaN;
+    return Number.isNaN(time) || time < 0 || time > 47 ? null : time;
+};
+
+const asCalculationPeriods = (shift) => {
+    const start = parseTimeValue(shift.start);
+    const enteredEnd = parseTimeValue(shift.end);
+    const lunch = parseTimeValue(shift.lunch_start);
+    const breakDuration = parseFloat(shift.break_duration) || 0;
+    const end = enteredEnd > start ? enteredEnd : enteredEnd + 24;
+    const baseShift = {
+        week: shift.week || 1,
+        day: shift.day,
+        start,
+        end,
+        manual_overtime: Boolean(shift.manual_overtime),
+        manual_ordinary: Boolean(shift.manual_ordinary),
+    };
+
+    // An entered lunch time is optional. When it falls inside the shift, send
+    // the actual worked periods around it. This lets the existing calculator
+    // apply time-sensitive rules without changing allocation behaviour for
+    // shifts where lunch timing does not matter.
+    const lunchStart = lunch !== null && lunch < start ? lunch + 24 : lunch;
+    const lunchEnd = lunchStart === null ? null : lunchStart + breakDuration;
+    if (
+        breakDuration > 0 &&
+        lunchStart !== null &&
+        lunchStart >= start &&
+        lunchEnd <= end
+    ) {
+        return [
+            {
+                ...baseShift,
+                end: lunchStart,
+                break_duration: 0,
+                minimum_engagement_exempt: true,
+            },
+            {
+                ...baseShift,
+                start: lunchEnd,
+                break_duration: 0,
+                minimum_engagement_exempt: true,
+            },
+        ];
     }
 
-    const hour = Number.parseInt(value, 10);
-    return Number.isNaN(hour) || hour < 0 || hour > 30 ? null : hour;
+    return [{ ...baseShift, break_duration: breakDuration }];
 };
 
 export function ShiftCalculator({ children }) {
@@ -28,9 +74,7 @@ export function ShiftCalculator({ children }) {
 
         const calculateShifts = async () => {
             const validShifts = state.shifts.filter(shift => {
-                const hasStart = shift.start !== '' && shift.start !== null && shift.start !== undefined;
-                const hasEnd = shift.end !== '' && shift.end !== null && shift.end !== undefined;
-                return hasStart && hasEnd;
+                return parseTimeValue(shift.start) !== null && parseTimeValue(shift.end) !== null;
             });
 
             if (!state.config.hourlyRate || validShifts.length === 0) {
@@ -46,15 +90,7 @@ export function ShiftCalculator({ children }) {
                     employment_type: state.config.employmentType,
                     contracted_hours: state.config.contractedHours,
                     public_holidays: state.publicHolidays,
-                    shifts: validShifts.map(shift => ({
-                        week: shift.week || 1,
-                        day: shift.day,
-                        start: parseTimeValue(shift.start),
-                        end: parseTimeValue(shift.end),
-                        break_duration: parseFloat(shift.break_duration) || 0,
-                        manual_overtime: Boolean(shift.manual_overtime),
-                        manual_ordinary: Boolean(shift.manual_ordinary),
-                    }))
+                    shifts: validShifts.flatMap(asCalculationPeriods)
                 };
 
                 const data = await api.calculatePay(payload, {
@@ -78,6 +114,8 @@ export function ShiftCalculator({ children }) {
                         pay: {
                             ordinary: Number(values.ordinary_pay || 0).toFixed(2),
                             overtime: Number(values.overtime_pay || 0).toFixed(2),
+                            penalty: Number(values.penalty_pay || 0).toFixed(2),
+                            topup: Number(values.topup_pay || 0).toFixed(2),
                             total: Number(values.pay || 0).toFixed(2)
                         },
                         applied_rules: values.applied_rules || []

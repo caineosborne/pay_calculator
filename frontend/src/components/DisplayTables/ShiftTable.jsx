@@ -33,8 +33,9 @@ export default function ShiftTable() {
                     </td>
                     <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-600">{breakdown?.hours?.ordinary || '0.00'}</td>
                     <td className="px-2 py-1 whitespace-nowrap text-sm text-red-600">{breakdown?.hours?.overtime || '0.00'}</td>
+                    <td className="px-2 py-1 whitespace-nowrap text-sm font-medium text-gray-900">${breakdown?.pay?.total || '0.00'}</td>
                     <td className="min-w-64 px-2 py-1 text-sm text-gray-600 whitespace-normal">{breakdown?.applied_rules?.join(', ') || '-'}</td>
-                </> : <td colSpan="4" className="px-2 py-1 text-xs italic text-gray-500">Combined with the workday above</td>}
+                </> : <td colSpan="5" className="px-2 py-1 text-xs italic text-gray-500">Combined with the workday above</td>}
             </tr>
         );
     };
@@ -52,6 +53,7 @@ export default function ShiftTable() {
                         <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fortnight Day</th>
                         <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase">Start</th>
                         <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase">End</th>
+                        <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lunch starts</th>
                         <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase">Break (hrs)</th>
                         <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase">Manual OT</th>
                         <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase">Manual ORD</th>
@@ -59,6 +61,7 @@ export default function ShiftTable() {
                         <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Hours</th>
                         <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase">ORD Hours</th>
                         <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase">OT Hours</th>
+                        <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
                         <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase">Applied Rules</th>
                     </tr>
                 </thead>

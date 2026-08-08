@@ -9,7 +9,7 @@
  * @module Components/Layout
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { usePay } from '../../context/PayContext';
 import { createFortnightShifts, createShift } from '../Config/shifts';
 
@@ -32,6 +32,7 @@ const EMPTY_SHIFTS = createFortnightShifts(false);
  */
 export default function Header() {
     const { state, dispatch } = usePay();
+    const [copyStatus, setCopyStatus] = useState('');
 
     /**
      * Resets all shifts to default 9-5 schedule
@@ -85,6 +86,7 @@ export default function Header() {
                 start: shift.start,
                 end: shift.end,
                 break_duration: shift.break_duration,
+                lunch_start: shift.lunch_start,
             })),
         ];
 
@@ -92,6 +94,56 @@ export default function Header() {
             type: 'UPDATE_SHIFTS',
             payload: newShifts
         });
+    };
+
+    const formatTime = (value) => {
+        if (value === '' || value === null || value === undefined) return null;
+        const input = value.toString().trim();
+        const clockMatch = /^(\d{1,2}):(\d{2})$/.exec(input);
+        const time = clockMatch
+            ? Number.parseInt(clockMatch[1], 10) + (Number.parseInt(clockMatch[2], 10) / 60)
+            : Number.parseFloat(input);
+        if (!Number.isFinite(time)) return value;
+        const totalMinutes = Math.round((time % 24) * 60);
+        const hours = Math.floor(totalMinutes / 60) % 24;
+        const minutes = totalMinutes % 60;
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    };
+
+    const copyTroubleshootingSummary = async () => {
+        const summary = state.shifts
+            .map((shift, index) => ({ shift, index }))
+            .filter(({ shift }) => shift.start !== '' || shift.end !== '')
+            .map(({ shift }) => {
+                const key = `Week ${shift.week || 1} - ${shift.day}`;
+                const daily = state.calculations.dailyBreakdown?.[key];
+                const isPrimary = shift.isPrimary !== false;
+                const flags = [
+                    shift.manual_overtime && 'Manual overtime',
+                    shift.manual_ordinary && 'Manual ordinary',
+                    isPrimary && state.publicHolidays?.some(
+                        (holiday) => holiday.week === shift.week && holiday.day === shift.day
+                    ) && 'Public holiday',
+                ].filter(Boolean);
+
+                return {
+                    dayOfWeek: key,
+                    startTime: formatTime(shift.start),
+                    endTime: formatTime(shift.end),
+                    lunchTime: formatTime(shift.lunch_start),
+                    lunchLengthHours: Number.parseFloat(shift.break_duration) || 0,
+                    flags,
+                    amount: isPrimary && daily ? `$${daily.pay?.total ?? '0.00'}` : null,
+                    appliedRules: isPrimary ? (daily?.applied_rules || []) : [],
+                };
+            });
+
+        try {
+            await navigator.clipboard.writeText(JSON.stringify(summary, null, 2));
+            setCopyStatus('Copied');
+        } catch {
+            setCopyStatus('Could not copy');
+        }
     };
 
     return (
@@ -116,6 +168,12 @@ export default function Header() {
                             className="pay-button"
                         >
                             Copy Previous Week
+                        </button>
+                        <button
+                            onClick={copyTroubleshootingSummary}
+                            className="pay-button"
+                        >
+                            {copyStatus || 'Copy troubleshooting summary'}
                         </button>
                         <button
                             onClick={resetToDefault}

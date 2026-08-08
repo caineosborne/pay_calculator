@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { usePay } from '../../context/PayContext';
 
 export default function ShiftTimeInput({ renderRow }) {
     const { state, dispatch } = usePay();
+    const [timeDrafts, setTimeDrafts] = useState({});
+    const draftKey = (shift, field) => `${shift.id ?? `${shift.week}-${shift.day}`}-${field}`;
 
     const resetCalculationsIfEmpty = (newShifts) => {
         const allShiftsEmpty = newShifts.every(shift => !shift.start || !shift.end);
@@ -42,32 +44,60 @@ export default function ShiftTimeInput({ renderRow }) {
 
     const formatTimeDisplay = (value) => {
         if (!value && value !== 0) return '';
-        const numValue = parseInt(value);
-        if (isNaN(numValue)) return '';
-        // Keep the API value as 24-30 for next-day times, but show the
-        // corresponding clock hour (midnight through 6am) in the UI.
-        return (numValue >= 24 ? numValue - 24 : numValue).toString();
+        const decimalHours = Number.parseFloat(value);
+        if (Number.isNaN(decimalHours)) return '';
+        const totalMinutes = Math.round((decimalHours % 24) * 60);
+        const hours = Math.floor(totalMinutes / 60) % 24;
+        const minutes = totalMinutes % 60;
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
     };
 
-    const parseTimeInput = (value, currentValue, field) => {
-        if (!value && value !== 0) return null;
-        const parsed = parseInt(value);
-        if (!isNaN(parsed)) {
-            // If the current value is next-day, interpret displayed 0-6am
-            // values as next-day values while preserving the API contract.
-            const isNextDay = currentValue > 23;
-            const displayMax = field === 'end' ? 6 : 0;
-            if (isNextDay && parsed >= 0 && parsed <= displayMax) {
-                return (parsed + 24).toString();
-            }
-
-            // Also continue to accept the raw next-day values when entered
-            // directly (for example, 25), as before.
-            if (parsed >= 0 && parsed <= 30) {
-                return parsed.toString();
-            }
+    const timeValueAsDecimal = (value) => {
+        if (value === '' || value === null || value === undefined) return null;
+        const match = /^(\d{1,2}):(\d{2})$/.exec(value.toString().trim());
+        if (match) {
+            const hours = Number.parseInt(match[1], 10);
+            const minutes = Number.parseInt(match[2], 10);
+            return hours <= 23 && minutes <= 59 ? hours + (minutes / 60) : null;
         }
-        return null;
+        const decimal = Number.parseFloat(value);
+        return Number.isFinite(decimal) ? decimal : null;
+    };
+
+    const parseTimeInput = (value, currentValue) => {
+        const input = value.trim();
+        const clockMatch = /^(\d{1,2}):(\d{2})$/.exec(input);
+        const hourMatch = /^(\d{1,2})$/.exec(input);
+        // A dot is accepted as a quick time separator: 3.5 means 03:50,
+        // while 3.25 means 03:25.
+        const dotMatch = /^(\d{1,2})\.(\d{1,2})$/.exec(input);
+        if (!clockMatch && !hourMatch && !dotMatch) return null;
+
+        const hours = Number.parseInt((clockMatch || hourMatch || dotMatch)[1], 10);
+        const minutes = clockMatch
+            ? Number.parseInt(clockMatch[2], 10)
+            : dotMatch
+                ? Number.parseInt(dotMatch[2].padEnd(2, '0'), 10)
+                : 0;
+        if (hours > 23 || minutes > 59) return null;
+
+        let decimalHours = hours + (minutes / 60);
+        // Retain an explicitly selected next-day value when editing it.
+        if (Number.parseFloat(currentValue) >= 24) decimalHours += 24;
+        return decimalHours.toString();
+    };
+
+    const commitTimeInput = (idx, field, value) => {
+        const shift = state.shifts[idx];
+        const parsedValue = parseTimeInput(value, timeValueAsDecimal(shift[field]));
+        setTimeDrafts((drafts) => {
+            const next = { ...drafts };
+            delete next[draftKey(shift, field)];
+            return next;
+        });
+        if (parsedValue !== null) {
+            handleShiftChange(idx, field, parsedValue);
+        }
     };
 
     const handleTimeChange = (idx, field, value, isInput = false) => {
@@ -77,35 +107,24 @@ export default function ShiftTimeInput({ renderRow }) {
         if (field === 'break_duration') {
             newValue = value === '' ? shift.break_duration :
                 Math.max(0, Math.min(24, parseFloat(value) || 0)).toString();
-        } else if (isInput) {
-            // Handle direct input
-            const currentValue = parseInt(shift[field]);
-            const parsedValue = parseTimeInput(value, currentValue, field);
-            if (parsedValue === null) {
-                newValue = shift[field];
-            } else {
-                const intValue = parseInt(parsedValue);
-                // For next-day times (>24), keep the actual value for API
-                newValue = intValue > 24 ? intValue.toString() :
-                    Math.min(field === 'end' ? 30 : 24, Math.max(0, intValue || 0)).toString();
-            }
-        } else {
-            const currentValue = parseInt(shift[field]);
+        } else if (!isInput) {
+            const currentValue = timeValueAsDecimal(
+                timeDrafts[draftKey(shift, field)] ?? shift[field]
+            );
             if (value === 'increment') {
                 if (!currentValue && currentValue !== 0) {
                     // Field is blank, try to get previous day's value
                     if (idx > 0) {
-                        const prevValue = parseInt(state.shifts[idx - 1][field]);
-                        newValue = (prevValue || (field === 'end' ? 17 : 9)).toString();
+                        const prevValue = timeValueAsDecimal(state.shifts[idx - 1][field]);
+                        newValue = (Number.isFinite(prevValue) ? prevValue : (field === 'end' ? 17 : 9)).toString();
                     } else {
                         newValue = field === 'end' ? '17' : '9'; // Default to 17 for end time, 9 for start time
                     }
                 } else {
-                    const maxValue = field === 'end' ? 30 : 24;
-                    newValue = Math.min(maxValue, currentValue + 1).toString();
+                    newValue = Math.min(47, currentValue + 0.25).toString();
                 }
             } else if (value === 'decrement') {
-                newValue = Math.max(0, (currentValue || 0) - 1).toString();
+                newValue = Math.max(0, (currentValue || 0) - 0.25).toString();
             }
         }
         handleShiftChange(idx, field, newValue);
@@ -117,7 +136,8 @@ export default function ShiftTimeInput({ renderRow }) {
             ...newShifts[idx],
             start: '',
             end: '',
-            break_duration: '0.5'
+            break_duration: '0.5',
+            lunch_start: ''
         };
 
         dispatch({
@@ -137,6 +157,7 @@ export default function ShiftTimeInput({ renderRow }) {
             start: '',
             end: '',
             break_duration: '0.5',
+            lunch_start: '',
         };
         const index = state.shifts.findIndex((item) => item.id === shift.id);
         const insertAfter = state.shifts.findLastIndex(
@@ -184,6 +205,9 @@ export default function ShiftTimeInput({ renderRow }) {
 
     const renderShiftInputs = (shift, idx) => {
         const isPrimary = shift.isPrimary !== false;
+        const startDraftKey = draftKey(shift, 'start');
+        const endDraftKey = draftKey(shift, 'end');
+        const lunchDraftKey = draftKey(shift, 'lunch_start');
         return (
             <>
                 <td className="px-2 py-1 whitespace-nowrap text-sm font-medium text-gray-900">
@@ -195,8 +219,13 @@ export default function ShiftTimeInput({ renderRow }) {
                         <input
                             aria-label={`Week ${shift.week || 1} ${shift.day} ${isPrimary ? 'primary' : 'additional'} shift start`}
                             type="text"
-                            value={formatTimeDisplay(shift.start)}
-                            onChange={(e) => handleTimeChange(idx, 'start', e.target.value, true)}
+                            value={timeDrafts[startDraftKey] ?? formatTimeDisplay(shift.start)}
+                            onChange={(e) => setTimeDrafts((drafts) => ({ ...drafts, [startDraftKey]: e.target.value }))}
+                            onBlur={(e) => commitTimeInput(idx, 'start', e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                            placeholder="HH:MM"
+                            inputMode="numeric"
+                            pattern="[0-2][0-9]:[0-5][0-9]"
                             className="shift-input text-center"
                         />
                         <button aria-label={`Increase ${shift.day} start time`} onClick={() => handleTimeChange(idx, 'start', 'increment')} className="time-adjust">+</button>
@@ -208,12 +237,42 @@ export default function ShiftTimeInput({ renderRow }) {
                         <input
                             aria-label={`Week ${shift.week || 1} ${shift.day} ${isPrimary ? 'primary' : 'additional'} shift end`}
                             type="text"
-                            value={formatTimeDisplay(shift.end)}
-                            onChange={(e) => handleTimeChange(idx, 'end', e.target.value, true)}
+                            value={timeDrafts[endDraftKey] ?? formatTimeDisplay(shift.end)}
+                            onChange={(e) => setTimeDrafts((drafts) => ({ ...drafts, [endDraftKey]: e.target.value }))}
+                            onBlur={(e) => commitTimeInput(idx, 'end', e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                            placeholder="HH:MM"
+                            inputMode="numeric"
+                            pattern="[0-2][0-9]:[0-5][0-9]"
                             className="shift-input text-center"
                         />
                         <button aria-label={`Increase ${shift.day} end time`} onClick={() => handleTimeChange(idx, 'end', 'increment')} className="time-adjust">+</button>
                     </div>
+                </td>
+                <td className="px-2 py-1 whitespace-nowrap">
+                    <input
+                        aria-label={`Week ${shift.week || 1} ${shift.day} ${isPrimary ? 'primary' : 'additional'} lunch start`}
+                        type="text"
+                        value={timeDrafts[lunchDraftKey] ?? formatTimeDisplay(shift.lunch_start)}
+                        onChange={(e) => setTimeDrafts((drafts) => ({ ...drafts, [lunchDraftKey]: e.target.value }))}
+                        onBlur={(e) => {
+                            if (e.target.value.trim() === '') {
+                                setTimeDrafts((drafts) => {
+                                    const next = { ...drafts };
+                                    delete next[lunchDraftKey];
+                                    return next;
+                                });
+                                handleShiftChange(idx, 'lunch_start', '');
+                            } else {
+                                commitTimeInput(idx, 'lunch_start', e.target.value);
+                            }
+                        }}
+                        onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                        placeholder="Optional"
+                        inputMode="numeric"
+                        pattern="[0-2][0-9]:[0-5][0-9]"
+                        className="shift-input text-center"
+                    />
                 </td>
                 <td className="px-2 py-1 whitespace-nowrap">
                     <div className="flex items-center space-x-1">

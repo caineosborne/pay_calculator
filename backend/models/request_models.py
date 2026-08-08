@@ -54,15 +54,20 @@ class Shift(BaseModel):
     
     Attributes:
         day (str): Day of the week
-        start (Optional[int]): Start hour (0-23)
-        end (Optional[int]): End hour (0-23)
+        start (Optional[float]): Start time in decimal hours (0-47)
+        end (Optional[float]): End time in decimal hours (0-47)
         break_duration (Optional[float]): Break duration in hours, defaults to 0.5
     """
     day: str
     week: int = Field(default=1, ge=1, le=2)
-    start: Optional[int] = Field(None, ge=0, le=47)  # Allow times up to 47 (24 + 23) for next day shifts
-    end: Optional[int] = Field(None, ge=0, le=47)    # Allow times up to 47 (24 + 23) for next day shifts
+    # Decimal hours preserve minute-level entries: 09:15 is sent as 9.25.
+    # Values over 24 retain support for explicitly entered next-day times.
+    start: Optional[float] = Field(None, ge=0, le=47)
+    end: Optional[float] = Field(None, ge=0, le=47)
     break_duration: Optional[float] = Field(default=0.5, ge=0, le=24)
+    # The frontend uses this only when a single rostered shift is split around
+    # an entered unpaid lunch. These are attendance segments, not engagements.
+    minimum_engagement_exempt: bool = False
     manual_overtime: bool = False
     manual_ordinary: bool = False
 

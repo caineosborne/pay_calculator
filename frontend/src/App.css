@@ -80,6 +80,10 @@
 .no-penalties { margin: 0; padding: 14px; color: #517064; background: #fcfffd; font: 13px/1.4 'DM Sans', sans-serif; }
 .rule-details { margin-top: 14px; }
 .rule-details .section-kicker { margin: 0 0 8px; }
+.full-rule-config { margin-top: 14px; border: 1px solid #dce7e1; border-radius: 9px; background: #fbfdfc; }
+.full-rule-config summary { cursor: pointer; padding: 11px 13px; color: #146c5a; font: 600 12px 'DM Sans', sans-serif; }
+.full-rule-config p { margin: 0; padding: 0 13px 10px; color: #517064; font-size: 11px; }
+.full-rule-config pre { max-height: 360px; margin: 0; overflow: auto; border-top: 1px solid #dce7e1; padding: 12px 13px; color: #30463d; background: #f5faf7; font: 11px/1.5 'DM Mono', monospace; white-space: pre; }
 
 @media (max-width: 760px) {
   .pay-app { padding: 14px; }

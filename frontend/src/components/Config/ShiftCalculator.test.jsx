@@ -136,4 +136,34 @@ describe('ShiftCalculator', () => {
 
         expect(fetch).toHaveBeenCalledTimes(2);
     });
+
+    it('sends the worked periods around a manually specified lunch', async () => {
+        const dispatch = vi.fn();
+        fetch.mockResolvedValue(responseForPay(160));
+        payContext = {
+            state: {
+                ...stateForRate(20),
+                shifts: [{
+                    week: 1,
+                    day: 'Monday',
+                    start: 9,
+                    end: 17,
+                    break_duration: 0.5,
+                    lunch_start: '12:00',
+                }],
+            },
+            dispatch,
+        };
+
+        render(<ShiftCalculator><div>Calculator</div></ShiftCalculator>);
+        await act(async () => {
+            await vi.advanceTimersByTimeAsync(150);
+        });
+
+        const payload = JSON.parse(fetch.mock.calls[0][1].body);
+        expect(payload.shifts).toEqual([
+            expect.objectContaining({ start: 9, end: 12, break_duration: 0, minimum_engagement_exempt: true }),
+            expect.objectContaining({ start: 12.5, end: 17, break_duration: 0, minimum_engagement_exempt: true }),
+        ]);
+    });
 });

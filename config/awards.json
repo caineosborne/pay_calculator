@@ -6,6 +6,12 @@
     "class_name": "HospitalityRules"
   },
   {
+    "key": "fast_food",
+    "label": "Fast Food Industry Award (Draft)",
+    "module": "fast_food_award",
+    "class_name": "FastFoodAward2026Rules"
+  },
+  {
     "key": "aged_care",
     "label": "Aged Care Award",
     "module": "aged_care_rules",

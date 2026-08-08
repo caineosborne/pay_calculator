@@ -10,7 +10,13 @@ const formatRate = (rate) => {
     const value = Number.isInteger(percentage) ? percentage : percentage.toFixed(1);
     return `${value}% loading`;
 };
-const formatTime = (time) => `${String(time).padStart(2, '0')}:00`;
+const formatTime = (time) => {
+    const value = Number(time);
+    if (!Number.isFinite(value)) return 'Not specified';
+    const hours = Math.floor(value);
+    const minutes = Math.round((value - hours) * 60);
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+};
 
 const formatOvertime = (rule) => {
     if (!rule?.threshold) return 'Not specified';
@@ -23,8 +29,9 @@ const formatSpan = (rule) => rule?.threshold || 'Not specified';
 
 const formatWeekendRule = (rule) => {
     if (!rule) return 'Not specified';
-    if (rule.is_overtime) return 'All hours are paid as overtime';
-    if (rule.penalty_rate) return `${formatRate(rule.penalty_rate)}`;
+    if (rule.is_overtime || rule.base_classification === 'overtime') return 'All hours are paid as overtime';
+    const loading = rule.ordinary_loading ?? rule.penalty_rate;
+    if (hasValue(loading)) return formatRate(loading);
     return 'Not specified';
 };
 
@@ -43,13 +50,17 @@ export function DisplayRules({ showRules }) {
             if (!penalty || typeof penalty !== 'object') return null;
             const kind = penalty.type === 'time_based'
                 ? 'For hours worked'
-                : 'When the shift starts';
+                : penalty.basis === 'end'
+                    ? 'When the shift ends'
+                    : penalty.basis === 'duration'
+                        ? 'By shift duration'
+                        : 'When the shift starts';
             const timeWindow =
                 penalty.start !== undefined && penalty.end !== undefined
                     ? `${formatTime(penalty.start)}–${formatTime(penalty.end)}`
                     : null;
             return {
-                name: titleCase(name.replace(/_loading$/, '')),
+                name: penalty.description || titleCase(name.replace(/_loading$/, '')),
                 rate: formatRate(
                     penalty.rate ?? penalty.penalty_rate
                 ),
@@ -80,6 +91,9 @@ export function DisplayRules({ showRules }) {
         hasValue(rules.pt_employees_entitled_to_contracted_topup) && ['Contracted-hours top-up for part-time employees', rules.pt_employees_entitled_to_contracted_topup ? 'Included' : 'Not included'],
         hasValue(rules.ft_employees_entitled_to_contracted_topup) && ['Contracted-hours top-up for full-time employees', rules.ft_employees_entitled_to_contracted_topup ? 'Included' : 'Not included'],
     ].filter(Boolean);
+    const fullConfiguration = rules.configuration
+        ? JSON.stringify(rules.configuration, null, 2)
+        : null;
 
     return (
         <section className="rules-panel" aria-label="Pay rules that apply">
@@ -127,6 +141,14 @@ export function DisplayRules({ showRules }) {
                         ))}
                     </div>
                 </div>
+            )}
+
+            {fullConfiguration && (
+                <details className="full-rule-config" open>
+                    <summary>Complete configuration</summary>
+                    <p>All normalized award settings used for this calculation.</p>
+                    <pre>{fullConfiguration}</pre>
+                </details>
             )}
         </section>
     );

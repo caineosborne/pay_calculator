@@ -98,6 +98,54 @@ class PayCalculator:
     def _is_public_holiday(self, shift: Shift) -> bool:
         return (shift.week, shift.day) in self.public_holidays
 
+    def _overnight_day_treatment_penalties(
+        self, shift: Shift, end_time: float, break_duration: float,
+        ordinary_hours: float, daily_hours: float,
+    ) -> list[dict]:
+        """Return ordinary-day loadings split across calendar-day segments.
+
+        Shifts remain a single logical workday for daily/period overtime and
+        gap calculations, but each attendance segment uses its actual calendar
+        day. This avoids treating Friday 22:00–03:00 as five Friday hours.
+        """
+        days = [
+            "Monday", "Tuesday", "Wednesday", "Thursday", "Friday",
+            "Saturday", "Sunday",
+        ]
+        start_day_index = days.index(shift.day)
+        gross_duration = end_time - shift.start
+        if gross_duration <= 0:
+            return []
+
+        penalties = []
+        cursor = shift.start
+        while cursor < end_time:
+            next_midnight = (int(cursor // 24) + 1) * 24
+            segment_end = min(end_time, next_midnight)
+            day_offset = int(cursor // 24)
+            calendar_day = days[(start_day_index + day_offset) % len(days)]
+            rate = self.rules.get_penalty_rate(
+                calendar_day, self.worker_type, self.employment_type
+            )
+            if rate > 0:
+                gross_hours = segment_end - cursor
+                # A break with no entered time is apportioned across the
+                # calendar-day attendance segments. A manual lunch time is
+                # already represented by separate worked periods upstream.
+                paid_hours = max(
+                    0, gross_hours - (break_duration * gross_hours / gross_duration)
+                )
+                ordinary_share = paid_hours * (ordinary_hours / daily_hours) if daily_hours else 0
+                penalties.append({
+                    "start": cursor % 24,
+                    "end": segment_end % 24,
+                    "hours": ordinary_share,
+                    "rate": rate,
+                    "description": f"{calendar_day} Penalty ({int(rate * 100)}%)",
+                })
+            cursor = segment_end
+        return penalties
+
     def _attendance_rules(self) -> dict:
         return self.rules.config["shift"]
 
@@ -140,6 +188,53 @@ class PayCalculator:
             )
         return hours * self.data.hourly_rate * self._overtime_multiplier(key, day, hours)
 
+    def _add_daily_pay_amounts(self) -> None:
+        """Add an auditable pay total and components to each workday result.
+
+        These values are deliberately calculated after period overtime and
+        ordinary-hour loadings have been finalised, so the amount shown beside
+        a day matches the amount included in the overall pay total.
+        """
+        casual_loading = self.rules.config["ordinary_time"].get(
+            "ordinary_rates", {}
+        ).get("casual_loading", 0)
+
+        for key, breakdown in self.breakdown.items():
+            day_name = key.rsplit(" - ", 1)[-1]
+            ordinary_pay = breakdown.get("ordinary", 0) * self.data.hourly_rate
+            ordinary_pay += (
+                breakdown.get("casual_ordinary", 0)
+                * self.data.hourly_rate
+                * casual_loading
+            )
+            overtime_pay = self._calculate_overtime_pay(day_name, breakdown)
+            penalty_pay = (
+                breakdown.get("penalty", 0)
+                * self.data.hourly_rate
+                * breakdown.get("penalty_rate", 0)
+                + breakdown.get("gap_penalty", 0)
+                * self.data.hourly_rate
+                * breakdown.get("gap_penalty_rate", 0)
+                + breakdown.get("shift_penalty", 0)
+                * self.data.hourly_rate
+                * breakdown.get("shift_penalty_rate", 0)
+                + sum(
+                    penalty.get("hours", 0)
+                    * self.data.hourly_rate
+                    * penalty.get("rate", 0)
+                    for penalty in breakdown.get("hourly_penalties", [])
+                )
+            )
+            topup_pay = breakdown.get("topup", 0) * self.data.hourly_rate
+
+            breakdown["ordinary_pay"] = round(ordinary_pay, 2)
+            breakdown["overtime_pay"] = round(overtime_pay, 2)
+            breakdown["penalty_pay"] = round(penalty_pay, 2)
+            breakdown["topup_pay"] = round(topup_pay, 2)
+            breakdown["pay"] = round(
+                ordinary_pay + overtime_pay + penalty_pay + topup_pay, 2
+            )
+
     def _expand_minimum_shift(self, shift: Shift) -> Shift:
         """Extend paid attendance to an award's minimum engagement."""
         minimum_rule = self._attendance_rules().get("minimum_paid_shift_hours", {})
@@ -147,7 +242,12 @@ class PayCalculator:
             minimum = minimum_rule.get(self.employment_type)
         else:
             minimum = minimum_rule.get(self.employment_type, minimum_rule.get(self.worker_type))
-        if not minimum or shift.start is None or shift.end is None:
+        if (
+            not minimum
+            or shift.minimum_engagement_exempt
+            or shift.start is None
+            or shift.end is None
+        ):
             return shift
         end_time = self._normalized_end(shift)
         break_duration = shift.break_duration if shift.break_duration is not None else self._attendance_rules().get("default_break_hours", 0.5)
@@ -336,9 +436,11 @@ class PayCalculator:
             if gap_penalty.get('applies', False) else None
         )
 
-        # Phase 3: Calculate normal penalties (unified approach)
-        # First, get weekend penalties if applicable
-        penalty_rate = (
+        # Phase 3: Calculate normal penalties (unified approach). A broken
+        # break-between-shifts rule is the highest-priority loading: it pays
+        # alone and suppresses weekend, shift and time-of-day loadings.
+        has_gap_penalty = gap_penalty.get('applies', False)
+        penalty_rate = 0 if has_gap_penalty else (
             (
                 holiday_rule.get("casual_rate", holiday_rule.get("ordinary_loading", 0))
                 if self.employment_type == "casual" else holiday_rule.get("ordinary_loading", 0)
@@ -353,7 +455,7 @@ class PayCalculator:
         )
         
         # Then, calculate all other penalties using the unified approach
-        all_penalties = [] if is_public_holiday else self.rules.calculate_penalties(
+        all_penalties = [] if (is_public_holiday or has_gap_penalty) else self.rules.calculate_penalties(
             shift.start, end_time, shift.day, self.worker_type, self.employment_type
         )
         
@@ -361,6 +463,19 @@ class PayCalculator:
         shift_penalty_rate = 0
         shift_penalty_hours = 0
         hourly_penalty_details = []
+
+        # Day-based treatments must use the actual calendar day after
+        # midnight. Store them as timed components so the pre- and
+        # post-midnight portions can carry different weekend loadings.
+        if end_time > 24 and not has_gap_penalty and not is_public_holiday:
+            penalty_rate = 0
+            penalty_hours = 0
+            penalty_label = None
+            hourly_penalty_details.extend(
+                self._overnight_day_treatment_penalties(
+                    shift, end_time, break_duration, ordinary_hours, daily_hours
+                )
+            )
         
         # Process each penalty from the unified structure
         shift_penalty_label = None
@@ -381,7 +496,7 @@ class PayCalculator:
                 })
 
         # For backward compatibility, also calculate using the old methods
-        if not all_penalties:
+        if not self.rules.config["penalties"]:
             # Legacy Phase 4: Apply shift start penalties for Aged Care shift workers
             shift_penalty = self.rules.calculate_shift_start_penalty(shift.start, self.worker_type)
             shift_penalty_rate = shift_penalty.get('penalty_rate', 0)
@@ -392,7 +507,7 @@ class PayCalculator:
             
             # Legacy Phase 5: Apply hourly penalties for Hospitality workers (both day and shift)
             hourly_penalties = self.rules.calculate_hourly_penalties(shift.start, end_time, shift.day)
-            hourly_penalty_details = hourly_penalties
+            hourly_penalty_details.extend(hourly_penalties)
         
         # Store the end time and day of this shift for future gap penalty calculations
         self.previous_shift_end = end_time
@@ -516,25 +631,39 @@ class PayCalculator:
         )
 
         # Whole-shift penalties retain the combined earliest-start/latest-end
-        # trigger. Time-based penalties must not include gaps between periods.
+        # trigger. Time-based and calendar-day treatments must not include
+        # gaps between periods (including a manually entered lunch).
         hourly_penalties = []
-        for item in ordered_periods:
+        ordinary_proportion = ordinary_hours / total_hours if total_hours else 0
+        splits_calendar_day = self._normalized_end(combined_shift) > 24
+        for item, item_hours in zip(ordered_periods, period_hours):
             item_end = self._normalized_end(item)
-            for penalty in self.rules.calculate_penalties(
-                item.start, item_end, item.day, self.worker_type, self.employment_type
-            ):
-                if penalty['type'] == 'time_based':
-                    hourly_penalties.append({
-                        'start': penalty['start'],
-                        'end': penalty['end'],
-                        'hours': penalty['hours'],
-                        'rate': penalty['rate'],
-                        'description': penalty['description'],
-                    })
-            if not self.rules.config["penalties"]:
-                hourly_penalties.extend(
-                    self.rules.calculate_hourly_penalties(item.start, item_end, item.day)
-                )
+            if not self._is_public_holiday(item) and not breakdown.get("gap_penalty_rate", 0):
+                if splits_calendar_day:
+                    hourly_penalties.extend(
+                        self._overnight_day_treatment_penalties(
+                            item,
+                            item_end,
+                            item.break_duration or 0,
+                            item_hours * ordinary_proportion,
+                            item_hours,
+                        )
+                    )
+                for penalty in self.rules.calculate_penalties(
+                    item.start, item_end, item.day, self.worker_type, self.employment_type
+                ):
+                    if penalty['type'] == 'time_based':
+                        hourly_penalties.append({
+                            'start': penalty['start'],
+                            'end': penalty['end'],
+                            'hours': penalty['hours'],
+                            'rate': penalty['rate'],
+                            'description': penalty['description'],
+                        })
+                if not self.rules.config["penalties"]:
+                    hourly_penalties.extend(
+                        self.rules.calculate_hourly_penalties(item.start, item_end, item.day)
+                    )
         breakdown['hourly_penalties'] = hourly_penalties
         for period in ordered_periods:
             minimum = self._minimum_expansion_hours.get(id(period))
@@ -712,6 +841,12 @@ class PayCalculator:
                     self.breakdown[topup_day]['applied_rules'].append(
                         'Contracted Hours Top-up'
                     )
+
+        # Expose the final amount for every logical workday. This is useful
+        # for validating a calculation without having to reconstruct it from
+        # the fortnight totals.
+        self._add_daily_pay_amounts()
+
         # Recalculate ordinary, overtime and topup hours after processing
         ordinary_hours = 0
         overtime_hours = 0
@@ -881,23 +1016,15 @@ class PayCalculator:
                 
             ruleset.hourly_penalties = hourly_penalties
 
-        if hasattr(rules, 'PENALTIES'):
-            penalties = {}
+        penalties = {}
+        for penalty_name, penalty in config["penalties"].items():
+            applies_to = penalty.get('applies_to', [])
+            if self.worker_type not in applies_to:
+                continue
 
-            for penalty_name, penalty in rules.PENALTIES.items():
-                applies_to = penalty.get('applies_to', [])
-                if self.worker_type not in applies_to:
-                    continue
-
-                penalties[penalty_name] = {
-                    'type': penalty.get('type'),
-                    'basis': penalty.get('basis', penalty.get('match_on', 'start')),
-                    'start': penalty.get('start'),
-                    'end': penalty.get('end'),
-                    'rate': penalty.get('rate'),
-                }
-
-            ruleset.penalties = penalties
+            penalties[penalty_name] = penalty
+        ruleset.penalties = penalties
+        ruleset.configuration = config
 
         return PayResponse(
             total_hours=round(self.total_hours + topup_hours, 2),  # Include topup in total hours

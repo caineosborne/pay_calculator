@@ -25,6 +25,7 @@ export default function ShiftResults() {
                     {state.calculations.overtimeHours || '0.00'}
                 </td>
                 <td className="px-2 py-2"></td>
+                <td className="px-2 py-2"></td>
             </tr>
         </>
     );

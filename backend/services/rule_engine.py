@@ -445,18 +445,16 @@ class PayRules:
             if worker_type not in penalty.get('applies_to', []):
                 continue
 
-            penalty_days = penalty.get('days')
-            if penalty_days is not None and day not in penalty_days:
-                continue
-
-            if penalty_days is None and day in ['Saturday', 'Sunday']:
-                continue
-            
             penalty_type = penalty['type']
             match_on = penalty.get('basis', penalty.get('match_on', 'start'))
+            penalty_days = penalty.get('days')
 
             # Handle shift-based penalties (apply to the whole shift when the trigger matches)
             if penalty_type == 'shift_based':
+                if penalty_days is not None and day not in penalty_days:
+                    continue
+                if penalty_days is None and day in ['Saturday', 'Sunday']:
+                    continue
                 window_start = penalty.get('start')
                 window_end = penalty.get('end')
 
@@ -517,29 +515,73 @@ class PayRules:
                 if window_start is None or window_end is None:
                     continue
 
-                # Time-based penalties are always evaluated against worked hours.
-                overlap_start = max(start_time, window_start)
-                overlap_end = min(normalized_end_time, window_end if window_end >= window_start else window_end + 24)
-
-                # If there's an overlap, add it to the penalties
-                if overlap_start < overlap_end:
-                    overlap_hours = overlap_end - overlap_start
-
-                    # Normalize times back to 0-24 range for display
-                    display_start = overlap_start % 24
-                    display_end = overlap_end % 24
-
+                # A time-of-day window repeats every calendar day. Project it
+                # onto the shift's continuous timeline so an overnight shift
+                # can receive every applicable loading without becoming
+                # multiple roster entries.
+                for overlap_start, overlap_end in self._time_window_overlaps(
+                    start_time, normalized_end_time, window_start, window_end
+                ):
+                    calendar_day = self._calendar_day_for_time(day, overlap_start)
+                    if penalty_days is not None and calendar_day not in penalty_days:
+                        continue
+                    if penalty_days is None and calendar_day in ['Saturday', 'Sunday']:
+                        continue
                     penalties.append({
                         'type': 'time_based',
-                        'start': display_start,
-                        'end': display_end,
+                        'start': overlap_start % 24,
+                        'end': overlap_end % 24,
                         'rate': self._selected_penalty_rate(penalty, employment_type),
                         'description': penalty['description'],
-                        'hours': overlap_hours,
+                        'hours': overlap_end - overlap_start,
                         'basis': 'time'
                     })
                     
         return penalties
+
+    @staticmethod
+    def _calendar_day_for_time(start_day: str, time_on_timeline: float) -> str:
+        """Return the actual calendar day for a point on a shift timeline."""
+        days = [
+            "Monday", "Tuesday", "Wednesday", "Thursday", "Friday",
+            "Saturday", "Sunday",
+        ]
+        return days[(days.index(start_day) + int(time_on_timeline // 24)) % len(days)]
+
+    @staticmethod
+    def _time_window_overlaps(
+        start_time: float, end_time: float, window_start: float, window_end: float
+    ) -> list[tuple[float, float]]:
+        """Return every overlap of a repeating time-of-day window and a shift.
+
+        The shift is a continuous timeline: 22:00–03:00 is represented as
+        22–27. Penalty windows repeat every 24 hours on that same timeline,
+        covering arbitrary boundaries such as 23:00 as well as midnight.
+        """
+        if end_time <= start_time:
+            return []
+
+        duration = window_end - window_start
+        if duration < 0:
+            duration += 24
+        if duration <= 0:
+            return []
+
+        first_day = int(start_time // 24) - 1
+        last_day = int(end_time // 24) + 1
+        overlaps = []
+        for day_offset in range(first_day, last_day + 1):
+            period_start = window_start + (day_offset * 24)
+            period_end = period_start + duration
+            overlap_start = max(start_time, period_start)
+            overlap_end = min(end_time, period_end)
+            cursor = overlap_start
+            while cursor < overlap_end:
+                next_midnight = (int(cursor // 24) + 1) * 24
+                segment_end = min(overlap_end, next_midnight)
+                overlaps.append((cursor, segment_end))
+                cursor = segment_end
+        return overlaps
 
     @staticmethod
     def _selected_penalty_rate(penalty: dict, employment_type: str | None) -> float:
@@ -608,16 +650,9 @@ class PayRules:
             window_start = window['start']
             window_end = window['end']
             
-            # Handle windows that cross midnight
-            if window_end < window_start:
-                window_end += 24
-                
-            # Calculate overlap with the shift
-            overlap_start = max(start_time, window_start)
-            overlap_end = min(normalized_end_time, window_end)
-            
-            # If there's an overlap, add it to the penalty periods
-            if overlap_start < overlap_end:
+            for overlap_start, overlap_end in self._time_window_overlaps(
+                start_time, normalized_end_time, window_start, window_end
+            ):
                 penalty_hours = overlap_end - overlap_start
                 penalty_periods.append({
                     'start': overlap_start % 24,  # Normalize back to 0-24 range
