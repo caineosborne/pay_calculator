@@ -9,6 +9,7 @@ import unittest
 
 from models.request_models import PayRequest
 from services.pay_calculator import PayCalculator
+from services.award_registry import public_awards
 from services.rule_configurations import (
     CUSTOM_RULES_ENV,
     RuleConfigurationError,
@@ -41,6 +42,38 @@ class RuleConfigurationTests(unittest.TestCase):
         self.assertEqual(
             builtins,
             {"fast_food", "coles_2024", "gria_2026", "woolies_2024_demo"},
+        )
+
+    def test_awards_expose_editable_hourly_rate_options(self):
+        awards = {award["key"]: award for award in public_awards()}
+
+        self.assertEqual(
+            awards["fast_food"]["hourly_rate_options"][0]["hourly_rate"],
+            27.81,
+        )
+        self.assertEqual(
+            len(awards["gria_2026"]["hourly_rate_options"]),
+            8,
+        )
+        self.assertEqual(
+            awards["gria_2026"]["hourly_rate_options"][-1]["hourly_rate"],
+            33.99,
+        )
+        self.assertEqual(
+            awards["woolies_2024_demo"]["hourly_rate_options"][0]["hourly_rate"],
+            28.26,
+        )
+        self.assertEqual(
+            len(awards["woolies_2024_demo"]["hourly_rate_options"]),
+            11,
+        )
+        self.assertEqual(
+            awards["coles_2024"]["hourly_rate_options"][-1]["hourly_rate"],
+            31.84,
+        )
+        self.assertEqual(
+            len(awards["coles_2024"]["hourly_rate_options"]),
+            6,
         )
 
     def test_flat_rule_class_is_rejected(self):

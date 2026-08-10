@@ -4,24 +4,63 @@
     "label": "Fast Food Award 2026",
     "module": "fast_food_award",
     "class_name": "FastFoodAward2026Rules",
-    "default": true
+    "default": true,
+    "hourly_rate_options": [
+      { "key": "level_1", "label": "Level 1", "hourly_rate": 27.81 },
+      { "key": "level_2", "label": "Level 2", "hourly_rate": 29.45 },
+      { "key": "level_3_one_or_none", "label": "Level 3 — in charge of 1 or no persons", "hourly_rate": 29.91 },
+      { "key": "level_3_two_or_more", "label": "Level 3 — in charge of 2 or more persons", "hourly_rate": 30.27 }
+    ]
   },
   {
     "key": "coles_2024",
     "label": "Coles EA 2024",
     "module": "coles_2024_rules",
-    "class_name": "Coles2024Rules"
+    "class_name": "Coles2024Rules",
+    "hourly_rates_as_at": "2026-07-01",
+    "hourly_rate_options": [
+      { "key": "team_member_level_1", "label": "Level 1 team member", "hourly_rate": 28.42 },
+      { "key": "team_member_level_2", "label": "Level 2 team member", "hourly_rate": 29.11 },
+      { "key": "team_member_level_3", "label": "Level 3 team member", "hourly_rate": 29.56 },
+      { "key": "team_member_level_4", "label": "Level 4 team member", "hourly_rate": 30.15 },
+      { "key": "team_member_level_5", "label": "Level 5 team member", "hourly_rate": 31.37 },
+      { "key": "team_member_level_6", "label": "Level 6 team member", "hourly_rate": 31.84 }
+    ]
   },
   {
     "key": "gria_2026",
     "label": "General Retail Industry Award 2026 (GRIA)",
     "module": "gris_config",
-    "class_name": "GRIA2026Rules"
+    "class_name": "GRIA2026Rules",
+    "hourly_rate_options": [
+      { "key": "retail_employee_level_1", "label": "Retail employee level 1", "hourly_rate": 27.81 },
+      { "key": "retail_employee_level_2", "label": "Retail employee level 2", "hourly_rate": 28.45 },
+      { "key": "retail_employee_level_3", "label": "Retail employee level 3", "hourly_rate": 28.89 },
+      { "key": "retail_employee_level_4", "label": "Retail employee level 4", "hourly_rate": 29.45 },
+      { "key": "retail_employee_level_5", "label": "Retail employee level 5", "hourly_rate": 30.66 },
+      { "key": "retail_employee_level_6", "label": "Retail employee level 6", "hourly_rate": 31.11 },
+      { "key": "retail_employee_level_7", "label": "Retail employee level 7", "hourly_rate": 32.67 },
+      { "key": "retail_employee_level_8", "label": "Retail employee level 8", "hourly_rate": 33.99 }
+    ]
   },
   {
     "key": "woolies_2024_demo",
     "label": "Woolies EA 2024",
     "module": "woolies_2024_demo",
-    "class_name": "Woolies2024Rules"
+    "class_name": "Woolies2024Rules",
+    "hourly_rates_as_at": "2026-07-01",
+    "hourly_rate_options": [
+      { "key": "store_team_member_level_1", "label": "Store Team Member Level 1", "hourly_rate": 28.26 },
+      { "key": "store_team_member_level_2", "label": "Store Team Member Level 2", "hourly_rate": 28.90 },
+      { "key": "store_team_member_level_3", "label": "Store Team Member Level 3", "hourly_rate": 29.36 },
+      { "key": "store_team_member_level_4", "label": "Store Team Member Level 4", "hourly_rate": 29.93 },
+      { "key": "store_team_member_level_5", "label": "Store Team Member Level 5", "hourly_rate": 31.15 },
+      { "key": "store_team_member_level_6", "label": "Store Team Member Level 6", "hourly_rate": 31.78 },
+      { "key": "clerical_assistant_level_1", "label": "Clerical Assistant Level 1", "hourly_rate": 28.26 },
+      { "key": "clerical_officer_level_2", "label": "Clerical Officer Level 2", "hourly_rate": 29.77 },
+      { "key": "clerical_officer_level_3", "label": "Clerical Officer Level 3", "hourly_rate": 31.22 },
+      { "key": "tradesperson_level_4", "label": "Tradesperson Level 4", "hourly_rate": 31.10 },
+      { "key": "tradesperson_level_5", "label": "Tradesperson Level 5", "hourly_rate": 31.63 }
+    ]
   }
 ]

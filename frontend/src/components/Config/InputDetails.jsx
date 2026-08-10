@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { usePay } from '../../context/PayContext';
 import { DisplayRules } from './DisplayRules';
 import { RuleConfigurationEditor } from './RuleConfigurationEditor';
@@ -10,7 +10,15 @@ export function InputDetails() {
     const [showConfigurationEditor, setShowConfigurationEditor] = useState(false);
     const [awards, setAwards] = useState([]);
     const [ruleConfigurations, setRuleConfigurations] = useState([]);
+    const [rateOption, setRateOption] = useState('custom');
     const defaultAward = awards.find((award) => award.default)?.key || 'fast_food';
+    const selectedAward = awards.find(
+        (award) => award.key === state.config.award
+    );
+    const hourlyRateOptions = useMemo(
+        () => selectedAward?.hourly_rate_options || [],
+        [selectedAward]
+    );
 
     // Keep handlers named when several controls share them or when one action
     // coordinates more than one state update.
@@ -30,6 +38,33 @@ export function InputDetails() {
             type: 'UPDATE_RULE_CONFIGURATION',
             payload: `builtin:${award}`
         });
+
+        const defaultRate = awards.find(
+            (awardOption) => awardOption.key === award
+        )?.hourly_rate_options?.[0];
+        if (defaultRate) {
+            setRateOption(defaultRate.key);
+            dispatch({
+                type: 'UPDATE_HOURLY_RATE',
+                payload: defaultRate.hourly_rate,
+            });
+        } else {
+            setRateOption('custom');
+        }
+    };
+
+    const handleRateChange = (optionValue) => {
+        setRateOption(optionValue);
+        const selectedRate = hourlyRateOptions.find(
+            (option) => option.key === optionValue
+        );
+
+        if (selectedRate) {
+            dispatch({
+                type: 'UPDATE_HOURLY_RATE',
+                payload: selectedRate.hourly_rate,
+            });
+        }
     };
 
     const handleRuleConfigurationChange = (configurationId) => {
@@ -106,6 +141,13 @@ export function InputDetails() {
         }
     }, [awards, dispatch, state.config.award]);
 
+    useEffect(() => {
+        const matchingRate = hourlyRateOptions.find(
+            (option) => option.hourly_rate === Number(state.config.hourlyRate)
+        );
+        setRateOption(matchingRate?.key || 'custom');
+    }, [hourlyRateOptions, state.config.hourlyRate]);
+
     const refreshRuleConfigurations = async () => {
         const configurations = await api.getRuleConfigurations();
         setRuleConfigurations(configurations);
@@ -157,26 +199,70 @@ export function InputDetails() {
         <section className="config-panel panel" aria-label="Pay details">
             <div className="flex flex-col gap-4">
                 <div className="flex items-center justify-between gap-4">
-                    {/* Hourly rate input section */}
+                    {/* Awards with published classifications select their configured rate. */}
                     <div className="flex-1">
-                        <label htmlFor="hourly-rate" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                            Hourly Rate ($)
-                        </label>
-                        <input
-                            id="hourly-rate"
-                            type="number"
-                            value={state.config.hourlyRate}
-                            onChange={(event) =>
-                                dispatch({
-                                    type: 'UPDATE_HOURLY_RATE',
-                                    payload:
-                                        Number.parseFloat(
-                                            event.target.value
-                                        ) || 0
-                                })
-                            }
-                            className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                        />
+                        {hourlyRateOptions.length > 0 ? (
+                            <>
+                                <label htmlFor="award-classification" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                                    Classification and hourly rate
+                                </label>
+                                <select
+                                    id="award-classification"
+                                    value={rateOption}
+                                    onChange={(event) => handleRateChange(event.target.value)}
+                                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                >
+                                    {hourlyRateOptions.map((option) => (
+                                        <option key={option.key} value={option.key}>
+                                            {option.label} — ${option.hourly_rate.toFixed(2)}/hr
+                                        </option>
+                                    ))}
+                                    <option value="custom">Enter your own rate</option>
+                                </select>
+                                {rateOption === 'custom' && (
+                                    <div className="mt-2">
+                                        <label htmlFor="hourly-rate" className="sr-only">
+                                            Your hourly rate ($)
+                                        </label>
+                                        <input
+                                            id="hourly-rate"
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            value={state.config.hourlyRate}
+                                            onChange={(event) =>
+                                                dispatch({
+                                                    type: 'UPDATE_HOURLY_RATE',
+                                                    payload: Number.parseFloat(event.target.value) || 0,
+                                                })
+                                            }
+                                            className="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                            placeholder="Enter hourly rate"
+                                        />
+                                    </div>
+                                )}
+                            </>
+                        ) : (
+                            <>
+                                <label htmlFor="hourly-rate" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                                    Hourly Rate ($)
+                                </label>
+                                <input
+                                    id="hourly-rate"
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={state.config.hourlyRate}
+                                    onChange={(event) =>
+                                        dispatch({
+                                            type: 'UPDATE_HOURLY_RATE',
+                                            payload: Number.parseFloat(event.target.value) || 0
+                                        })
+                                    }
+                                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                />
+                            </>
+                        )}
                     </div>
 
                     {/* Award selection dropdown */}

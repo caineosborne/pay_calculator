@@ -16,7 +16,9 @@ const defaultAward = liveAwards.has(savedAward) ? savedAward : 'fast_food';
 
 const initialState = {
     config: {
-        hourlyRate: 20, // Set default to 20
+        // Fast Food Award Level 1 hourly rate. The classification selector can
+        // set the other published rates or allow a manually entered rate.
+        hourlyRate: 27.81,
         workerType: 'shift', // Default to shift worker ('shift' or 'day')
         award: defaultAward, // Default to the configured award
         ruleConfiguration: `builtin:${defaultAward}`,

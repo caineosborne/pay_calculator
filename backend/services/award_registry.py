@@ -42,6 +42,9 @@ def public_awards() -> list[dict]:
             "key": award["key"],
             "label": award["label"],
             "default": bool(award.get("default", False)),
+            # Classification rates are configuration data so they can be
+            # updated annually without changing the frontend application.
+            "hourly_rate_options": award.get("hourly_rate_options", []),
         }
         for award in load_awards()
     ]
