@@ -838,6 +838,24 @@ export function RuleConfigurationEditor({
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
+                    <button
+                        type="button"
+                        aria-label="Save rule configuration"
+                        onClick={saveCurrent}
+                        disabled={
+                            isWorking ||
+                            !configuration ||
+                            !dirtyLayer ||
+                            (dirtyLayer === 'guided' && hasErrors) ||
+                            (configuration.kind === 'builtin' &&
+                                !copyName.trim())
+                        }
+                        className="bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+                    >
+                        {configuration?.kind === 'builtin'
+                            ? 'Save custom copy'
+                            : 'Save changes'}
+                    </button>
                     <label className="flex items-center gap-2 text-sm">
                         <input
                             type="checkbox"

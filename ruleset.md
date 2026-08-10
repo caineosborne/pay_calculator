@@ -1,6 +1,6 @@
 # Pay Calculator Ruleset Contract
 
-Last reviewed against the current codebase: 5 August 2026.
+Last reviewed against the current codebase: 10 August 2026.
 
 This is the canonical contract for award rules consumed by the pay calculator.
 It is written for both people and agents authoring rulesets. It describes the
@@ -31,8 +31,6 @@ Register an award in `config/awards.json`, then provide a Python class in
 
 ```python
 class ExampleRules:
-    CANONICAL_RULESET = True
-
     SHIFT_RULES = {...}
     ORDINARY_TIME_RULES = {...}
     DAY_TREATMENT_RULES = {...}
@@ -42,16 +40,18 @@ class ExampleRules:
     TOP_UP_RULES = {...}
 ```
 
-The runtime projects older flat attributes into the same shape for existing
-rulesets. Do not use flat fields in a new ruleset. They are a compatibility
-boundary only; their exact list is not a forward-looking authoring contract.
+`CANONICAL_RULESET` is not read by the live loader and is not required. All
+seven grouped attributes below are required by both the source validator and
+the calculator. Do not use legacy flat attributes: the live loader reads the
+grouped attributes directly and does not adapt flat fields.
 
 ### Required and optional groups
 
-`ORDINARY_TIME_RULES`, `DAY_TREATMENT_RULES`, and `PAY_RATES` are required for
-a usable canonical ruleset. `SHIFT_RULES`, `GAP_BETWEEN_SHIFTS_RULE`,
-`ORDINARY_HOUR_PENALTIES`, and `TOP_UP_RULES` should still be present, but may
-be empty dictionaries when that family of rules is not used.
+Every group is required as a class attribute. `SHIFT_RULES`,
+`GAP_BETWEEN_SHIFTS_RULE`, `ORDINARY_HOUR_PENALTIES`, and `TOP_UP_RULES` may
+be empty dictionaries when that family of rules is not used. In practice,
+`SHIFT_RULES` will normally retain `default_break_hours` and
+`minimum_paid_shift_hours`.
 
 Use an empty dictionary to disable an optional family:
 
@@ -66,6 +66,44 @@ Do not use `None` in place of a group. The calculator expects dictionaries.
 Within a configured rule, prefer the explicit disabling values documented
 below rather than an empty partial record.
 
+## Editable custom configurations
+
+The built-in award modules are immutable at runtime. To edit a ruleset in the
+application, open **Edit rule configuration**, change the guided fields or
+Advanced Python, and save. Saving a built-in creates a new custom copy; saving
+an existing custom configuration replaces that custom copy after validation.
+
+Custom configurations are identified as `custom:<award_key>:<slug>`, for
+example `custom:fast_food:late-shift-review`. Built-ins use
+`builtin:<award_key>`. The API exposes the configuration workflow:
+
+```text
+GET  /rule-configurations
+GET  /rule-configurations/{id}
+POST /rule-configurations/validate
+POST /rule-configurations
+PUT  /rule-configurations/{id}
+```
+
+`POST` creates a custom configuration with `base_award`, `name`, `source`, and
+optionally `questionnaire`; `PUT` accepts `source` and optionally
+`questionnaire`. The source must parse as Python, define the award's expected
+top-level class, and assign all seven grouped attributes. Its detailed values
+are then consumed by the calculator, so use this document as the authoring
+contract and validate representative calculations before publishing a change.
+
+To calculate with a saved configuration, pass its ID as `rule_configuration`
+in `POST /calculate`. The configuration's award must match the request's
+`award`; otherwise the API rejects the request. The bulk employee-master CSV
+has the same `rule_configuration` column and forwards its value unchanged to
+each calculation.
+
+Custom files are stored in `backend/custom_rules` by default, or in the
+directory specified by `PAYCHECKER_CUSTOM_RULES_DIR`. A deployment must use
+persistent storage for that directory if custom edits must survive restarts or
+redeployments. Custom rules execute as trusted Python code; do not expose the
+write endpoints to untrusted users.
+
 ## Complete minimal example
 
 This is a valid starting point with a daily and weekly OT limit and no
@@ -73,8 +111,6 @@ penalties, gap rule, minimum engagement, or top-up.
 
 ```python
 class ExampleRules:
-    CANONICAL_RULESET = True
-
     SHIFT_RULES = {
         "default_break_hours": 0.5,
         "minimum_paid_shift_hours": {},
@@ -138,9 +174,13 @@ SHIFT_RULES = {
 - `default_break_hours` is used when a request shift omits `break_duration`.
 - `minimum_paid_shift_hours` extends a shorter attendance period to its paid
   minimum before other rules run. Use `{}` to disable it.
-- The minimum-hours record uses `variation: "default"`, `"worker_type"`, or
-  `"employment_type"`, with the corresponding keys used by the examples in
-  the daily/period limits below.
+- The current minimum-engagement evaluator supports an employment-type map:
+  `variation: "employment_type"` with `full_time`, `part_time`, and `casual`
+  keys. A zero value disables the minimum for that type. It also accepts a
+  legacy unlabelled map keyed directly by employment type or worker type.
+  Do not use `variation: "default"` or `"worker_type"` in a new grouped
+  minimum-engagement record; unlike daily and period limits, those variations
+  are not interpreted by the current evaluator.
 
 ## `ORDINARY_TIME_RULES`
 
@@ -415,16 +455,11 @@ The result reports ordinary, overtime, top-up, and each penalty component
 separately. Penalty pay is additional to base ordinary pay; it is never added
 to an overtime hour.
 
-## Legacy rulesets
+## Unsupported legacy shapes
 
-Existing rulesets may still expose flat names such as
-`WEEKLY_OVERTIME_CONFIGURATION`, `WEEKEND_RULES`, `PENALTIES`, and
-`STANDARD_OVERTIME_RATE`. The compatibility adapter translates them to the
-grouped contract at load time. It is maintained for existing saved rules and
-the guided editor, but it must not be used as the specification for a new
-ruleset.
-
-When changing a legacy ruleset, preserve its required compatibility fields or
-migrate the entire class to the grouped contract. Do not mix incomplete grouped
-records with flat fields and assume one overrides the other: a grouped ruleset
-is read as grouped.
+Flat fields such as `WEEKLY_OVERTIME_CONFIGURATION`, `WEEKEND_RULES`,
+`PENALTIES`, and `STANDARD_OVERTIME_RATE` are not part of the live ruleset
+contract. A custom configuration that provides only those fields fails
+validation because it does not assign the seven required grouped attributes.
+Migrate the full class to the grouped contract before saving or calculating
+with it.

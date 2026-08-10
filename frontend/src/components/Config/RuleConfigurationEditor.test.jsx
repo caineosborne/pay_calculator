@@ -234,7 +234,7 @@ describe('RuleConfigurationEditor', () => {
             { target: { value: '9' } }
         );
         fireEvent.click(
-            screen.getByRole('button', { name: 'Save custom copy' })
+            screen.getAllByRole('button', { name: 'Save custom copy' })[0]
         );
 
         await waitFor(() =>
