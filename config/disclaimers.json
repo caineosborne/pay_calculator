@@ -1,0 +1,34 @@
+{
+  "generic": {
+    "title": "Important disclaimer",
+    "paragraphs": [
+      "This calculator provides an indicative estimate only. It must not be used to make, process, approve or determine employee payments. It is not legal, industrial relations, payroll, taxation or accounting advice and must not be relied upon to determine an employee’s legal entitlement or an employer’s payroll obligation.",
+      "Results depend on the information entered and the rules configured in the calculator. Any payment decision must be made using the applicable industrial instrument, employment contract, roster and payroll records, with appropriate payroll, legal or industrial-relations review where required."
+    ]
+  },
+  "awards": {
+    "fast_food": {
+      "title": "Scope and assumptions",
+      "paragraphs": [
+        "This version models selected payment rules under the Fast Food Industry Award 2020, including ordinary hours, selected weekday late-night and early-morning penalties, Saturday, Sunday and public-holiday rates, daily and weekly/fortnightly overtime thresholds, two-tier Monday–Saturday overtime, casual loading and minimum paid engagements for part-time and casual employees.",
+        "It does not calculate all possible Award entitlements or circumstances, including:"
+      ],
+      "limitations": [
+        "junior, apprentice, trainee, supported-wage or school-based trainee rates;",
+        "classification progression, higher duties, annual wage review changes, or minimum wage compliance;",
+        "overtime arising from a full-time employee working outside their rostered hours, or a part-time employee working outside their agreed or validly varied regular pattern, unless those hours are manually identified as overtime;",
+        "the Award’s specific five-days-per-week test, including its exception allowing six days in one week where no more than four days are worked in the following week. The calculator instead uses a simplified maximum of ten worked days per pay period;",
+        "the four-hour minimum payment for non-contiguous Sunday overtime;",
+        "the higher Sunday ordinary-hour rates for Level 2 and Level 3 employees. The current configuration defaults to the Level 1 Sunday rate;",
+        "meal-break compliance, missed or delayed meal-break payments, rest breaks or rostering requirements;",
+        "allowances, reimbursements, uniforms, meals, travel, vehicle use or other expense-related payments;",
+        "split shifts, broken shifts, recall to work, call-backs, or other minimum-payment rules not expressly configured;",
+        "leave, leave loading, superannuation, tax, deductions, termination payments, interest or back-pay calculations;",
+        "enterprise agreements, contracts, annualised salary arrangements, individual flexibility arrangements or other arrangements that may apply instead of, or alongside, the Award."
+      ],
+      "closing_paragraphs": [
+        "The calculator assumes the selected classification, employment type and base hourly rate are correct; entered shift times and unpaid breaks are accurate; and that the applicable employee is covered by the Fast Food Industry Award without any overriding arrangement."
+      ]
+    }
+  }
+}

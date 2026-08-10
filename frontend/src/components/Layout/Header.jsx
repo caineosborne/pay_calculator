@@ -30,7 +30,7 @@ const EMPTY_SHIFTS = createFortnightShifts(false);
  * Header component for the application
  * @returns {JSX.Element} Rendered header component
  */
-export default function Header() {
+export default function Header({ onOpenLimitations }) {
     const { state, dispatch } = usePay();
     const [copyStatus, setCopyStatus] = useState('');
 
@@ -163,6 +163,12 @@ export default function Header() {
 
                     {/* Control buttons section */}
                     <div className="header-actions">
+                        <button
+                            onClick={onOpenLimitations}
+                            className="pay-button"
+                        >
+                            Limitations
+                        </button>
                         <button
                             onClick={copyPreviousWeek}
                             className="pay-button"

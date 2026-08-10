@@ -58,4 +58,21 @@ describe('Header', () => {
         }]);
         expect(screen.getByRole('button', { name: 'Copied' })).toBeInTheDocument();
     });
+
+    it('opens the limitations notice from the header', () => {
+        const onOpenLimitations = vi.fn();
+        payContext = {
+            state: {
+                shifts: [],
+                publicHolidays: [],
+                calculations: {},
+            },
+            dispatch: vi.fn(),
+        };
+
+        render(<Header onOpenLimitations={onOpenLimitations} />);
+        fireEvent.click(screen.getByRole('button', { name: 'Limitations' }));
+
+        expect(onOpenLimitations).toHaveBeenCalledTimes(1);
+    });
 });

@@ -15,6 +15,9 @@ from pathlib import Path
 AWARDS_REGISTRY_PATH = (
     Path(__file__).resolve().parents[2] / "config" / "awards.json"
 )
+DISCLAIMERS_CONFIG_PATH = (
+    Path(__file__).resolve().parents[2] / "config" / "disclaimers.json"
+)
 
 
 @lru_cache(maxsize=1)
@@ -48,3 +51,17 @@ def public_awards() -> list[dict]:
         }
         for award in load_awards()
     ]
+
+
+@lru_cache(maxsize=1)
+def public_disclaimers() -> dict:
+    """Return the public calculator and award-specific limitations copy."""
+    with DISCLAIMERS_CONFIG_PATH.open("r", encoding="utf-8") as disclaimers_file:
+        disclaimers = json.load(disclaimers_file)
+
+    if not isinstance(disclaimers, dict) or not isinstance(
+        disclaimers.get("generic"), dict
+    ):
+        raise ValueError("Disclaimers configuration must include a generic notice.")
+
+    return disclaimers

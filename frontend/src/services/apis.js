@@ -16,6 +16,11 @@ export const api = {
         return responseJson(response, 'Failed to load awards');
     },
 
+    async getDisclaimers() {
+        const response = await fetch(`${BASE_URL}/disclaimers`);
+        return responseJson(response, 'Failed to load disclaimers');
+    },
+
     async getRuleConfigurations() {
         const response = await fetch(`${BASE_URL}/rule-configurations`);
         return responseJson(response, 'Failed to load rule configurations');

@@ -84,6 +84,18 @@
 .full-rule-config summary { cursor: pointer; padding: 11px 13px; color: #146c5a; font: 600 12px 'DM Sans', sans-serif; }
 .full-rule-config p { margin: 0; padding: 0 13px 10px; color: #517064; font-size: 11px; }
 .full-rule-config pre { max-height: 360px; margin: 0; overflow: auto; border-top: 1px solid #dce7e1; padding: 12px 13px; color: #30463d; background: #f5faf7; font: 11px/1.5 'DM Mono', monospace; white-space: pre; }
+.disclaimer-backdrop { position: fixed; z-index: 20; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(23, 35, 31, .56); }
+.disclaimer-dialog { width: min(760px, 100%); max-height: min(760px, calc(100vh - 40px)); overflow-y: auto; padding: 28px; border: 1px solid #cbd8d0; border-radius: 16px; background: #fff; box-shadow: 0 24px 70px rgba(14, 32, 24, .32); }
+.disclaimer-dialog h2 { margin: 5px 0 16px; color: #17231f; font: 700 clamp(26px, 4vw, 34px)/1 Fraunces, Georgia, serif; letter-spacing: -.04em; }
+.disclaimer-dialog h3 { margin: 0 0 12px; color: #17231f; font: 700 20px/1 Fraunces, Georgia, serif; letter-spacing: -.03em; }
+.disclaimer-dialog p, .disclaimer-dialog li { color: #3e554b; font: 14px/1.55 'DM Sans', sans-serif; }
+.disclaimer-dialog p { margin: 0 0 14px; }
+.award-limitations { margin-top: 22px; padding-top: 21px; border-top: 1px solid #d5e0da; }
+.award-limitations ul { margin: 0 0 14px; padding-left: 22px; }
+.award-limitations li { margin-bottom: 7px; }
+.disclaimer-error { color: #9b2c2c !important; }
+.disclaimer-close { margin-top: 6px; color: #fff; border-color: #146c5a; background: #146c5a; }
+.disclaimer-close:hover { background: #0d5646; }
 
 @media (max-width: 760px) {
   .pay-app { padding: 14px; }
@@ -94,6 +106,7 @@
   .summary-panel { grid-template-columns: 1fr; }
   .summary-grid { grid-template-columns: repeat(2, 1fr); }
   .net-pay { padding: 24px; }
+  .disclaimer-dialog { padding: 22px 18px; }
   .rules-heading { align-items: start; flex-direction: column; }
   .rule-grid { grid-template-columns: 1fr; }
   .rule-row:nth-child(odd) { border-right: 0; }

@@ -9,7 +9,7 @@ import unittest
 
 from models.request_models import PayRequest
 from services.pay_calculator import PayCalculator
-from services.award_registry import public_awards
+from services.award_registry import public_awards, public_disclaimers
 from services.rule_configurations import (
     CUSTOM_RULES_ENV,
     RuleConfigurationError,
@@ -74,6 +74,18 @@ class RuleConfigurationTests(unittest.TestCase):
         self.assertEqual(
             len(awards["coles_2024"]["hourly_rate_options"]),
             6,
+        )
+
+    def test_public_disclaimers_include_generic_and_fast_food_limitations(self):
+        disclaimers = public_disclaimers()
+
+        self.assertEqual(disclaimers["generic"]["title"], "Important disclaimer")
+        self.assertEqual(
+            disclaimers["awards"]["fast_food"]["title"],
+            "Scope and assumptions",
+        )
+        self.assertGreater(
+            len(disclaimers["awards"]["fast_food"]["limitations"]), 0
         )
 
     def test_flat_rule_class_is_rejected(self):

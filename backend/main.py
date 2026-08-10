@@ -22,7 +22,7 @@ from models.rule_configuration_models import (
     RuleSourceValidationRequest,
     UpdateRuleConfigurationRequest,
 )
-from services.award_registry import public_awards
+from services.award_registry import public_awards, public_disclaimers
 from services.pay_calculator import PayCalculator
 from services.rule_configurations import (
     RuleConfigurationConflict,
@@ -65,6 +65,12 @@ def get_awards() -> list[dict]:
     Return the public award registry used by the frontend selector.
     """
     return public_awards()
+
+
+@app.get("/disclaimers")
+def get_disclaimers() -> dict:
+    """Return the calculator and award-specific limitations notices."""
+    return public_disclaimers()
 
 
 def _configuration_http_error(error: RuleConfigurationError) -> HTTPException:
