@@ -55,12 +55,25 @@ export function DisclaimerDialog({ isOpen, onClose }) {
                         {awardDisclaimer.paragraphs?.map((paragraph) => (
                             <p key={paragraph}>{paragraph}</p>
                         ))}
+                        {awardDisclaimer.assumptions?.length > 0 && (
+                            <>
+                                <h4>Assumptions</h4>
+                                <ul>
+                                    {awardDisclaimer.assumptions.map((assumption) => (
+                                        <li key={assumption}>{assumption}</li>
+                                    ))}
+                                </ul>
+                            </>
+                        )}
                         {awardDisclaimer.limitations?.length > 0 && (
-                            <ul>
-                                {awardDisclaimer.limitations.map((limitation) => (
-                                    <li key={limitation}>{limitation}</li>
-                                ))}
-                            </ul>
+                            <>
+                                <h4>Limitations</h4>
+                                <ul>
+                                    {awardDisclaimer.limitations.map((limitation) => (
+                                        <li key={limitation}>{limitation}</li>
+                                    ))}
+                                </ul>
+                            </>
                         )}
                         {awardDisclaimer.closing_paragraphs?.map((paragraph) => (
                             <p key={paragraph}>{paragraph}</p>

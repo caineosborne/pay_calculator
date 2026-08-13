@@ -94,4 +94,25 @@ describe('InputDetails Fast Food classifications', () => {
             });
         });
     });
+
+    it('changes every shift break when the worker type changes', async () => {
+        payContext.state = {
+            ...baseState(),
+            shifts: [
+                { id: 'monday', break_duration: '0.5' },
+                { id: 'tuesday', break_duration: '0.5' },
+            ],
+        };
+        render(<InputDetails />);
+
+        fireEvent.click(await screen.findByRole('button', { name: 'Shift Worker' }));
+
+        expect(payContext.dispatch).toHaveBeenCalledWith({
+            type: 'UPDATE_SHIFTS',
+            payload: [
+                expect.objectContaining({ break_duration: '0' }),
+                expect.objectContaining({ break_duration: '0' }),
+            ],
+        });
+    });
 });

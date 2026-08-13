@@ -13,8 +13,9 @@ const renderTimeInput = () => {
     const dispatch = vi.fn();
     payContext = {
         state: {
-            shifts: [{ id: 'monday', week: 1, day: 'Monday', start: '9', end: '17', break_duration: '0.5' }],
+            shifts: [{ id: 'monday', week: 1, day: 'Monday', start: '9', end: '17', break_duration: '0', public_holiday: false }],
             publicHolidays: [],
+            config: { workerType: 'shift' },
         },
         dispatch,
     };
@@ -57,6 +58,16 @@ describe('ShiftTimeInput', () => {
         expect(dispatch).toHaveBeenCalledWith({
             type: 'UPDATE_SHIFTS',
             payload: [expect.objectContaining({ lunch_start: '12.25' })],
+        });
+    });
+
+    it('sets public holiday status on the individual shift segment', () => {
+        const dispatch = renderTimeInput();
+        fireEvent.click(screen.getByLabelText('Week 1 Monday public holiday'));
+
+        expect(dispatch).toHaveBeenCalledWith({
+            type: 'UPDATE_SHIFTS',
+            payload: [expect.objectContaining({ public_holiday: true })],
         });
     });
 });

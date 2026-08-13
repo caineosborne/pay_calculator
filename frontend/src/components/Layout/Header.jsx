@@ -41,7 +41,10 @@ export default function Header({ onOpenLimitations }) {
     const resetToDefault = () => {
         dispatch({
             type: 'UPDATE_SHIFTS',
-            payload: DEFAULT_SHIFTS
+            payload: DEFAULT_SHIFTS.map((shift) => ({
+                ...shift,
+                break_duration: state.config.workerType === 'shift' ? '0' : '0.5',
+            }))
         });
     };
 
@@ -53,7 +56,10 @@ export default function Header({ onOpenLimitations }) {
         // Clear shifts
         dispatch({
             type: 'UPDATE_SHIFTS',
-            payload: EMPTY_SHIFTS
+            payload: EMPTY_SHIFTS.map((shift) => ({
+                ...shift,
+                break_duration: state.config.workerType === 'shift' ? '0' : '0.5',
+            }))
         });
         // Reset calculations and payments
         dispatch({
@@ -87,6 +93,7 @@ export default function Header({ onOpenLimitations }) {
                 end: shift.end,
                 break_duration: shift.break_duration,
                 lunch_start: shift.lunch_start,
+                public_holiday: shift.public_holiday,
             })),
         ];
 
@@ -121,9 +128,9 @@ export default function Header({ onOpenLimitations }) {
                 const flags = [
                     shift.manual_overtime && 'Manual overtime',
                     shift.manual_ordinary && 'Manual ordinary',
-                    isPrimary && state.publicHolidays?.some(
+                    (shift.public_holiday || state.publicHolidays?.some(
                         (holiday) => holiday.week === shift.week && holiday.day === shift.day
-                    ) && 'Public holiday',
+                    )) && 'Public holiday',
                 ].filter(Boolean);
 
                 return {

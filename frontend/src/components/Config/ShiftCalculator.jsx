@@ -32,6 +32,7 @@ const asCalculationPeriods = (shift) => {
         end,
         manual_overtime: Boolean(shift.manual_overtime),
         manual_ordinary: Boolean(shift.manual_ordinary),
+        public_holiday: Boolean(shift.public_holiday),
     };
 
     // An entered lunch time is optional. When it falls inside the shift, send

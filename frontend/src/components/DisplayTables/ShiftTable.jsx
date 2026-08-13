@@ -54,7 +54,7 @@ export default function ShiftTable() {
                         <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase">Start</th>
                         <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase">End</th>
                         <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lunch starts</th>
-                        <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase">Break (hrs)</th>
+                        <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase">Unpaid break (hrs)</th>
                         <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase">Manual OT</th>
                         <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase">Manual ORD</th>
                         <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase">Public Holiday</th>

@@ -2,7 +2,7 @@ const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Satur
 
 const shiftId = (week, day, sequence = 1) => `shift-${week}-${day}-${sequence}`;
 
-export const createShift = ({ week, day, sequence = 1, isPrimary = sequence === 1, start = '', end = '', break_duration = '0.5', lunch_start = '', manual_overtime = false, manual_ordinary = false }) => ({
+export const createShift = ({ week, day, sequence = 1, isPrimary = sequence === 1, start = '', end = '', break_duration = '0.5', lunch_start = '', manual_overtime = false, manual_ordinary = false, public_holiday = false }) => ({
     id: shiftId(week, day, sequence),
     week,
     day,
@@ -10,6 +10,7 @@ export const createShift = ({ week, day, sequence = 1, isPrimary = sequence === 
     start,
     end,
     break_duration,
+    public_holiday,
     lunch_start,
     manual_overtime,
     manual_ordinary,

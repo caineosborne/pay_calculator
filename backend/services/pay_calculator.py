@@ -96,7 +96,7 @@ class PayCalculator:
         return value.get(self.employment_type, "weekly") if isinstance(value, dict) else value
 
     def _is_public_holiday(self, shift: Shift) -> bool:
-        return (shift.week, shift.day) in self.public_holidays
+        return shift.public_holiday or (shift.week, shift.day) in self.public_holidays
 
     def _overnight_day_treatment_penalties(
         self, shift: Shift, end_time: float, break_duration: float,
@@ -376,7 +376,14 @@ class PayCalculator:
         elif shift.manual_overtime:
             overtime_hours = daily_hours
             ordinary_hours = 0
-            overtime_rate_key = "manual"
+            # Manual OT only overrides classification. Use the same rate
+            # selection as any other overtime on this calendar day, including
+            # the public-holiday rate where applicable.
+            overtime_rate_key = (
+                holiday_rule.get("overtime_rate_key", "public_holiday")
+                if is_public_holiday
+                else day_rule.get("overtime_rate_key", "weekday")
+            )
             applied_rules.append("Manual Overtime")
         # Public-holiday day treatment is intentionally applied with the
         # time/day base classifiers, before daily and period limits.
@@ -548,6 +555,11 @@ class PayCalculator:
             start=first_start,
             end=final_end,
             break_duration=total_break,
+            # A mixed day is calculated as ordinary at the combined-day level;
+            # public-holiday loading is added back to the flagged segment
+            # below. This prevents one flagged segment from marking the whole
+            # logical workday as a public holiday.
+            public_holiday=all(item.public_holiday for item in ordered_periods),
             manual_overtime=any(item.manual_overtime for item in ordered_periods),
             manual_ordinary=any(item.manual_ordinary for item in ordered_periods),
         )
@@ -643,6 +655,32 @@ class PayCalculator:
                             'description': penalty['description'],
                         })
         breakdown['hourly_penalties'] = hourly_penalties
+        mixed_public_holiday_periods = [
+            (item, hours) for item, hours in zip(ordered_periods, period_hours)
+            if item.public_holiday
+        ]
+        if mixed_public_holiday_periods and not all(
+            item.public_holiday for item in ordered_periods
+        ):
+            holiday_rule = self.rules.config["day_treatment"].get(
+                "public_holiday", {}
+            ).get(self.worker_type, {})
+            holiday_rate = (
+                holiday_rule.get("casual_rate", holiday_rule.get("ordinary_loading", 0))
+                if self.employment_type == "casual"
+                else holiday_rule.get("ordinary_loading", 0)
+            )
+            ordinary_proportion = ordinary_hours / total_hours if total_hours else 0
+            for item, item_hours in mixed_public_holiday_periods:
+                holiday_hours = item_hours * ordinary_proportion
+                if holiday_hours and holiday_rate:
+                    breakdown['hourly_penalties'].append({
+                        'start': item.start,
+                        'end': self._normalized_end(item),
+                        'hours': holiday_hours,
+                        'rate': holiday_rate,
+                        'description': 'Public Holiday Loading',
+                    })
         for period in ordered_periods:
             minimum = self._minimum_expansion_hours.get(id(period))
             label = f"Minimum paid shift ({minimum} hours)" if minimum else None

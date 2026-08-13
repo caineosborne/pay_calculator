@@ -87,6 +87,60 @@ class RuleConfigurationTests(unittest.TestCase):
         self.assertGreater(
             len(disclaimers["awards"]["fast_food"]["limitations"]), 0
         )
+        for award in ("coles_2024", "gria_2026"):
+            award_text = " ".join(
+                disclaimers["awards"][award]["paragraphs"]
+                + disclaimers["awards"][award]["assumptions"]
+            ).lower()
+            self.assertIn("shiftworker", award_text)
+            self.assertIn("non-shiftwork", award_text)
+            self.assertGreater(len(disclaimers["awards"][award]["limitations"]), 0)
+
+    def test_retail_shiftworker_weekday_loading_applies_to_daytime_shifts(self):
+        for award in ("coles_2024", "gria_2026"):
+            with self.subTest(award=award):
+                result = PayCalculator(
+                    PayRequest(
+                        hourly_rate=20,
+                        worker_type="shift",
+                        award=award,
+                        employment_type="full_time",
+                        shifts=[
+                            {
+                                "day": "Monday",
+                                "start": 9,
+                                "end": 17,
+                                "break_duration": 0,
+                            }
+                        ],
+                    )
+                ).calculate_pay()
+                self.assertEqual(result.ordinary_hours, 8)
+                self.assertEqual(result.hourly_penalty_pay, 48)
+
+    def test_retail_overnight_shiftworker_loading_switches_at_saturday_midnight(self):
+        for award in ("coles_2024", "gria_2026"):
+            with self.subTest(award=award):
+                result = PayCalculator(
+                    PayRequest(
+                        hourly_rate=20,
+                        worker_type="shift",
+                        award=award,
+                        employment_type="full_time",
+                        shifts=[
+                            {
+                                "day": "Friday",
+                                "start": 20,
+                                "end": 2,
+                                "break_duration": 0,
+                            }
+                        ],
+                    )
+                ).calculate_pay()
+                # Friday 20:00-midnight at +30%, Saturday midnight-02:00
+                # at +50%; the calendar segments must not overlap.
+                self.assertEqual(result.hourly_penalty_pay, 44)
+                self.assertEqual(result.time_based_penalty_hours, 6)
 
     def test_flat_rule_class_is_rejected(self):
         with self.assertRaisesRegex(

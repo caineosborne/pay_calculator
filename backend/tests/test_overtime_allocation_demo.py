@@ -68,6 +68,30 @@ class OvertimeAllocationDemoTests(unittest.TestCase):
         result = calculate({"day": "Monday", "start": 9, "end": 10, "break_duration": 0, "manual_overtime": True})
         self.assertEqual(result.total_hours, 4)
         self.assertEqual(result.overtime_hours, 4)
+        self.assertEqual(result.overtime_pay, 130)  # first 3 hours at 1.5x, then 2x
+
+    def test_manual_overtime_uses_sunday_rate(self):
+        result = calculate(
+            {"day": "Sunday", "start": 9, "end": 13, "break_duration": 0, "manual_overtime": True},
+        )
+        self.assertEqual(result.overtime_hours, 4)
+        self.assertEqual(result.overtime_pay, 160)  # 4 hours at Sunday 2x
+
+    def test_manual_overtime_uses_public_holiday_rate(self):
+        result = calculate(
+            {"day": "Monday", "start": 9, "end": 13, "break_duration": 0, "manual_overtime": True},
+            public_holidays=[{"week": 1, "day": "Monday"}],
+        )
+        self.assertEqual(result.overtime_hours, 4)
+        self.assertEqual(result.overtime_pay, 200)  # 4 hours at public holiday 2.5x
+
+    def test_shiftworker_weekday_loading_is_time_based_for_all_hours(self):
+        result = calculate(
+            {"day": "Monday", "start": 9, "end": 17, "break_duration": 0},
+            worker_type="shift",
+        )
+        self.assertEqual(result.ordinary_hours, 8)
+        self.assertEqual(result.hourly_penalty_pay, 48)  # 8 hours at 30% loading
 
     def test_two_tier_overtime_applies_to_configured_saturday(self):
         calculator = PayCalculator(PayRequest(
@@ -108,6 +132,15 @@ class OvertimeAllocationDemoTests(unittest.TestCase):
         )
         self.assertEqual(result.ordinary_hours, 4)
         self.assertEqual(result.penalty_pay, 100)
+
+    def test_public_holiday_can_apply_to_one_segment_of_a_split_day(self):
+        result = calculate(
+            {"day": "Monday", "start": 9, "end": 13, "break_duration": 0, "public_holiday": True},
+            {"day": "Monday", "start": 13, "end": 17, "break_duration": 0, "public_holiday": False},
+        )
+        self.assertEqual(result.ordinary_hours, 8)
+        self.assertEqual(result.overtime_hours, 0)
+        self.assertEqual(result.hourly_penalty_pay, 100)
 
         result = calculate(
             {"day": "Monday", "start": 9, "end": 13, "break_duration": 0},

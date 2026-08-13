@@ -15,6 +15,8 @@ Important modelling notes:
   under clause 4.3.4(f). The calculator cannot determine whether that variation
   exists, so this remains manual.
 - The normal inter-shift break is 12 hours, reducible to 10 hours by agreement.
+- The calculator assumes a self-identified shiftworker is rostered only for
+  shiftwork, so all submitted shifts receive the applicable shiftwork treatment.
 - Baking-production shiftworkers have separate rules and are excluded from the
   generic shiftworker configuration below.
 """
@@ -237,15 +239,14 @@ class Coles2024Rules:
         "weekday_shiftwork": {
             # Clauses 4.5.1-4.5.4:
             # Applies only to employees specifically employed as shiftworkers.
-            # Shiftwork between midnight Sunday and midnight Friday =
-            # 130% FT/PT and 155% casual.
-            #
-            # Clause 4.5.3 defines qualifying shiftwork, including a shift
-            # starting at/after 6pm on one day and before 5am the next.
-            "type": "shift_based",
-            "basis": "start",
-            "start": 18,
-            "end": 5,
+            # The calculator assumes a self-identified shiftworker is rostered
+            # only for shiftwork. Because the Agreement prohibits mixing
+            # shiftwork and non-shiftwork in the same week, all submitted
+            # weekday shifts receive the weekday shiftwork loading.
+            "type": "time_based",
+            "basis": "time",
+            "start": 0,
+            "end": 24,
             "rate": 0.30,
             "casual_rate": 0.55,
             "description": "Weekday shiftwork loading",
@@ -292,6 +293,11 @@ class Coles2024Rules:
 # Clause 4.5.5:
 # Shiftworker rest and meal breaks are paid and form part of hours worked.
 # Do not use the normal unpaid-break treatment for shiftworkers.
+#
+# The calculator assumes the employee's shiftworker selection means the
+# employee is not rostered for a mixture of shiftwork and non-shiftwork in the
+# same week. Accordingly, weekday shiftwork loading applies to all submitted
+# Monday-Friday hours in shiftworker mode.
 #
 # Appendix A3.4:
 # Baking-production shiftworkers have separate early-morning/night rates and

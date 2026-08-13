@@ -27,6 +27,13 @@ export function InputDetails() {
             type: 'UPDATE_WORKER_TYPE',
             payload: type
         });
+        dispatch({
+            type: 'UPDATE_SHIFTS',
+            payload: (state.shifts || []).map((shift) => ({
+                ...shift,
+                break_duration: type === 'shift' ? '0' : '0.5',
+            })),
+        });
     };
 
     const handleAwardChange = (award) => {
@@ -292,15 +299,6 @@ export function InputDetails() {
                         <div className="flex flex-col space-y-2">
                             <div className="flex bg-gray-50 dark:bg-gray-700 rounded-lg p-1">
                                 <button
-                                    onClick={() => handleWorkerTypeChange('shift')}
-                                    className={`px-3 py-1 rounded-md text-xs font-medium transition-colors border-2 ${state.config.workerType === 'shift'
-                                        ? 'bg-blue-500 text-white border-blue-600'
-                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border-transparent'
-                                        }`}
-                                >
-                                    Shift Worker
-                                </button>
-                                <button
                                     onClick={() => handleWorkerTypeChange('day')}
                                     className={`px-3 py-1 rounded-md text-xs font-medium transition-colors border-2 ${state.config.workerType === 'day'
                                         ? 'bg-blue-500 text-white border-blue-600'
@@ -308,6 +306,15 @@ export function InputDetails() {
                                         }`}
                                 >
                                     Day Worker
+                                </button>
+                                <button
+                                    onClick={() => handleWorkerTypeChange('shift')}
+                                    className={`px-3 py-1 rounded-md text-xs font-medium transition-colors border-2 ${state.config.workerType === 'shift'
+                                        ? 'bg-blue-500 text-white border-blue-600'
+                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border-transparent'
+                                        }`}
+                                >
+                                    Shift Worker
                                 </button>
                             </div>
                             <button

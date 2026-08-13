@@ -65,6 +65,9 @@ class Shift(BaseModel):
     start: Optional[float] = Field(None, ge=0, le=47)
     end: Optional[float] = Field(None, ge=0, le=47)
     break_duration: Optional[float] = Field(default=0.5, ge=0, le=24)
+    # Public-holiday status belongs to an individual attendance segment. This
+    # allows two segments on the same day to be treated differently.
+    public_holiday: bool = False
     # The frontend uses this only when a single rostered shift is split around
     # an entered unpaid lunch. These are attendance segments, not engagements.
     minimum_engagement_exempt: bool = False

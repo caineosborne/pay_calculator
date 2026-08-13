@@ -19,7 +19,7 @@ const initialState = {
         // Fast Food Award Level 1 hourly rate. The classification selector can
         // set the other published rates or allow a manually entered rate.
         hourlyRate: 27.81,
-        workerType: 'shift', // Default to shift worker ('shift' or 'day')
+        workerType: 'day', // Default to day worker ('day' or 'shift')
         award: defaultAward, // Default to the configured award
         ruleConfiguration: `builtin:${defaultAward}`,
         employmentType: 'full_time', // Default to Full Time ('full_time', 'part_time', 'casual')

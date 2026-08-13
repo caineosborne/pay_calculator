@@ -15,6 +15,8 @@ Important modelling notes:
 - The normal inter-work-period break is 12 hours, reducible to 10 hours by agreement.
 - The ordinary span depends on retailer trading hours. The base config assumes
   clause 15.2(c) applies, extending ordinary hours to 11pm on all days.
+- The calculator assumes a self-identified shiftworker is rostered only for
+  shiftwork, so all submitted shifts receive the applicable shiftwork treatment.
 - Baking-production shiftworkers and special newsagency/video-shop spans are excluded.
 """
 
@@ -245,15 +247,14 @@ class GRIA2026Rules:
         "weekday_shiftwork": {
             # Clauses 23-25:
             # Applies only to employees employed as shiftworkers.
-            # Shiftwork between midnight Sunday and midnight Friday =
-            # 130% FT/PT and 155% casual.
-            #
-            # Clause 24.1 defines non-baking shiftwork as a shift starting
-            # at/after 6pm on one day and before 5am the next.
-            "type": "shift_based",
-            "basis": "start",
-            "start": 18,
-            "end": 5,
+            # The calculator assumes a self-identified shiftworker is rostered
+            # only for shiftwork. Clause 27.2 prohibits mixing shiftwork and
+            # non-shiftwork in the same week, so all submitted weekday shifts
+            # receive the weekday shiftwork loading.
+            "type": "time_based",
+            "basis": "time",
+            "start": 0,
+            "end": 24,
             "rate": 0.30,
             "casual_rate": 0.55,
             "description": "Weekday shiftwork loading",
@@ -302,6 +303,10 @@ class GRIA2026Rules:
 # Clause 26:
 # Shiftworker rest and meal breaks are paid and form part of hours worked.
 # Do not apply the normal unpaid-break treatment to a shiftworker.
+#
+# Clause 27.2 prevents a shiftworker roster from mixing shiftwork and
+# non-shiftwork in the same week. The calculator therefore treats all
+# submitted Monday-Friday shifts as weekday shiftwork in shiftworker mode.
 #
 # Clause 15.2(a)-(b):
 # Special newsagency and video-shop ordinary-hour spans are not represented.

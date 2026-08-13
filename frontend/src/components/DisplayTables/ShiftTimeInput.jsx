@@ -33,13 +33,9 @@ export default function ShiftTimeInput({ renderRow }) {
         resetCalculationsIfEmpty(newShifts);
     };
 
-    const togglePublicHoliday = (shift) => {
-        const current = state.publicHolidays || [];
-        const exists = current.some((item) => item.week === shift.week && item.day === shift.day);
-        const next = exists
-            ? current.filter((item) => item.week !== shift.week || item.day !== shift.day)
-            : [...current, { week: shift.week, day: shift.day }];
-        dispatch({ type: 'UPDATE_PUBLIC_HOLIDAYS', payload: next });
+    const togglePublicHoliday = (idx) => {
+        const shift = state.shifts[idx];
+        handleShiftChange(idx, 'public_holiday', !shift.public_holiday);
     };
 
     const formatTimeDisplay = (value) => {
@@ -136,7 +132,7 @@ export default function ShiftTimeInput({ renderRow }) {
             ...newShifts[idx],
             start: '',
             end: '',
-            break_duration: '0.5',
+            break_duration: state.config.workerType === 'shift' ? '0' : '0.5',
             lunch_start: ''
         };
 
@@ -156,7 +152,7 @@ export default function ShiftTimeInput({ renderRow }) {
             isPrimary: false,
             start: '',
             end: '',
-            break_duration: '0.5',
+            break_duration: state.config.workerType === 'shift' ? '0' : '0.5',
             lunch_start: '',
         };
         const index = state.shifts.findIndex((item) => item.id === shift.id);
@@ -321,12 +317,12 @@ export default function ShiftTimeInput({ renderRow }) {
                     />
                 </td>
                 <td className="px-2 py-1 whitespace-nowrap text-center">
-                    {isPrimary && <input
+                    <input
                         aria-label={`Week ${shift.week || 1} ${shift.day} public holiday`}
                         type="checkbox"
-                        checked={(state.publicHolidays || []).some((item) => item.week === shift.week && item.day === shift.day)}
-                        onChange={() => togglePublicHoliday(shift)}
-                    />}
+                        checked={Boolean(shift.public_holiday)}
+                        onChange={() => togglePublicHoliday(idx)}
+                    />
                 </td>
             </>
         );

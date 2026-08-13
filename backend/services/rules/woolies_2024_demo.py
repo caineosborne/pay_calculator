@@ -251,17 +251,15 @@ class Woolies2024Rules:
         "weekday_shiftwork": {
             # Clauses 11.1-11.3:
             # Applies only to employees specifically employed as shiftworkers.
-            # Qualifying weekday shiftwork = base +30% FT/PT, +55% casual.
-            #
-            # Clause 11.2 defines shiftwork by the shift start/finish pattern.
-            # The request must correctly identify the worker as a shiftworker.
-            "type": "shift_based",
-            "basis": "start",
-            "start": 18,
-            "end": 5,
+            # Weekday shiftwork = base +30% FT/PT, +55% casual for all
+            # ordinary hours worked Monday-Friday.
+            "type": "time_based",
+            "basis": "time",
+            "start": 0,
+            "end": 24,
             "rate": 0.30,
             "casual_rate": 0.55,
-            "description": "Weekday shiftwork loading",
+            "description": "Monday-Friday shiftwork loading",
             "applies_to": ["shift"],
             "days": [
                 "Monday",

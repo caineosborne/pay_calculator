@@ -166,4 +166,33 @@ describe('ShiftCalculator', () => {
             expect.objectContaining({ start: 12.5, end: 17, break_duration: 0, minimum_engagement_exempt: true }),
         ]);
     });
+
+    it('sends public holiday status with each attendance segment', async () => {
+        const dispatch = vi.fn();
+        fetch.mockResolvedValue(responseForPay(160));
+        payContext = {
+            state: {
+                ...stateForRate(20),
+                shifts: [{
+                    week: 1,
+                    day: 'Monday',
+                    start: 9,
+                    end: 17,
+                    break_duration: 0,
+                    public_holiday: true,
+                }],
+            },
+            dispatch,
+        };
+
+        render(<ShiftCalculator><div>Calculator</div></ShiftCalculator>);
+        await act(async () => {
+            await vi.advanceTimersByTimeAsync(150);
+        });
+
+        const payload = JSON.parse(fetch.mock.calls[0][1].body);
+        expect(payload.shifts).toEqual([
+            expect.objectContaining({ public_holiday: true }),
+        ]);
+    });
 });
