@@ -52,7 +52,8 @@ app.add_middleware(
         "https://pay-calculator-s0bv.onrender.com",
         "https://pay-calculator.onrender.com",
         "https://pay-checker-mvp.onrender.com",
-        "https://pay-check.onrender.com"
+        "https://pay-check.onrender.com",
+        "https://pay-calculator-gules.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
