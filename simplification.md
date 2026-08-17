@@ -9,7 +9,7 @@ This document tracks legacy fields, compatibility shims, and cleanup candidates 
 - `WEEKEND_RULES` is current and supported. It remains the active source for weekend overtime and weekend penalty classification. The worker-type-first shape is preferred; the day-first shape is retained for compatibility.
 - `SATURDAY_PENALTY_RATE` and `SUNDAY_PENALTY_RATE` are compatibility/documentation fields in several older rulesets; detailed weekend entries in `WEEKEND_RULES` drive the active calculation.
 - `Nurses_rules.py` was a backward-compatibility wrapper and has been removed.
-- `config/awards.json` is the award registry, not a full rules schema. The actual award rules still live in Python classes.
+- `backend/config/awards.json` is the award registry, not a full rules schema. The actual award rules still live in Python classes.
 - Public holidays are not a first-class input yet. Any `PUBLIC_HOLIDAY` day label is only useful if the caller explicitly supplies it.
 
 ## Potential Cleanup Candidates

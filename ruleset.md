@@ -26,7 +26,7 @@ match the same ordinary hours.
 
 ## Authoring a ruleset
 
-Register an award in `config/awards.json`, then provide a Python class in
+Register an award in `backend/config/awards.json`, then provide a Python class in
 `backend/services/rules/`. New rulesets should use this grouped contract:
 
 ```python

@@ -2,7 +2,7 @@
 Shared award registry utilities.
 
 This module reads the single source of truth for available awards from the
-frontend JSON registry so backend validation and frontend options stay aligned.
+backend JSON registry so backend validation and frontend options stay aligned.
 """
 
 from __future__ import annotations
@@ -13,10 +13,10 @@ from pathlib import Path
 
 
 AWARDS_REGISTRY_PATH = (
-    Path(__file__).resolve().parents[2] / "config" / "awards.json"
+    Path(__file__).resolve().parents[1] / "config" / "awards.json"
 )
 DISCLAIMERS_CONFIG_PATH = (
-    Path(__file__).resolve().parents[2] / "config" / "disclaimers.json"
+    Path(__file__).resolve().parents[1] / "config" / "disclaimers.json"
 )
 
 
