@@ -1,20 +1,37 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { usePay } from '../../context/PayContext';
 import { DisplayRules } from './DisplayRules';
 import { RuleConfigurationEditor } from './RuleConfigurationEditor';
 import { api } from '../../services/apis';
+import { PUBLIC_AWARD_DEFAULT_RATES } from '../Layout/awardTabsData';
+
+const FALLBACK_AWARD_DETAILS = {
+    woolies_2024_demo: { label: 'Woolies EA 2024' },
+    coles_2024: { label: 'Coles EA 2024' },
+    fast_food: { label: 'Fast Food Award 2026' },
+    gria_2026: { label: 'General Retail Industry Award 2026 (GRIA)' },
+};
 
 export function InputDetails() {
     const { state, dispatch } = usePay();
     const [showRules, setShowRules] = useState(false);
     const [showConfigurationEditor, setShowConfigurationEditor] = useState(false);
     const [awards, setAwards] = useState([]);
-    const [ruleConfigurations, setRuleConfigurations] = useState([]);
     const [rateOption, setRateOption] = useState('custom');
-    const defaultAward = awards.find((award) => award.default)?.key || 'fast_food';
-    const selectedAward = awards.find(
+    const customRateSelected = useRef(false);
+    const selectedAward = useMemo(() => awards.find(
         (award) => award.key === state.config.award
-    );
+    ) || {
+        key: state.config.award,
+        ...FALLBACK_AWARD_DETAILS[state.config.award],
+        hourly_rate_options: state.config.award === 'gria_2026'
+            ? [{
+                key: 'default',
+                label: 'Base rate',
+                hourly_rate: PUBLIC_AWARD_DEFAULT_RATES[state.config.award],
+            }]
+            : [],
+    }, [awards, state.config.award]);
     const hourlyRateOptions = useMemo(
         () => selectedAward?.hourly_rate_options || [],
         [selectedAward]
@@ -36,32 +53,9 @@ export function InputDetails() {
         });
     };
 
-    const handleAwardChange = (award) => {
-        dispatch({
-            type: 'UPDATE_AWARD',
-            payload: award
-        });
-        dispatch({
-            type: 'UPDATE_RULE_CONFIGURATION',
-            payload: `builtin:${award}`
-        });
-
-        const defaultRate = awards.find(
-            (awardOption) => awardOption.key === award
-        )?.hourly_rate_options?.[0];
-        if (defaultRate) {
-            setRateOption(defaultRate.key);
-            dispatch({
-                type: 'UPDATE_HOURLY_RATE',
-                payload: defaultRate.hourly_rate,
-            });
-        } else {
-            setRateOption('custom');
-        }
-    };
-
     const handleRateChange = (optionValue) => {
         setRateOption(optionValue);
+        customRateSelected.current = optionValue === 'custom';
         const selectedRate = hourlyRateOptions.find(
             (option) => option.key === optionValue
         );
@@ -72,13 +66,6 @@ export function InputDetails() {
                 payload: selectedRate.hourly_rate,
             });
         }
-    };
-
-    const handleRuleConfigurationChange = (configurationId) => {
-        dispatch({
-            type: 'UPDATE_RULE_CONFIGURATION',
-            payload: configurationId
-        });
     };
 
     const handleEmploymentTypeChange = (type) => {
@@ -135,72 +122,14 @@ export function InputDetails() {
     }, [dispatch]);
 
     useEffect(() => {
-        if (
-            awards.length > 0 &&
-            !awards.some((award) => award.key === state.config.award)
-        ) {
-            dispatch({
-                type: 'UPDATE_AWARD',
-                payload:
-                    awards.find((award) => award.default)?.key ||
-                    awards[0].key
-            });
+        if (customRateSelected.current) {
+            return;
         }
-    }, [awards, dispatch, state.config.award]);
-
-    useEffect(() => {
         const matchingRate = hourlyRateOptions.find(
             (option) => option.hourly_rate === Number(state.config.hourlyRate)
         );
         setRateOption(matchingRate?.key || 'custom');
     }, [hourlyRateOptions, state.config.hourlyRate]);
-
-    const refreshRuleConfigurations = async () => {
-        const configurations = await api.getRuleConfigurations();
-        setRuleConfigurations(configurations);
-        return configurations;
-    };
-
-    useEffect(() => {
-        refreshRuleConfigurations().catch((error) => {
-            console.error('Failed to load rule configurations:', error);
-        });
-    }, []);
-
-    useEffect(() => {
-        if (!ruleConfigurations.length) {
-            return;
-        }
-        const selectedConfiguration = ruleConfigurations.find(
-            (configuration) =>
-                configuration.id === state.config.ruleConfiguration
-        );
-        if (
-            !selectedConfiguration ||
-            selectedConfiguration.base_award !== state.config.award
-        ) {
-            dispatch({
-                type: 'UPDATE_RULE_CONFIGURATION',
-                payload: `builtin:${state.config.award}`
-            });
-        }
-    }, [
-        dispatch,
-        ruleConfigurations,
-        state.config.award,
-        state.config.ruleConfiguration,
-    ]);
-
-    const handleConfigurationSaved = async (savedConfiguration) => {
-        await refreshRuleConfigurations();
-        handleRuleConfigurationChange(savedConfiguration.id);
-        dispatch({ type: 'REFRESH_CALCULATION' });
-    };
-
-    const awardRuleConfigurations = ruleConfigurations.filter(
-        (configuration) =>
-            configuration.base_award === state.config.award
-    );
 
     return (
         <section className="config-panel panel" aria-label="Pay details">
@@ -272,23 +201,10 @@ export function InputDetails() {
                         )}
                     </div>
 
-                    {/* Award selection dropdown */}
-                    <div className="flex-1">
-                        <label htmlFor="award" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                            Award
-                        </label>
-                        <select
-                            id="award"
-                            value={state.config.award || defaultAward}
-                            onChange={(e) => handleAwardChange(e.target.value)}
-                            className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                        >
-                            {awards.map((award) => (
-                                <option key={award.key} value={award.key}>
-                                    {award.label}
-                                </option>
-                            ))}
-                        </select>
+                    <div className="award-lockup" aria-label="Selected award">
+                        <span className="section-kicker">Selected award</span>
+                        <strong>{selectedAward?.label || 'Loading rules'}</strong>
+                        <span>Selected from the bar above</span>
                     </div>
 
                     {/* Worker type toggle section */}
@@ -317,16 +233,25 @@ export function InputDetails() {
                                     Shift Worker
                                 </button>
                             </div>
-                            <button
-                                onClick={() => setShowRules(!showRules)}
-                                className={`px-3 py-1 rounded-md text-xs font-medium transition-colors border-2
+                            <div className="control-button-row">
+                                <button
+                                    onClick={() => setShowRules(!showRules)}
+                                    className={`px-3 py-1 rounded-md text-xs font-medium transition-colors border-2
                                     ${showRules
                                         ? 'bg-green-500 text-white border-green-600'
                                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border-transparent'
                                     }`}
-                            >
-                                {showRules ? 'Hide Rules' : 'Show Rules'}
-                            </button>
+                                >
+                                    {showRules ? 'Hide Rules' : 'Show Rules'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowConfigurationEditor(!showConfigurationEditor)}
+                                    className="bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                >
+                                    {showConfigurationEditor ? 'Close editor' : 'Edit'}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -420,53 +345,10 @@ export function InputDetails() {
                     )}
                 </div>
 
-                <div className="flex items-end gap-4">
-                    <div className="flex-1">
-                        <label htmlFor="rule-configuration" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                            Rule Configuration
-                        </label>
-                        <select
-                            id="rule-configuration"
-                            value={
-                                state.config.ruleConfiguration ||
-                                `builtin:${state.config.award}`
-                            }
-                            onChange={(event) =>
-                                handleRuleConfigurationChange(event.target.value)
-                            }
-                            className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                        >
-                            {awardRuleConfigurations.map((configuration) => (
-                                <option
-                                    key={configuration.id}
-                                    value={configuration.id}
-                                >
-                                    {configuration.kind === 'custom'
-                                        ? `Custom: ${configuration.name}`
-                                        : `Built-in: ${configuration.name}`}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                    <button
-                        type="button"
-                        onClick={() =>
-                            setShowConfigurationEditor(
-                                !showConfigurationEditor
-                            )
-                        }
-                        className="bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    >
-                        {showConfigurationEditor
-                            ? 'Close rule editor'
-                            : 'Edit rule configuration'}
-                    </button>
-                </div>
             </div>
             {showConfigurationEditor && (
                 <RuleConfigurationEditor
                     configurationId={state.config.ruleConfiguration}
-                    onConfigurationSaved={handleConfigurationSaved}
                 />
             )}
             <DisplayRules showRules={showRules} />

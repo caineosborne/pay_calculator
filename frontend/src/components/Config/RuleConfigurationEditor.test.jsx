@@ -71,7 +71,7 @@ describe('RuleConfigurationEditor', () => {
         );
     });
 
-    it('locks raw Python during guided edits and discard unlocks it', async () => {
+    it('keeps guided edits in the temporary editor', async () => {
         render(
             <RuleConfigurationEditor
                 configurationId="builtin:fast_food"
@@ -79,18 +79,14 @@ describe('RuleConfigurationEditor', () => {
             />
         );
         const field = await screen.findByLabelText('Standard overtime rate');
-        const source = screen.getByLabelText('Rule class source');
-
         fireEvent.change(field, { target: { value: '9' } });
-        expect(source).toBeDisabled();
         expect(screen.getByText('Unsaved guided edits')).toBeInTheDocument();
 
         fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
-        expect(source).not.toBeDisabled();
         expect(field).toHaveValue(1);
     });
 
-    it('locks the questionnaire during raw edits and refreshes it after validation', async () => {
+    it('does not expose raw Python editing', async () => {
         const refreshed = buildQuestionnaire();
         refreshed.overtime.standard_overtime_rate.answer = 1.7;
         api.validateRuleConfiguration.mockResolvedValueOnce({
@@ -105,37 +101,19 @@ describe('RuleConfigurationEditor', () => {
                 onConfigurationSaved={vi.fn()}
             />
         );
-        const source = await screen.findByLabelText('Rule class source');
-        fireEvent.change(source, {
-            target: { value: 'class FastFoodAward2026Rules:\n    VALUE = 7\n' },
-        });
-        expect(
-                screen.getByLabelText('Standard overtime rate')
-        ).toBeDisabled();
-
-        fireEvent.click(screen.getByRole('button', { name: 'Validate' }));
-        await waitFor(() =>
-            expect(
-                screen.getByLabelText('Standard overtime rate')
-            ).toHaveValue(1.7)
-        );
+        expect(screen.queryByLabelText('Rule class source')).not.toBeInTheDocument();
+        expect(screen.queryByText('Advanced Python')).not.toBeInTheDocument();
     });
 
-    it('switches to text-only mode when there are no unsaved edits', async () => {
+    it('shows the guided editor without an advanced mode toggle', async () => {
         render(
             <RuleConfigurationEditor
                 configurationId="builtin:fast_food"
                 onConfigurationSaved={vi.fn()}
             />
         );
-        const toggle = await screen.findByRole('checkbox', {
-            name: 'Review Helper',
-        });
-        fireEvent.click(toggle);
-        expect(screen.queryByText('Ordinary hours')).not.toBeInTheDocument();
-        expect(screen.getByText('Advanced Python').parentElement).toHaveAttribute(
-            'open'
-        );
+        expect(await screen.findByText('Employment settings')).toBeInTheDocument();
+        expect(screen.queryByRole('checkbox', { name: 'Review Helper' })).not.toBeInTheDocument();
     });
 
     it('supports repeatable penalty rows', async () => {
@@ -221,31 +199,19 @@ describe('RuleConfigurationEditor', () => {
         ).toBeInTheDocument();
     });
 
-    it('saves guided values as a selected custom copy', async () => {
-        const onConfigurationSaved = vi.fn();
+    it('keeps guided edits temporary and exposes no save action', async () => {
         render(
             <RuleConfigurationEditor
                 configurationId="builtin:fast_food"
-                onConfigurationSaved={onConfigurationSaved}
             />
         );
         fireEvent.change(
             await screen.findByLabelText('Standard overtime rate'),
             { target: { value: '9' } }
         );
-        fireEvent.click(
-            screen.getAllByRole('button', { name: 'Save custom copy' })[0]
-        );
-
-        await waitFor(() =>
-            expect(api.createRuleConfiguration).toHaveBeenCalled()
-        );
-        expect(api.createRuleConfiguration.mock.calls[0][3]).not.toBeNull();
-        expect(onConfigurationSaved).toHaveBeenCalledWith(
-            expect.objectContaining({
-                id: 'custom:fast_food:reviewed',
-            })
-        );
+        expect(screen.queryByRole('button', { name: /save/i })).not.toBeInTheDocument();
+        expect(screen.getByText(/never saved/i)).toBeInTheDocument();
+        expect(api.createRuleConfiguration).not.toHaveBeenCalled();
     });
 
     it('ignores a stale configuration response after the selection changes', async () => {
@@ -282,9 +248,7 @@ describe('RuleConfigurationEditor', () => {
             kind: 'custom',
             source: 'class FastFoodAward2026Rules:\n    VALUE = 2\n',
         });
-        expect(await screen.findByLabelText('Rule class source')).toHaveValue(
-            'class FastFoodAward2026Rules:\n    VALUE = 2\n'
-        );
+        expect(await screen.findByText('Pay rules')).toBeInTheDocument();
 
         pending['custom:fast_food:first']({
             ...configuration(),
@@ -293,9 +257,7 @@ describe('RuleConfigurationEditor', () => {
             source: 'class FastFoodAward2026Rules:\n    VALUE = 1\n',
         });
         await waitFor(() =>
-            expect(screen.getByLabelText('Rule class source')).toHaveValue(
-                'class FastFoodAward2026Rules:\n    VALUE = 2\n'
-            )
+            expect(screen.getByText('Pay rules')).toBeInTheDocument()
         );
     });
 });

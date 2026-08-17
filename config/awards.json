@@ -5,6 +5,7 @@
     "module": "fast_food_award",
     "class_name": "FastFoodAward2026Rules",
     "default": true,
+    "public_tab": "Fast Food",
     "hourly_rate_options": [
       { "key": "level_1", "label": "Level 1", "hourly_rate": 27.81 },
       { "key": "level_2", "label": "Level 2", "hourly_rate": 29.45 },
@@ -17,6 +18,7 @@
     "label": "Coles EA 2024",
     "module": "coles_2024_rules",
     "class_name": "Coles2024Rules",
+    "public_tab": "Coles",
     "hourly_rates_as_at": "2026-07-01",
     "hourly_rate_options": [
       { "key": "team_member_level_1", "label": "Level 1 team member", "hourly_rate": 28.42 },
@@ -32,6 +34,7 @@
     "label": "General Retail Industry Award 2026 (GRIA)",
     "module": "gris_config",
     "class_name": "GRIA2026Rules",
+    "public_tab": "GRIA",
     "hourly_rate_options": [
       { "key": "retail_employee_level_1", "label": "Retail employee level 1", "hourly_rate": 27.81 },
       { "key": "retail_employee_level_2", "label": "Retail employee level 2", "hourly_rate": 28.45 },
@@ -48,6 +51,7 @@
     "label": "Woolies EA 2024",
     "module": "woolies_2024_demo",
     "class_name": "Woolies2024Rules",
+    "public_tab": "Woolies",
     "hourly_rates_as_at": "2026-07-01",
     "hourly_rate_options": [
       { "key": "store_team_member_level_1", "label": "Store Team Member Level 1", "hourly_rate": 28.26 },

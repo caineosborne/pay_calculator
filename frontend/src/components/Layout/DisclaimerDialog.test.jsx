@@ -19,7 +19,13 @@ vi.mock('../../services/apis', () => ({
                     title: 'Scope and assumptions',
                     paragraphs: ['Selected Fast Food Award rules are modelled.'],
                     assumptions: ['The selected classification is correct.'],
-                    limitations: ['Some entitlements are not calculated.'],
+                    limitations: ['Some configured rules use a proxy.'],
+                    exclusion_groups: [
+                        {
+                            title: 'Specific exclusions',
+                            items: ['Some entitlements are not calculated.'],
+                        },
+                    ],
                     closing_paragraphs: ['Check the applicable records.'],
                 },
             },
@@ -33,10 +39,14 @@ describe('DisclaimerDialog', () => {
         render(<DisclaimerDialog isOpen onClose={onClose} />);
 
         expect(await screen.findByText('Indicative estimate only.')).toBeInTheDocument();
+        expect(screen.queryByText('Before you use this calculator')).not.toBeInTheDocument();
         expect(screen.getByText('Scope and assumptions')).toBeInTheDocument();
         expect(screen.getByText('Assumptions')).toBeInTheDocument();
         expect(screen.getByText('The selected classification is correct.')).toBeInTheDocument();
         expect(screen.getByText('Limitations')).toBeInTheDocument();
+        expect(screen.getByText('Some configured rules use a proxy.')).toBeInTheDocument();
+        expect(screen.getByText('Exclusions')).toBeInTheDocument();
+        expect(screen.getByText('Specific exclusions')).toBeInTheDocument();
         expect(screen.getByText('Some entitlements are not calculated.')).toBeInTheDocument();
 
         fireEvent.click(screen.getByRole('button', { name: 'I understand' }));

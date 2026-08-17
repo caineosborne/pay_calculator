@@ -1,18 +1,9 @@
 // context/PayContext.jsx
-import React, { createContext, useContext, useEffect, useReducer } from 'react';
+import React, { createContext, useContext, useReducer } from 'react';
 import { initialShifts } from '../components/Config/shifts';
 
 const PayContext = createContext();
-const savedAward = typeof window !== 'undefined'
-    ? window.localStorage.getItem('pay-checker.award')
-    : null;
-const liveAwards = new Set([
-    'fast_food',
-    'coles_2024',
-    'gria_2026',
-    'woolies_2024_demo',
-]);
-const defaultAward = liveAwards.has(savedAward) ? savedAward : 'fast_food';
+const defaultAward = 'fast_food';
 
 const initialState = {
     config: {
@@ -73,6 +64,19 @@ function payReducer(state, action) {
                     award: action.payload
                 }
             };
+        case 'SELECT_AWARD':
+            return {
+                ...state,
+                config: {
+                    ...state.config,
+                    award: action.payload.award,
+                    ruleConfiguration: `builtin:${action.payload.award}`,
+                    ...(action.payload.hourlyRate
+                        ? { hourlyRate: action.payload.hourlyRate }
+                        : {}),
+                },
+                calculationError: null,
+            };
         case 'UPDATE_RULE_CONFIGURATION':
             return {
                 ...state,
@@ -132,10 +136,6 @@ function payReducer(state, action) {
 
 export function PayProvider({ children }) {
     const [state, dispatch] = useReducer(payReducer, initialState);
-
-    useEffect(() => {
-        window.localStorage.setItem('pay-checker.award', state.config.award);
-    }, [state.config.award]);
 
     return (
         <PayContext.Provider value={{ state, dispatch }}>

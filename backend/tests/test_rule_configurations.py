@@ -76,25 +76,53 @@ class RuleConfigurationTests(unittest.TestCase):
             6,
         )
 
-    def test_public_disclaimers_include_generic_and_fast_food_limitations(self):
+    def test_public_disclaimers_use_the_four_part_structure_for_every_instrument(self):
         disclaimers = public_disclaimers()
 
         self.assertEqual(disclaimers["generic"]["title"], "Important disclaimer")
+        self.assertIn(
+            "fairwork.gov.au",
+            " ".join(disclaimers["generic"]["paragraphs"]),
+        )
         self.assertEqual(
             disclaimers["awards"]["fast_food"]["title"],
             "Scope and assumptions",
         )
-        self.assertGreater(
-            len(disclaimers["awards"]["fast_food"]["limitations"]), 0
-        )
-        for award in ("coles_2024", "gria_2026"):
+        for award in (
+            "fast_food",
+            "coles_2024",
+            "gria_2026",
+            "woolies_2024_demo",
+        ):
+            self.assertGreater(len(disclaimers["awards"][award]["paragraphs"]), 0)
+            self.assertGreater(len(disclaimers["awards"][award]["assumptions"]), 0)
+            self.assertGreater(len(disclaimers["awards"][award]["limitations"]), 0)
+            exclusions = disclaimers["awards"][award].get("exclusions", [])
+            exclusion_groups = disclaimers["awards"][award].get(
+                "exclusion_groups", []
+            )
+            self.assertTrue(exclusions or exclusion_groups)
+            for group in exclusion_groups:
+                self.assertTrue(group["title"])
+                self.assertGreater(len(group["items"]), 0)
+
+        for award in ("coles_2024", "gria_2026", "woolies_2024_demo"):
             award_text = " ".join(
                 disclaimers["awards"][award]["paragraphs"]
                 + disclaimers["awards"][award]["assumptions"]
             ).lower()
             self.assertIn("shiftworker", award_text)
+
+        for award in ("coles_2024", "gria_2026"):
+            award_text = " ".join(
+                disclaimers["awards"][award]["assumptions"]
+            ).lower()
             self.assertIn("non-shiftwork", award_text)
-            self.assertGreater(len(disclaimers["awards"][award]["limitations"]), 0)
+
+        woolies_text = " ".join(
+            disclaimers["awards"]["woolies_2024_demo"]["assumptions"]
+        ).lower()
+        self.assertIn("rostered solely for shiftwork", woolies_text)
 
     def test_retail_shiftworker_weekday_loading_applies_to_daytime_shifts(self):
         for award in ("coles_2024", "gria_2026"):

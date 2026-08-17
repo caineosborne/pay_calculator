@@ -33,6 +33,9 @@ export function DisclaimerDialog({ isOpen, onClose }) {
 
     const generic = disclaimers?.generic;
     const awardDisclaimer = disclaimers?.awards?.[state.config.award];
+    const hasGroupedExclusions = awardDisclaimer?.exclusion_groups?.some(
+        (group) => group?.items?.length > 0
+    );
 
     return (
         <div className="disclaimer-backdrop" role="presentation">
@@ -42,7 +45,6 @@ export function DisclaimerDialog({ isOpen, onClose }) {
                 aria-modal="true"
                 aria-labelledby="disclaimer-dialog-title"
             >
-                <p className="section-kicker">Before you use this calculator</p>
                 <h2 id="disclaimer-dialog-title">{generic?.title || 'Important disclaimer'}</h2>
 
                 {generic?.paragraphs?.map((paragraph) => (
@@ -71,6 +73,33 @@ export function DisclaimerDialog({ isOpen, onClose }) {
                                 <ul>
                                     {awardDisclaimer.limitations.map((limitation) => (
                                         <li key={limitation}>{limitation}</li>
+                                    ))}
+                                </ul>
+                            </>
+                        )}
+                        {hasGroupedExclusions && (
+                            <>
+                                <h4>Exclusions</h4>
+                                {awardDisclaimer.exclusion_groups.map((group) => (
+                                    group?.items?.length > 0 && (
+                                        <section className="exclusion-group" key={group.title}>
+                                            <h5>{group.title}</h5>
+                                            <ul>
+                                                {group.items.map((item) => (
+                                                    <li key={item}>{item}</li>
+                                                ))}
+                                            </ul>
+                                        </section>
+                                    )
+                                ))}
+                            </>
+                        )}
+                        {!hasGroupedExclusions && awardDisclaimer.exclusions?.length > 0 && (
+                            <>
+                                <h4>Exclusions</h4>
+                                <ul>
+                                    {awardDisclaimer.exclusions.map((exclusion) => (
+                                        <li key={exclusion}>{exclusion}</li>
                                     ))}
                                 </ul>
                             </>

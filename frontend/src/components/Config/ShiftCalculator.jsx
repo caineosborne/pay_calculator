@@ -87,7 +87,10 @@ export function ShiftCalculator({ children }) {
                     hourly_rate: parseFloat(state.config.hourlyRate),
                     worker_type: state.config.workerType,
                     award: state.config.award,
-                    rule_configuration: state.config.ruleConfiguration,
+                    // Public award tabs always calculate against the matching
+                    // built-in rules. A stale custom identifier must not leak
+                    // into a public calculator request.
+                    rule_configuration: `builtin:${state.config.award}`,
                     employment_type: state.config.employmentType,
                     contracted_hours: state.config.contractedHours,
                     public_holidays: state.publicHolidays,

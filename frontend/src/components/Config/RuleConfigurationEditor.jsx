@@ -611,7 +611,6 @@ function Questionnaire({
 
 export function RuleConfigurationEditor({
     configurationId,
-    onConfigurationSaved,
 }) {
     const [configuration, setConfiguration] = useState(null);
     const [source, setSource] = useState('');
@@ -619,15 +618,9 @@ export function RuleConfigurationEditor({
     const [initialSource, setInitialSource] = useState('');
     const [initialQuestionnaire, setInitialQuestionnaire] = useState(null);
     const [issues, setIssues] = useState([]);
-    const [copyName, setCopyName] = useState('');
     const [message, setMessage] = useState('');
     const [isWorking, setIsWorking] = useState(false);
-    const [reviewHelperEnabled, setReviewHelperEnabled] = useState(true);
-    const [advancedOpen, setAdvancedOpen] = useState(false);
     const [dirtyLayer, setDirtyLayer] = useState(null);
-    const [importName, setImportName] = useState('');
-    const [pythonFile, setPythonFile] = useState(null);
-    const [questionnaireFile, setQuestionnaireFile] = useState(null);
 
     useEffect(() => {
         let isMounted = true;
@@ -652,12 +645,6 @@ export function RuleConfigurationEditor({
                     setQuestionnaire(clone(loaded.questionnaire));
                     setInitialQuestionnaire(clone(loaded.questionnaire));
                     setIssues(loaded.structural_issues || []);
-                    setCopyName(
-                        loaded.kind === 'builtin'
-                            ? `${loaded.name} Custom`
-                            : ''
-                    );
-                    setImportName(`${loaded.name} Import`);
                     setDirtyLayer(null);
                 }
             } catch (error) {
@@ -693,16 +680,6 @@ export function RuleConfigurationEditor({
         setMessage('');
     };
 
-    const changeSource = (value) => {
-        // Raw edits lock the questionnaire until save or discard.
-        if (dirtyLayer === 'guided') {
-            return;
-        }
-        setSource(value);
-        setDirtyLayer('raw');
-        setMessage('');
-    };
-
     const discardChanges = () => {
         setSource(initialSource);
         setQuestionnaire(clone(initialQuestionnaire));
@@ -732,86 +709,8 @@ export function RuleConfigurationEditor({
                     ? 'Fix the highlighted structural errors before saving.'
                     : dirtyLayer === 'guided'
                       ? 'Guided values are structurally valid and ready to save.'
-                      : 'Valid Python rule class. The Review Helper preview is refreshed.'
+                      : 'Guided rule values are valid.'
             );
-        } catch (error) {
-            setMessage(error.message);
-        } finally {
-            setIsWorking(false);
-        }
-    };
-
-    const saveCurrent = async () => {
-        if (!configuration) {
-            return;
-        }
-        setIsWorking(true);
-        setMessage('');
-        try {
-            const guidedValues =
-                dirtyLayer === 'guided' ? questionnaire : null;
-            const saved =
-                configuration.kind === 'builtin'
-                    ? await api.createRuleConfiguration(
-                          configuration.base_award,
-                          copyName,
-                          source,
-                          guidedValues
-                      )
-                    : await api.updateRuleConfiguration(
-                          configuration.id,
-                          source,
-                          guidedValues
-                      );
-            setConfiguration(saved);
-            setSource(saved.source);
-            setInitialSource(saved.source);
-            setQuestionnaire(clone(saved.questionnaire));
-            setInitialQuestionnaire(clone(saved.questionnaire));
-            setIssues(saved.structural_issues || []);
-            setDirtyLayer(null);
-            setMessage('Custom configuration saved and selected.');
-            await onConfigurationSaved(saved);
-        } catch (error) {
-            setMessage(error.message);
-        } finally {
-            setIsWorking(false);
-        }
-    };
-
-    const toggleReviewHelper = () => {
-        if (dirtyLayer) {
-            setMessage(
-                'Save or discard your current edits before changing editor mode.'
-            );
-            return;
-        }
-        setReviewHelperEnabled((enabled) => !enabled);
-        setAdvancedOpen(reviewHelperEnabled);
-    };
-
-    const importFiles = async () => {
-        if (!configuration || !pythonFile || !importName.trim()) {
-            return;
-        }
-        setIsWorking(true);
-        setMessage('');
-        try {
-            const importedSource = await pythonFile.text();
-            let importedQuestionnaire = null;
-            if (questionnaireFile) {
-                importedQuestionnaire = JSON.parse(
-                    await questionnaireFile.text()
-                );
-            }
-            const saved = await api.createRuleConfiguration(
-                configuration.base_award,
-                importName,
-                importedSource,
-                importedQuestionnaire
-            );
-            setMessage('Award Extractor files imported and selected.');
-            await onConfigurationSaved(saved);
         } catch (error) {
             setMessage(error.message);
         } finally {
@@ -824,7 +723,6 @@ export function RuleConfigurationEditor({
     }
 
     const guidedDisabled = isWorking || dirtyLayer === 'raw';
-    const rawDisabled = isWorking || dirtyLayer === 'guided';
 
     return (
         <div className="mt-4 rounded-lg border border-gray-200 p-4 text-left dark:border-gray-600">
@@ -838,57 +736,13 @@ export function RuleConfigurationEditor({
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <button
-                        type="button"
-                        aria-label="Save rule configuration"
-                        onClick={saveCurrent}
-                        disabled={
-                            isWorking ||
-                            !configuration ||
-                            !dirtyLayer ||
-                            (dirtyLayer === 'guided' && hasErrors) ||
-                            (configuration.kind === 'builtin' &&
-                                !copyName.trim())
-                        }
-                        className="bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
-                    >
-                        {configuration?.kind === 'builtin'
-                            ? 'Save custom copy'
-                            : 'Save changes'}
-                    </button>
-                    <label className="flex items-center gap-2 text-sm">
-                        <input
-                            type="checkbox"
-                            checked={reviewHelperEnabled}
-                            onChange={toggleReviewHelper}
-                            disabled={isWorking}
-                        />
-                        Review Helper
-                    </label>
                     <span className="rounded bg-gray-100 px-2 py-1 text-xs uppercase dark:bg-gray-700">
                         {configuration?.kind || 'loading'}
                     </span>
                 </div>
             </div>
 
-            {configuration?.kind === 'builtin' && (
-                <div className="mt-4">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                        New custom configuration name
-                    </label>
-                    <input
-                        aria-label="New custom configuration name"
-                        type="text"
-                        value={copyName}
-                        onChange={(event) => setCopyName(event.target.value)}
-                        className={inputClass}
-                    />
-                    <p className="mt-1 text-xs text-gray-500">
-                        Built-ins are immutable. Saving creates a custom copy
-                        beneath {configuration.name}.
-                    </p>
-                </div>
-            )}
+            <p className="temporary-rules-note">These rule edits are temporary. They are used for review in this session and are never saved.</p>
 
             {issues.length > 0 && (
                 <div className="mt-4 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
@@ -905,7 +759,7 @@ export function RuleConfigurationEditor({
                 </div>
             )}
 
-            {reviewHelperEnabled && questionnaire && (
+            {questionnaire && (
                 <div className="mt-4">
                     {dirtyLayer === 'raw' && (
                         <p className="rounded bg-blue-50 p-2 text-sm text-blue-800">
@@ -923,30 +777,6 @@ export function RuleConfigurationEditor({
                 </div>
             )}
 
-            <details
-                className="mt-4 rounded-lg border border-gray-200 p-4 dark:border-gray-600"
-                open={!reviewHelperEnabled || advancedOpen}
-                onToggle={(event) => setAdvancedOpen(event.currentTarget.open)}
-            >
-                <summary className="cursor-pointer font-semibold">
-                    Advanced Python
-                </summary>
-                {dirtyLayer === 'guided' && (
-                    <p className="rounded bg-blue-50 p-2 text-sm text-blue-800">
-                        Python editing is locked while the Review Helper has
-                        unsaved edits. Save or discard those changes first.
-                    </p>
-                )}
-                <textarea
-                    aria-label="Rule class source"
-                    value={source}
-                    onChange={(event) => changeSource(event.target.value)}
-                    spellCheck="false"
-                    disabled={rawDisabled}
-                    className="mt-3 block h-96 w-full resize-y rounded-md border border-gray-300 bg-gray-950 p-3 font-mono text-xs text-gray-100 shadow-sm disabled:opacity-60"
-                />
-            </details>
-
             <div className="mt-4 flex flex-wrap items-center gap-2">
                 <button
                     type="button"
@@ -955,22 +785,6 @@ export function RuleConfigurationEditor({
                     className="bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50"
                 >
                     Validate
-                </button>
-                <button
-                    type="button"
-                    onClick={saveCurrent}
-                    disabled={
-                        isWorking ||
-                        !configuration ||
-                        !dirtyLayer ||
-                        (dirtyLayer === 'guided' && hasErrors) ||
-                        (configuration.kind === 'builtin' && !copyName.trim())
-                    }
-                    className="bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
-                >
-                    {configuration?.kind === 'builtin'
-                        ? 'Save custom copy'
-                        : 'Save changes'}
                 </button>
                 <button
                     type="button"
@@ -986,66 +800,6 @@ export function RuleConfigurationEditor({
                     </span>
                 )}
             </div>
-
-            <details className="mt-4 rounded-lg border border-gray-200 p-4 dark:border-gray-600">
-                <summary className="cursor-pointer font-semibold">
-                    Import Award Extractor files
-                </summary>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                    Import a calculator Python file and, optionally, its
-                    questionnaire JSON as review evidence. The Python class
-                    must match this award.
-                </p>
-                <div className="grid gap-3 md:grid-cols-3">
-                    <label className="text-sm">
-                        Custom name
-                        <input
-                            value={importName}
-                            onChange={(event) =>
-                                setImportName(event.target.value)
-                            }
-                            className={inputClass}
-                        />
-                    </label>
-                    <label className="text-sm">
-                        Calculator Python
-                        <input
-                            type="file"
-                            accept=".py,text/x-python"
-                            onChange={(event) =>
-                                setPythonFile(event.target.files?.[0] || null)
-                            }
-                            className={inputClass}
-                        />
-                    </label>
-                    <label className="text-sm">
-                        Questionnaire JSON (optional)
-                        <input
-                            type="file"
-                            accept=".json,application/json"
-                            onChange={(event) =>
-                                setQuestionnaireFile(
-                                    event.target.files?.[0] || null
-                                )
-                            }
-                            className={inputClass}
-                        />
-                    </label>
-                </div>
-                <button
-                    type="button"
-                    onClick={importFiles}
-                    disabled={
-                        isWorking ||
-                        Boolean(dirtyLayer) ||
-                        !pythonFile ||
-                        !importName.trim()
-                    }
-                    className="mt-3 bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50"
-                >
-                    Import as custom configuration
-                </button>
-            </details>
 
             {message && (
                 <p className="mt-3 mb-0 text-sm text-gray-700 dark:text-gray-200">
