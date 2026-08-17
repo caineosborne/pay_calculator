@@ -7,9 +7,9 @@ import streamlit as st
 from calculator_client import AWARDS, BulkImportError, EMD_COLUMNS, WEEKDAYS, calculate_upload, parse_csv, parse_emd_csv, rows_to_csv
 
 
-st.set_page_config(page_title="Pay Checker Bulk", layout="wide")
-st.title("Pay Checker Bulk")
-st.caption("Upload dated shifts, calculate through the existing Pay Checker API, and review each workday or fortnight.")
+st.set_page_config(page_title="payguide.au Bulk", layout="wide")
+st.title("payguide.au Bulk")
+st.caption("Upload dated shifts, calculate through the payguide.au API, and review each workday or pay period.")
 
 with st.sidebar:
     st.header("Connection")

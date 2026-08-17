@@ -12,7 +12,7 @@ vi.mock('../../context/PayContext', () => ({
 describe('Header', () => {
     afterEach(() => vi.restoreAllMocks());
 
-    it('copies a structured troubleshooting summary', async () => {
+    it('copies structured calculation details', async () => {
         const writeText = vi.fn().mockResolvedValue();
         Object.defineProperty(navigator, 'clipboard', {
             configurable: true,
@@ -43,7 +43,7 @@ describe('Header', () => {
         };
 
         render(<Header />);
-        fireEvent.click(screen.getByRole('button', { name: 'Copy troubleshooting summary' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Copy calculation details' }));
 
         await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
         expect(JSON.parse(writeText.mock.calls[0][0])).toEqual([{
@@ -56,7 +56,7 @@ describe('Header', () => {
             amount: '$180.00',
             appliedRules: ['Span Overtime'],
         }]);
-        expect(screen.getByRole('button', { name: 'Copied' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Calculation details copied' })).toBeInTheDocument();
     });
 
     it('opens the limitations notice from the header', () => {
@@ -71,7 +71,8 @@ describe('Header', () => {
         };
 
         render(<Header onOpenLimitations={onOpenLimitations} />);
-        fireEvent.click(screen.getByRole('button', { name: 'Limitations' }));
+        expect(screen.getByRole('heading', { name: 'payguide.au' })).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Assumptions & limitations' }));
 
         expect(onOpenLimitations).toHaveBeenCalledTimes(1);
     });

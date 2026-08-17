@@ -134,7 +134,7 @@ export function InputDetails() {
     return (
         <section className="config-panel panel" aria-label="Pay details">
             <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between gap-4">
+                <div className="config-primary-row flex items-center justify-between gap-4">
                     {/* Awards with published classifications select their configured rate. */}
                     <div className="flex-1">
                         {hourlyRateOptions.length > 0 ? (
@@ -208,12 +208,12 @@ export function InputDetails() {
                     </div>
 
                     {/* Worker type toggle section */}
-                    <div className="flex-shrink-0">
+                    <div className="worker-controls flex-shrink-0">
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                             Worker Type
                         </label>
-                        <div className="flex flex-col space-y-2">
-                            <div className="flex bg-gray-50 dark:bg-gray-700 rounded-lg p-1">
+                        <div className="worker-control-stack">
+                            <div className="worker-type-row bg-gray-50 dark:bg-gray-700 rounded-lg">
                                 <button
                                     onClick={() => handleWorkerTypeChange('day')}
                                     className={`px-3 py-1 rounded-md text-xs font-medium transition-colors border-2 ${state.config.workerType === 'day'
@@ -257,7 +257,7 @@ export function InputDetails() {
                 </div>
 
                 {/* Employment type and contracted hours section */}
-                <div className="flex items-center gap-4">
+                <div className="config-secondary-row flex items-center gap-4">
                     {/* Employment type selection */}
                     <div className="flex-1">
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">

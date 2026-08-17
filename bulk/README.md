@@ -1,4 +1,4 @@
-# Pay Checker Bulk
+# payguide.au Bulk
 
 This is a separate Streamlit product. It does not change the calculator API or duplicate award logic: it turns dated CSV rows into the existing `POST /calculate` payload, once per employee and fortnight. Each employee has an independent award, rate, employment type, contracted hours and pay-cycle settings.
 

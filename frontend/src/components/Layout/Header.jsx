@@ -117,7 +117,7 @@ export default function Header({ onOpenLimitations }) {
         return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
     };
 
-    const copyTroubleshootingSummary = async () => {
+    const copyCalculationDetails = async () => {
         const summary = state.shifts
             .map((shift, index) => ({ shift, index }))
             .filter(({ shift }) => shift.start !== '' || shift.end !== '')
@@ -147,7 +147,7 @@ export default function Header({ onOpenLimitations }) {
 
         try {
             await navigator.clipboard.writeText(JSON.stringify(summary, null, 2));
-            setCopyStatus('Copied');
+            setCopyStatus('Calculation details copied');
         } catch {
             setCopyStatus('Could not copy');
         }
@@ -155,53 +155,53 @@ export default function Header({ onOpenLimitations }) {
 
     return (
         <header className="pay-header pay-shell">
-                <div className="pay-brand">
-                    {/* Title and subtitle section */}
-                    <span className="brand-mark" aria-hidden="true">$</span>
-                    <div>
-                        <p className="eyebrow">Fortnightly pay estimate</p>
-                        <h1>
-                            Pay Checker
-                        </h1>
-                        <p className="sr-only">
-                            Calculate your fortnightly earnings
-                        </p>
-                    </div>
-
-                    {/* Control buttons section */}
-                    <div className="header-actions">
-                        <button
-                            onClick={onOpenLimitations}
-                            className="pay-button"
-                        >
-                            Limitations
-                        </button>
-                        <button
-                            onClick={copyPreviousWeek}
-                            className="pay-button"
-                        >
-                            Copy Previous Week
-                        </button>
-                        <button
-                            onClick={copyTroubleshootingSummary}
-                            className="pay-button"
-                        >
-                            {copyStatus || 'Copy troubleshooting summary'}
-                        </button>
-                        <button
-                            onClick={resetToDefault}
-                            className="pay-button"
-                        >
-                            Set to 9-5
-                        </button>
-                        <button
-                            onClick={clearAllShifts}
-                            className="pay-button"
-                        >
-                            Clear All
-                        </button>
-                    </div>
+            <div className="pay-brand">
+                {/* Title and subtitle section */}
+                <span className="brand-mark" aria-hidden="true">$</span>
+                <div>
+                    <p className="eyebrow">Pay period estimate</p>
+                    <h1>
+                        payguide.au
+                    </h1>
+                    <p className="sr-only">
+                        Calculate your pay-period earnings
+                    </p>
                 </div>
+            </div>
+
+            {/* Control buttons section */}
+            <div className="header-actions">
+                <button
+                    onClick={onOpenLimitations}
+                    className="pay-button"
+                >
+                    Assumptions & limitations
+                </button>
+                <button
+                    onClick={copyPreviousWeek}
+                    className="pay-button"
+                >
+                    Copy Previous Week
+                </button>
+                <button
+                    onClick={copyCalculationDetails}
+                    className="pay-button"
+                >
+                    {copyStatus || 'Copy calculation details'}
+                </button>
+                <button
+                    onClick={resetToDefault}
+                    className="pay-button"
+                >
+                    Set to 9-5
+                </button>
+                <button
+                    onClick={clearAllShifts}
+                    className="pay-button"
+                >
+                    Clear All
+                </button>
+            </div>
         </header>
     );
 }

@@ -24,24 +24,25 @@ export default function ShiftTable() {
     const renderRow = (shift, idx, renderShiftInputs) => {
         const isPrimary = shift.isPrimary !== false;
         const breakdown = state.calculations.dailyBreakdown?.[getShiftKey(shift)];
+        const appliedRules = breakdown?.applied_rules?.join(', ') || '-';
         return (
-            <tr key={shift.id || `${getShiftKey(shift)}-${idx}`} className={isPrimary ? 'hover:bg-gray-50' : 'bg-blue-50/40'}>
+            <tr key={shift.id || `${getShiftKey(shift)}-${idx}`} className={`shift-entry-row ${isPrimary ? 'hover:bg-gray-50' : 'shift-additional-row bg-blue-50/40'}`}>
                 {renderShiftInputs(shift, idx)}
                 {isPrimary ? <>
-                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-900 font-medium">
+                    <td className="shift-output-cell shift-total-cell px-2 py-1 whitespace-nowrap text-sm text-gray-900 font-medium" data-label="Total hours">
                         {(Number(breakdown?.hours?.ordinary || 0) + Number(breakdown?.hours?.overtime || 0)).toFixed(2)}
                     </td>
-                    <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-600">{breakdown?.hours?.ordinary || '0.00'}</td>
-                    <td className="px-2 py-1 whitespace-nowrap text-sm text-red-600">{breakdown?.hours?.overtime || '0.00'}</td>
-                    <td className="px-2 py-1 whitespace-nowrap text-sm font-medium text-gray-900">${breakdown?.pay?.total || '0.00'}</td>
-                    <td className="min-w-64 px-2 py-1 text-sm text-gray-600 whitespace-normal">{breakdown?.applied_rules?.join(', ') || '-'}</td>
-                </> : <td colSpan="5" className="px-2 py-1 text-xs italic text-gray-500">Combined with the workday above</td>}
+                    <td className="shift-output-cell shift-ordinary-cell px-2 py-1 whitespace-nowrap text-sm text-gray-600" data-label="Ordinary">{breakdown?.hours?.ordinary || '0.00'}</td>
+                    <td className="shift-output-cell shift-overtime-cell px-2 py-1 whitespace-nowrap text-sm text-red-600" data-label="Overtime">{breakdown?.hours?.overtime || '0.00'}</td>
+                    <td className="shift-output-cell shift-amount-cell px-2 py-1 whitespace-nowrap text-sm font-medium text-gray-900" data-label="Pay">${breakdown?.pay?.total || '0.00'}</td>
+                    <td className={`shift-rules-cell ${appliedRules === '-' ? 'is-empty' : ''} min-w-64 px-2 py-1 text-sm text-gray-600 whitespace-normal`} data-label="Rules">{appliedRules}</td>
+                </> : <td colSpan="5" className="shift-combined-cell px-2 py-1 text-xs italic text-gray-500">Combined with the workday above</td>}
             </tr>
         );
     };
 
     return (
-        <section className="shift-card panel" aria-label="Fortnightly shift entries">
+        <section className="shift-card panel" aria-label="Pay period shift entries">
             {state.calculationError && (
                 <p role="alert" className="mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
                     {state.calculationError}
@@ -50,7 +51,7 @@ export default function ShiftTable() {
             <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                     <tr>
-                        <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fortnight Day</th>
+                        <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pay period day</th>
                         <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase">Start</th>
                         <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase">End</th>
                         <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lunch starts</th>

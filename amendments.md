@@ -5,7 +5,7 @@
 Award Extractor should write weekday penalty loadings only to the `PENALTIES`
 dictionary on the generated rule class. Do not generate `SHIFT_PEN_RULES` or
 `HOURS_PEN_RULES`; they are legacy fallback structures and are not displayed
-in the Paychecker frontend.
+in the payguide.au frontend.
 
 Each `PENALTIES` entry must include:
 
@@ -109,7 +109,7 @@ DAILY_OVERTIME_CONFIGURATION = {
 ```
 
 Do not combine worker-type and employment-type variations in one
-configuration. If these attributes are absent, Paychecker uses the existing
+configuration. If these attributes are absent, payguide.au uses the existing
 ordinary-hours limits in the rule class unchanged.
 
 ## Out-of-span overtime

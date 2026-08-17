@@ -29,7 +29,7 @@ export function AwardTabs() {
         <nav className="award-tabs" aria-label="Choose an award calculator">
             <div className="award-tabs-inner">
                 <div className="award-tabs-heading">
-                    <p className="section-kicker">PayGuru calculators</p>
+                    <p className="section-kicker">payguide.au calculators</p>
                     <p className="award-tabs-intro">Choose an award</p>
                 </div>
                 <div className="award-tab-list" role="tablist" aria-label="Award calculators">

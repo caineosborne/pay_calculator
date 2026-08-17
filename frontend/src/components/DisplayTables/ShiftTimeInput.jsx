@@ -199,6 +199,63 @@ export default function ShiftTimeInput({ renderRow }) {
         dispatch({ type: 'UPDATE_SHIFTS', payload: withoutCurrentDay });
     };
 
+    const compactDayLabel = (shift) => `W${shift.week || 1} ${shift.day.slice(0, 3).toUpperCase()}`;
+
+    const renderMobileShiftOptions = (shift, idx) => (
+        <div className="mobile-shift-overrides">
+            <span>Shift options</span>
+            <label>
+                <input
+                    aria-label={`Week ${shift.week || 1} ${shift.day} mobile manual overtime option`}
+                    type="checkbox"
+                    checked={Boolean(shift.manual_overtime)}
+                    disabled={Boolean(shift.manual_ordinary)}
+                    onChange={(event) => handleShiftChange(idx, 'manual_overtime', event.target.checked)}
+                />
+                Treat as overtime
+            </label>
+            <label>
+                <input
+                    aria-label={`Week ${shift.week || 1} ${shift.day} mobile manual ordinary option`}
+                    type="checkbox"
+                    checked={Boolean(shift.manual_ordinary)}
+                    disabled={Boolean(shift.manual_overtime)}
+                    onChange={(event) => handleShiftChange(idx, 'manual_ordinary', event.target.checked)}
+                />
+                Treat as ordinary
+            </label>
+            <label>
+                <input
+                    aria-label={`Week ${shift.week || 1} ${shift.day} mobile public holiday option`}
+                    type="checkbox"
+                    checked={Boolean(shift.public_holiday)}
+                    onChange={() => togglePublicHoliday(idx)}
+                />
+                Public holiday
+            </label>
+        </div>
+    );
+
+    const renderDayActions = (shift, idx, className) => {
+        const isPrimary = shift.isPrimary !== false;
+        return (
+            <div className={className}>
+                {isPrimary ? <>
+                    <button onClick={() => clearDay(idx)} className="day-action" title="Clear times">Clear</button>
+                    <button
+                        onClick={() => copyPreviousDay(shift)}
+                        className="day-action"
+                        title="Copy all shift periods from the previous day"
+                        disabled={shift.week === 1 && shift.day === 'Monday'}
+                    >
+                        Copy previous
+                    </button>
+                    <button onClick={() => addShift(shift)} className="day-action" title="Add another shift period">Add shift</button>
+                </> : <button onClick={() => removeShift(idx)} className="day-action" title="Remove this shift period">Remove</button>}
+            </div>
+        );
+    };
+
     const renderShiftInputs = (shift, idx) => {
         const isPrimary = shift.isPrimary !== false;
         const startDraftKey = draftKey(shift, 'start');
@@ -206,10 +263,22 @@ export default function ShiftTimeInput({ renderRow }) {
         const lunchDraftKey = draftKey(shift, 'lunch_start');
         return (
             <>
-                <td className="px-2 py-1 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {isPrimary ? `Week ${shift.week || 1} - ${shift.day}` : '↳ Additional shift'}
+                <td className="shift-day-cell px-2 py-1 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <span className="shift-day-desktop">
+                        {isPrimary ? `Week ${shift.week || 1} - ${shift.day}` : '↳ Additional shift'}
+                    </span>
+                    <span className="shift-day-mobile" aria-hidden="true">
+                        {isPrimary ? compactDayLabel(shift) : '↳'}
+                    </span>
+                    <details className="mobile-day-actions">
+                        <summary aria-label={`${isPrimary ? `Week ${shift.week || 1} ${shift.day}` : `${shift.day} additional shift`} shift options`}>…</summary>
+                        <div className="mobile-day-actions-menu">
+                            {renderMobileShiftOptions(shift, idx)}
+                            {renderDayActions(shift, idx, 'mobile-day-action-buttons')}
+                        </div>
+                    </details>
                 </td>
-                <td className="px-2 py-1 whitespace-nowrap">
+                <td className="shift-detail-cell shift-start-cell px-2 py-1 whitespace-nowrap" data-label="Start">
                     <div className="flex items-center space-x-1">
                         <button aria-label={`Decrease ${shift.day} start time`} onClick={() => handleTimeChange(idx, 'start', 'decrement')} className="time-adjust">−</button>
                         <input
@@ -227,7 +296,7 @@ export default function ShiftTimeInput({ renderRow }) {
                         <button aria-label={`Increase ${shift.day} start time`} onClick={() => handleTimeChange(idx, 'start', 'increment')} className="time-adjust">+</button>
                     </div>
                 </td>
-                <td className="px-2 py-1 whitespace-nowrap">
+                <td className="shift-detail-cell shift-end-cell px-2 py-1 whitespace-nowrap" data-label="End">
                     <div className="flex items-center space-x-1">
                         <button aria-label={`Decrease ${shift.day} end time`} onClick={() => handleTimeChange(idx, 'end', 'decrement')} className="time-adjust">−</button>
                         <input
@@ -245,7 +314,7 @@ export default function ShiftTimeInput({ renderRow }) {
                         <button aria-label={`Increase ${shift.day} end time`} onClick={() => handleTimeChange(idx, 'end', 'increment')} className="time-adjust">+</button>
                     </div>
                 </td>
-                <td className="px-2 py-1 whitespace-nowrap">
+                <td className="shift-detail-cell shift-lunch-cell px-2 py-1 whitespace-nowrap" data-label="Lunch">
                     <input
                         aria-label={`Week ${shift.week || 1} ${shift.day} ${isPrimary ? 'primary' : 'additional'} lunch start`}
                         type="text"
@@ -270,7 +339,7 @@ export default function ShiftTimeInput({ renderRow }) {
                         className="shift-input text-center"
                     />
                 </td>
-                <td className="px-2 py-1 whitespace-nowrap">
+                <td className="shift-detail-cell shift-break-cell px-2 py-1 whitespace-nowrap" data-label="Break">
                     <div className="flex items-center space-x-1">
                         <input
                             aria-label={`Week ${shift.week || 1} ${shift.day} ${isPrimary ? 'primary' : 'additional'} unpaid break hours`}
@@ -282,23 +351,10 @@ export default function ShiftTimeInput({ renderRow }) {
                             min="0"
                             max="24"
                         />
-                        <div className="flex space-x-1">
-                            {isPrimary ? <>
-                                <button onClick={() => clearDay(idx)} className="day-action ml-2" title="Clear times">Clear</button>
-                                <button
-                                    onClick={() => copyPreviousDay(shift)}
-                                    className="day-action"
-                                    title="Copy all shift periods from the previous day"
-                                    disabled={shift.week === 1 && shift.day === 'Monday'}
-                                >
-                                    Copy Prev
-                                </button>
-                                <button onClick={() => addShift(shift)} className="day-action" title="Add another shift period">+ Add shift</button>
-                            </> : <button onClick={() => removeShift(idx)} className="day-action ml-2" title="Remove this shift period">Remove</button>}
-                        </div>
+                        {renderDayActions(shift, idx, 'desktop-day-actions flex space-x-1')}
                     </div>
                 </td>
-                <td className="px-2 py-1 whitespace-nowrap text-center">
+                <td className="shift-flag-cell shift-ot-flag px-2 py-1 whitespace-nowrap text-center" data-label="OT">
                     <input
                         aria-label={`Week ${shift.week || 1} ${shift.day} manual overtime`}
                         type="checkbox"
@@ -307,7 +363,7 @@ export default function ShiftTimeInput({ renderRow }) {
                         onChange={(event) => handleShiftChange(idx, 'manual_overtime', event.target.checked)}
                     />
                 </td>
-                <td className="px-2 py-1 whitespace-nowrap text-center">
+                <td className="shift-flag-cell shift-ord-flag px-2 py-1 whitespace-nowrap text-center" data-label="Ord">
                     <input
                         aria-label={`Week ${shift.week || 1} ${shift.day} manual ordinary`}
                         type="checkbox"
@@ -316,7 +372,7 @@ export default function ShiftTimeInput({ renderRow }) {
                         onChange={(event) => handleShiftChange(idx, 'manual_ordinary', event.target.checked)}
                     />
                 </td>
-                <td className="px-2 py-1 whitespace-nowrap text-center">
+                <td className="shift-flag-cell shift-ph-flag px-2 py-1 whitespace-nowrap text-center" data-label="PH">
                     <input
                         aria-label={`Week ${shift.week || 1} ${shift.day} public holiday`}
                         type="checkbox"
