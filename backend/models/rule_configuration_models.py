@@ -18,3 +18,7 @@ class CreateRuleConfigurationRequest(RuleSourceValidationRequest):
 class UpdateRuleConfigurationRequest(BaseModel):
     source: str
     questionnaire: dict[str, Any] | None = None
+
+
+class RenameRuleConfigurationRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=100)

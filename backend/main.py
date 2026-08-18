@@ -19,6 +19,7 @@ from models.request_models import PayRequest
 from models.response_models import PayResponse
 from models.rule_configuration_models import (
     CreateRuleConfigurationRequest,
+    RenameRuleConfigurationRequest,
     RuleSourceValidationRequest,
     UpdateRuleConfigurationRequest,
 )
@@ -29,8 +30,10 @@ from services.rule_configurations import (
     RuleConfigurationError,
     RuleConfigurationNotFound,
     create_custom_rule,
+    delete_custom_rule,
     get_rule_configuration,
     list_rule_configurations,
+    rename_custom_rule,
     update_custom_rule,
     validate_rule_payload,
 )
@@ -147,6 +150,30 @@ def update_configuration(
         return update_custom_rule(
             configuration_id, data.source, data.questionnaire
         )
+    except RuleConfigurationError as error:
+        raise _configuration_http_error(error) from error
+    except DatabaseUnavailable as error:
+        raise _database_http_error(error) from error
+
+
+@app.patch("/rule-configurations/{configuration_id}/name")
+def rename_configuration(
+    configuration_id: str, data: RenameRuleConfigurationRequest
+) -> dict:
+    """Rename a custom configuration without modifying its saved overrides."""
+    try:
+        return rename_custom_rule(configuration_id, data.name)
+    except RuleConfigurationError as error:
+        raise _configuration_http_error(error) from error
+    except DatabaseUnavailable as error:
+        raise _database_http_error(error) from error
+
+
+@app.delete("/rule-configurations/{configuration_id}", status_code=204)
+def delete_configuration(configuration_id: str) -> None:
+    """Delete a custom configuration; built-in configurations are immutable."""
+    try:
+        delete_custom_rule(configuration_id)
     except RuleConfigurationError as error:
         raise _configuration_http_error(error) from error
     except DatabaseUnavailable as error:

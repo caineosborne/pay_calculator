@@ -186,6 +186,7 @@ export default function ShiftTimeInput({ renderRow }) {
         const copiedPeriods = previousPeriods.map((item, index) => ({
             ...item,
             id: `shift-${shift.week}-${shift.day}-${Date.now()}-${index}`,
+            week: shift.week,
             day: shift.day,
             isPrimary: index === 0,
         }));

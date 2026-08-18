@@ -137,6 +137,31 @@ describe('ShiftCalculator', () => {
         expect(fetch).toHaveBeenCalledTimes(2);
     });
 
+    it('sends the selected custom configuration to the calculator API', async () => {
+        const dispatch = vi.fn();
+        fetch.mockResolvedValue(responseForPay(160));
+        payContext = {
+            state: {
+                ...stateForRate(20),
+                config: {
+                    ...stateForRate(20).config,
+                    ruleConfiguration: 'custom:fb3b4df0-912f-4e74-97ca-a9a4d13b0a43',
+                },
+            },
+            dispatch,
+        };
+
+        render(<ShiftCalculator><div>Calculator</div></ShiftCalculator>);
+        await act(async () => {
+            await vi.advanceTimersByTimeAsync(150);
+        });
+
+        const payload = JSON.parse(fetch.mock.calls[0][1].body);
+        expect(payload.rule_configuration).toBe(
+            'custom:fb3b4df0-912f-4e74-97ca-a9a4d13b0a43'
+        );
+    });
+
     it('sends the worked periods around a manually specified lunch', async () => {
         const dispatch = vi.fn();
         fetch.mockResolvedValue(responseForPay(160));

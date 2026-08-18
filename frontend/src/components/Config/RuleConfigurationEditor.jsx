@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { api } from '../../services/apis';
 import {
     DAYS,
@@ -10,6 +10,131 @@ const clone = (value) => JSON.parse(JSON.stringify(value));
 
 const inputClass =
     'mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm disabled:bg-gray-100 disabled:text-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:disabled:bg-gray-800';
+
+const ruleFieldId = (path) => `rule-field-${path}`;
+
+function decimalHoursToClockTime(value) {
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 24) {
+        return typeof value === 'string' ? value : '';
+    }
+    const totalMinutes = Math.round(value * 60);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+}
+
+function clockTimeToDecimalHours(value) {
+    const match = /^(\d{1,2}):(\d{2})$/.exec(value);
+    if (!match) {
+        return null;
+    }
+    const hours = Number(match[1]);
+    const minutes = Number(match[2]);
+    if (hours > 24 || minutes > 59 || (hours === 24 && minutes !== 0)) {
+        return null;
+    }
+    return hours + (minutes / 60);
+}
+
+function ClockTimeInput({ ariaLabel, value, disabled, onChange }) {
+    return (
+        <input
+            aria-label={ariaLabel}
+            type="text"
+            inputMode="numeric"
+            placeholder="HH:MM"
+            pattern="(?:[01]?\\d|2[0-4]):[0-5]\\d"
+            value={decimalHoursToClockTime(value)}
+            disabled={disabled}
+            onChange={(event) => {
+                const rawValue = event.target.value;
+                const decimalHours = clockTimeToDecimalHours(rawValue);
+                onChange(rawValue === '' ? null : decimalHours ?? rawValue);
+            }}
+            className={inputClass}
+        />
+    );
+}
+
+function fieldLabelForPath(path) {
+    for (const section of QUESTIONNAIRE_SECTIONS) {
+        for (const [field, label] of section.fields) {
+            const fieldPathValue = fieldPath(section.key, field);
+            if (path === fieldPathValue || path.startsWith(`${fieldPathValue}.`)) {
+                return label;
+            }
+        }
+    }
+    return 'Rule configuration';
+}
+
+function focusRuleField(path) {
+    const candidates = Array.from(
+        document.querySelectorAll('[data-rule-field-path]')
+    )
+        .filter((element) => {
+            const candidatePath = element.dataset.ruleFieldPath;
+            return path === candidatePath || path.startsWith(`${candidatePath}.`);
+        })
+        .sort(
+            (first, second) =>
+                (second.dataset.ruleFieldPath?.length || 0) -
+                (first.dataset.ruleFieldPath?.length || 0)
+        );
+    const target = candidates[0];
+    if (!target) {
+        return;
+    }
+    target.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+    const control = target.matches('input, select, textarea, button')
+        ? target
+        : target.querySelector('input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])');
+    control?.focus();
+}
+
+function ValidationSummary({ issues, hasErrors, summaryRef }) {
+    if (!issues.length) {
+        return null;
+    }
+    const orderedIssues = [...issues].sort(
+        (first, second) =>
+            Number(first.severity !== 'error') - Number(second.severity !== 'error')
+    );
+    return (
+        <section
+            ref={summaryRef}
+            tabIndex="-1"
+            role={hasErrors ? 'alert' : 'status'}
+            className={`mt-4 rounded-md border p-3 text-sm ${
+                hasErrors
+                    ? 'border-red-300 bg-red-50 text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-100'
+                    : 'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100'
+            }`}
+            aria-live="polite"
+            aria-label="Validation issues"
+        >
+            <strong>
+                {hasErrors ? 'Fix these issues before saving' : 'Review notes'}
+            </strong>
+            <ol className="mt-2 mb-0 list-inside space-y-1 p-0">
+                {orderedIssues.map((issue, index) => (
+                    <li key={`${issue.field_path}-${index}`}>
+                        <button
+                            type="button"
+                            onClick={() => focusRuleField(issue.field_path)}
+                            className="text-left underline decoration-current underline-offset-2 hover:no-underline focus:outline-none focus:ring-2 focus:ring-current"
+                        >
+                            <span className="font-medium">
+                                {fieldLabelForPath(issue.field_path)}:
+                            </span>{' '}
+                            {issue.message}
+                        </button>
+                    </li>
+                ))}
+            </ol>
+        </section>
+    );
+}
 
 function FieldIssues({ path, issues }) {
     const matching = issues.filter(
@@ -47,6 +172,19 @@ function OvertimeLimitField({ label, record, disabled, issues, path, onChange, p
           ? [['full_time', 'Full-time employees'], ['part_time', 'Part-time employees'], ['casual', 'Casual employees']]
           : [['default', 'All employees']];
     const update = (key, nextValue) => onChange({ ...value, [key]: nextValue });
+    const updateVariation = (nextVariation) => {
+        const currentBasis = value.basis;
+        const fallbackBasis = typeof currentBasis === 'object'
+            ? currentBasis.default || currentBasis.full_time || currentBasis.part_time || currentBasis.casual || 'weekly'
+            : currentBasis || 'weekly';
+        const nextValue = { variation: nextVariation };
+        if (periodSettings) {
+            nextValue.basis = nextVariation === 'employment_type'
+                ? { full_time: fallbackBasis, part_time: fallbackBasis, casual: fallbackBasis }
+                : fallbackBasis;
+        }
+        onChange(nextValue);
+    };
     const periodBasisFields = variation === 'employment_type'
         ? [['full_time', 'Full-time employees'], ['part_time', 'Part-time employees'], ['casual', 'Casual employees']]
         : [['default', 'All employees']];
@@ -60,13 +198,17 @@ function OvertimeLimitField({ label, record, disabled, issues, path, onChange, p
     };
 
     return (
-        <div className="md:col-span-2 rounded-md border border-gray-200 p-3 dark:border-gray-600">
+        <div
+            id={ruleFieldId(path)}
+            data-rule-field-path={path}
+            className="md:col-span-2 rounded-md border border-gray-200 p-3 dark:border-gray-600"
+        >
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">{label}</label>
             <select
                 aria-label={`${label} variation`}
                 value={variation}
                 disabled={disabled}
-                onChange={(event) => onChange({ variation: event.target.value })}
+                onChange={(event) => updateVariation(event.target.value)}
                 className={inputClass}
             >
                 <option value="default">One limit for everyone</option>
@@ -136,6 +278,9 @@ function SimpleField({
         (section === 'span_overtime' &&
             ['before_cutoff_hour', 'cutoff_hour'].includes(field) &&
             questionnaire?.span_overtime?.applies?.answer !== true) ||
+        (section === 'long_day' &&
+            ['uses_per_week', 'ordinary_limit_hours'].includes(field) &&
+            questionnaire?.long_day?.enabled?.answer !== true) ||
         (section === 'gap_between_shifts' &&
             ['minimum_hours', 'penalty_rate'].includes(field) &&
             questionnaire?.gap_between_shifts?.applies?.answer !== true) ||
@@ -210,6 +355,15 @@ function SimpleField({
                 ))}
             </div>
         );
+    } else if (type === 'time') {
+        control = (
+            <ClockTimeInput
+                ariaLabel={label}
+                value={answer}
+                disabled={isDisabled}
+                onChange={onChange}
+            />
+        );
     } else {
         control = (
             <input
@@ -231,7 +385,11 @@ function SimpleField({
     }
 
     return (
-        <div className={dependentDisabled ? 'opacity-60' : ''}>
+        <div
+            id={ruleFieldId(path)}
+            data-rule-field-path={path}
+            className={dependentDisabled ? 'opacity-60' : ''}
+        >
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                 {label}
             </label>
@@ -259,6 +417,9 @@ function PenaltyRows({
         next[index][key] = value;
         onChange(next);
     };
+    const updateClockTime = (index, key, value) => {
+        updateRow(index, key, value);
+    };
     const addRow = () => {
         onChange([
             ...rows,
@@ -279,7 +440,10 @@ function PenaltyRows({
     };
 
     return (
-        <div>
+        <div
+            id={ruleFieldId(fieldPath(section, field))}
+            data-rule-field-path={fieldPath(section, field)}
+        >
             <div className="flex items-center justify-between gap-3">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                     {label}
@@ -347,88 +511,86 @@ function PenaltyRows({
                                 {row.basis === 'duration'
                                     ? 'Minimum duration (hours)'
                                     : row.basis === 'end'
-                                      ? 'Shift ends from'
-                                      : 'Shift starts from'}
-                                <input
-                                    type="number"
-                                    step="any"
-                                    value={row.start_hour ?? ''}
-                                    disabled={disabled}
-                                    onChange={(event) =>
-                                        updateRow(
-                                            index,
-                                            'start_hour',
-                                            event.target.value === ''
-                                                ? null
-                                                : Number(event.target.value)
-                                        )
-                                    }
-                                    className={inputClass}
-                                />
+                                      ? 'Shift ends from (24-hour time)'
+                                      : 'Shift starts from (24-hour time)'}
+                                {row.basis === 'duration' ? (
+                                    <input
+                                        aria-label={`${label} start ${index + 1}`}
+                                        type="number"
+                                        step="any"
+                                        value={row.start_hour ?? ''}
+                                        disabled={disabled}
+                                        onChange={(event) =>
+                                            updateRow(
+                                                index,
+                                                'start_hour',
+                                                event.target.value === ''
+                                                    ? null
+                                                    : Number(event.target.value)
+                                            )
+                                        }
+                                        className={inputClass}
+                                    />
+                                ) : (
+                                    <ClockTimeInput
+                                        ariaLabel={`${label} start ${index + 1}`}
+                                        value={row.start_hour}
+                                        disabled={disabled}
+                                        onChange={(value) => updateClockTime(index, 'start_hour', value)}
+                                    />
+                                )}
                             </label>
                             <label className="text-xs">
                                 {row.basis === 'duration'
                                     ? 'Maximum duration (hours)'
                                     : row.basis === 'end'
-                                      ? 'Shift ends before'
-                                      : 'Shift starts before'}
-                                <input
-                                    type="number"
-                                    step="any"
-                                    value={row.end_hour ?? ''}
-                                    disabled={disabled}
-                                    onChange={(event) =>
-                                        updateRow(
-                                            index,
-                                            'end_hour',
-                                            event.target.value === ''
-                                                ? null
-                                                : Number(event.target.value)
-                                        )
-                                    }
-                                className={inputClass}
-                            />
-                        </label>
+                                      ? 'Shift ends before (24-hour time)'
+                                      : 'Shift starts before (24-hour time)'}
+                                {row.basis === 'duration' ? (
+                                    <input
+                                        aria-label={`${label} end ${index + 1}`}
+                                        type="number"
+                                        step="any"
+                                        value={row.end_hour ?? ''}
+                                        disabled={disabled}
+                                        onChange={(event) =>
+                                            updateRow(
+                                                index,
+                                                'end_hour',
+                                                event.target.value === ''
+                                                    ? null
+                                                    : Number(event.target.value)
+                                            )
+                                        }
+                                        className={inputClass}
+                                    />
+                                ) : (
+                                    <ClockTimeInput
+                                        ariaLabel={`${label} end ${index + 1}`}
+                                        value={row.end_hour}
+                                        disabled={disabled}
+                                        onChange={(value) => updateClockTime(index, 'end_hour', value)}
+                                    />
+                                )}
+                            </label>
                             {isShiftBased && row.basis === 'start_and_end' && (
                                 <>
                                     <label className="text-xs">
-                                        Shift ends from
-                                        <input
-                                            aria-label={`${label} finish start ${index + 1}`}
-                                            type="number"
-                                            step="any"
+                                        Shift ends from (24-hour time)
+                                        <ClockTimeInput
+                                            ariaLabel={`${label} finish start ${index + 1}`}
                                             value={row.finish_start_hour ?? ''}
                                             disabled={disabled}
-                                            onChange={(event) =>
-                                                updateRow(
-                                                    index,
-                                                    'finish_start_hour',
-                                                    event.target.value === ''
-                                                        ? null
-                                                        : Number(event.target.value)
-                                                )
-                                            }
-                                            className={inputClass}
+                                            onChange={(value) => updateClockTime(index, 'finish_start_hour', value)}
                                         />
                                     </label>
                                     <label className="text-xs">
-                                        Shift ends before
-                                        <input
-                                            aria-label={`${label} finish end ${index + 1}`}
-                                            type="number"
-                                            step="any"
+                                        Shift ends before (24-hour time)
+                                        <ClockTimeInput
+                                            ariaLabel={`${label} finish end ${index + 1}`}
                                             value={row.finish_end_hour ?? ''}
                                             disabled={disabled}
-                                            onChange={(event) =>
-                                                updateRow(
-                                                    index,
-                                                    'finish_end_hour',
-                                                    event.target.value === ''
-                                                        ? null
-                                                        : Number(event.target.value)
-                                                )
-                                            }
-                                            className={inputClass}
+                                            onChange={(value) => updateClockTime(index, 'finish_end_hour', value)}
                                         />
                                     </label>
                                 </>
@@ -611,6 +773,9 @@ function Questionnaire({
 
 export function RuleConfigurationEditor({
     configurationId,
+    allowSaving = false,
+    onConfigurationSaved,
+    onDirtyChange,
 }) {
     const [configuration, setConfiguration] = useState(null);
     const [source, setSource] = useState('');
@@ -618,9 +783,11 @@ export function RuleConfigurationEditor({
     const [initialSource, setInitialSource] = useState('');
     const [initialQuestionnaire, setInitialQuestionnaire] = useState(null);
     const [issues, setIssues] = useState([]);
+    const [copyName, setCopyName] = useState('');
     const [message, setMessage] = useState('');
     const [isWorking, setIsWorking] = useState(false);
     const [dirtyLayer, setDirtyLayer] = useState(null);
+    const validationSummaryRef = useRef(null);
 
     useEffect(() => {
         let isMounted = true;
@@ -645,6 +812,9 @@ export function RuleConfigurationEditor({
                     setQuestionnaire(clone(loaded.questionnaire));
                     setInitialQuestionnaire(clone(loaded.questionnaire));
                     setIssues(loaded.structural_issues || []);
+                    setCopyName(
+                        loaded.kind === 'builtin' ? `${loaded.name} Custom` : ''
+                    );
                     setDirtyLayer(null);
                 }
             } catch (error) {
@@ -664,7 +834,21 @@ export function RuleConfigurationEditor({
         };
     }, [configurationId]);
 
+    useEffect(() => {
+        onDirtyChange?.(Boolean(dirtyLayer));
+    }, [dirtyLayer, onDirtyChange]);
+
     const hasErrors = issues.some((issue) => issue.severity === 'error');
+
+    const showValidationSummary = () => {
+        window.requestAnimationFrame(() => {
+            validationSummaryRef.current?.scrollIntoView?.({
+                behavior: 'smooth',
+                block: 'start',
+            });
+            validationSummaryRef.current?.focus();
+        });
+    };
 
     const changeAnswer = (section, field, value) => {
         // Only one editor layer may own unsaved changes at a time.
@@ -701,6 +885,9 @@ export function RuleConfigurationEditor({
                 dirtyLayer === 'guided' ? questionnaire : null
             );
             setIssues(result.structural_issues || []);
+            if (result.valid === false) {
+                showValidationSummary();
+            }
             if (dirtyLayer === 'raw') {
                 setQuestionnaire(clone(result.questionnaire));
             }
@@ -718,11 +905,70 @@ export function RuleConfigurationEditor({
         }
     };
 
+    const saveCurrent = async () => {
+        if (!configuration) {
+            return;
+        }
+        setIsWorking(true);
+        setMessage('');
+        try {
+            const validation = await api.validateRuleConfiguration(
+                configuration.base_award,
+                source,
+                dirtyLayer === 'guided' ? questionnaire : null
+            );
+            setIssues(validation.structural_issues || []);
+            if (validation.valid === false) {
+                setMessage('Fix the errors shown at the top before saving.');
+                showValidationSummary();
+                return;
+            }
+
+            const saved = configuration.kind === 'builtin'
+                ? await api.createRuleConfiguration(
+                    configuration.base_award,
+                    copyName,
+                    source,
+                    dirtyLayer === 'guided' ? questionnaire : null,
+                )
+                : await api.updateRuleConfiguration(
+                    configuration.id,
+                    source,
+                    dirtyLayer === 'guided' ? questionnaire : null,
+                );
+            setConfiguration(saved);
+            setSource(saved.source);
+            setInitialSource(saved.source);
+            setQuestionnaire(clone(saved.questionnaire));
+            setInitialQuestionnaire(clone(saved.questionnaire));
+            setIssues(saved.structural_issues || []);
+            setDirtyLayer(null);
+            setMessage('Custom configuration saved and selected.');
+            await onConfigurationSaved?.(saved);
+        } catch (error) {
+            setMessage(error.message);
+        } finally {
+            setIsWorking(false);
+        }
+    };
+
     if (!configurationId) {
         return null;
     }
 
     const guidedDisabled = isWorking || dirtyLayer === 'raw';
+    const saveActionLabel = configuration?.kind === 'builtin'
+        ? 'Create private copy'
+        : 'Save changes';
+    const actionStatus = isWorking
+        ? 'Checking changes…'
+        : dirtyLayer
+          ? 'Unsaved changes'
+          : configuration?.kind === 'custom'
+            ? 'Saved'
+            : allowSaving
+              ? 'Ready to create a private copy'
+              : 'Temporary edits only';
 
     return (
         <div className="mt-4 rounded-lg border border-gray-200 p-4 text-left dark:border-gray-600">
@@ -742,22 +988,83 @@ export function RuleConfigurationEditor({
                 </div>
             </div>
 
-            <p className="temporary-rules-note">These rule edits are temporary. They are used for review in this session and are never saved.</p>
+            <ValidationSummary
+                issues={issues}
+                hasErrors={hasErrors}
+                summaryRef={validationSummaryRef}
+            />
 
-            {issues.length > 0 && (
-                <div className="mt-4 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-                    <strong>
-                        {hasErrors
-                            ? 'Review required before guided save.'
-                            : 'Review notes'}
-                    </strong>
-                    <span className="ml-2">
-                        {issues.length} structural issue
-                        {issues.length === 1 ? '' : 's'} shown beside the
-                        affected fields.
+            {allowSaving ? (
+                configuration?.kind === 'builtin' && (
+                    <div className="mt-4">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                            New custom configuration name
+                        </label>
+                        <input
+                            aria-label="New custom configuration name"
+                            type="text"
+                            value={copyName}
+                            onChange={(event) => setCopyName(event.target.value)}
+                            className={inputClass}
+                        />
+                        <p className="mt-1 text-xs text-gray-500">
+                            Built-ins are immutable. Saving creates a custom copy.
+                        </p>
+                    </div>
+                )
+            ) : <p className="temporary-rules-note">These rule edits are temporary. They are used for review in this session and are never saved.</p>}
+
+            <div
+                className="sticky top-2 z-10 mt-4 rounded-lg border border-gray-200 bg-white/95 p-3 shadow-sm backdrop-blur dark:border-gray-600 dark:bg-gray-800/95"
+                aria-label="Rule configuration actions"
+            >
+                <div className="flex flex-wrap items-center gap-2">
+                    <span
+                        className={`mr-auto text-sm font-medium ${
+                            dirtyLayer
+                                ? 'text-blue-700 dark:text-blue-300'
+                                : 'text-gray-700 dark:text-gray-200'
+                        }`}
+                        aria-live="polite"
+                    >
+                        {actionStatus}
                     </span>
+                    <button
+                        type="button"
+                        onClick={validateCurrent}
+                        disabled={isWorking || !configuration || !dirtyLayer}
+                        className="bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50"
+                    >
+                        Validate
+                    </button>
+                    {allowSaving && (
+                        <button
+                            type="button"
+                            onClick={saveCurrent}
+                            disabled={
+                                isWorking || !configuration || !dirtyLayer ||
+                                (configuration.kind === 'builtin' && !copyName.trim())
+                            }
+                            className="bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+                        >
+                            {saveActionLabel}
+                        </button>
+                    )}
+                    <button
+                        type="button"
+                        onClick={discardChanges}
+                        disabled={isWorking || !dirtyLayer}
+                        className="bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50"
+                    >
+                        Discard changes
+                    </button>
                 </div>
-            )}
+                {message && (
+                    <p className="mt-2 mb-0 text-sm text-gray-700 dark:text-gray-200">
+                        {message}
+                    </p>
+                )}
+            </div>
 
             {questionnaire && (
                 <div className="mt-4">
@@ -777,35 +1084,6 @@ export function RuleConfigurationEditor({
                 </div>
             )}
 
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-                <button
-                    type="button"
-                    onClick={validateCurrent}
-                    disabled={isWorking || !configuration || !dirtyLayer}
-                    className="bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50"
-                >
-                    Validate
-                </button>
-                <button
-                    type="button"
-                    onClick={discardChanges}
-                    disabled={isWorking || !dirtyLayer}
-                    className="bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50"
-                >
-                    Discard
-                </button>
-                {dirtyLayer && (
-                    <span className="text-xs font-medium uppercase text-blue-700">
-                        Unsaved {dirtyLayer} edits
-                    </span>
-                )}
-            </div>
-
-            {message && (
-                <p className="mt-3 mb-0 text-sm text-gray-700 dark:text-gray-200">
-                    {message}
-                </p>
-            )}
         </div>
     );
 }

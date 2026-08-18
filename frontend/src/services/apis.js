@@ -85,6 +85,30 @@ export const api = {
         return responseJson(response, 'Failed to update custom configuration');
     },
 
+    async renameRuleConfiguration(configurationId, name) {
+        const response = await fetch(
+            `${BASE_URL}/rule-configurations/${encodeURIComponent(configurationId)}/name`,
+            {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name }),
+            }
+        );
+        return responseJson(response, 'Failed to rename custom configuration');
+    },
+
+    async deleteRuleConfiguration(configurationId) {
+        const response = await fetch(
+            `${BASE_URL}/rule-configurations/${encodeURIComponent(configurationId)}`,
+            { method: 'DELETE' }
+        );
+        if (response.ok) {
+            return;
+        }
+        const errorBody = await response.json().catch(() => ({}));
+        throw new Error(errorBody.detail || 'Failed to delete custom configuration');
+    },
+
     async calculatePay(payload, options = {}) {
         const response = await fetch(`${BASE_URL}/calculate`, {
             ...options,

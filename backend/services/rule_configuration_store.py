@@ -159,3 +159,23 @@ def delete_configuration(
             (identifier, owner_id),
         )
         return cursor.rowcount == 1
+
+
+def rename_configuration(
+    identifier: uuid.UUID,
+    name: str,
+    slug: str,
+    owner_id: uuid.UUID | None = None,
+) -> bool:
+    """Rename one saved configuration while preserving its rule patch."""
+    initialize_store()
+    with connection() as database, database.cursor() as cursor:
+        cursor.execute(
+            """
+            UPDATE rule_configurations
+            SET name = %s, slug = %s, updated_at = CURRENT_TIMESTAMP
+            WHERE id = %s AND owner_id IS NOT DISTINCT FROM %s
+            """,
+            (name, slug, identifier, owner_id),
+        )
+        return cursor.rowcount == 1

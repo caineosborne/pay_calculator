@@ -5,7 +5,7 @@ export const QUESTIONNAIRE_SECTIONS = [
         description: 'Set the rates for standard, higher-rate, and weekend overtime.',
         fields: [
             ['daily_overtime_configuration', 'Daily ordinary-hours limit', 'overtime_limits'],
-            ['weekly_overtime_configuration', 'Period ordinary-hours and days limit', 'period_overtime_limits'],
+            ['weekly_overtime_configuration', 'Maximum hours and days to work in a pay period', 'period_overtime_limits'],
             [
                 'part_time_contracted_hours_overtime',
                 'Does overtime start after a part-time employee’s contracted hours?',
@@ -27,11 +27,21 @@ export const QUESTIONNAIRE_SECTIONS = [
     {
         key: 'span_overtime',
         title: 'Overtime outside ordinary span',
-        description: 'Applies to day workers only. Set overtime before and/or after the ordinary span.',
+        description: 'Applies to day workers only. Work before the first time and after the second time is treated as overtime.',
         fields: [
             ['applies', 'Does overtime apply outside the ordinary span?', 'boolean'],
-            ['before_cutoff_hour', 'Span overtime morning cut-off (24-hour time)', 'number'],
-            ['cutoff_hour', 'Ordinary span ends at (24-hour time)', 'number'],
+            ['before_cutoff_hour', 'Overtime applies before (24-hour time)', 'time'],
+            ['cutoff_hour', 'Ordinary time ends (24-hour time)', 'time'],
+        ],
+    },
+    {
+        key: 'long_day',
+        title: 'Long-day exception',
+        description: 'Allow a limited number of extended ordinary days before daily overtime applies.',
+        fields: [
+            ['enabled', 'Allow a long-day exception?', 'boolean'],
+            ['uses_per_week', 'Long-day exceptions per week', 'number'],
+            ['ordinary_limit_hours', 'Ordinary-hours limit on a long day', 'number'],
         ],
     },
     {
@@ -40,13 +50,13 @@ export const QUESTIONNAIRE_SECTIONS = [
         description:
             'Choose whether each worker/day combination is overtime, a loading, or not applicable.',
         fields: [
-            ['day_saturday_treatment', 'Saturday pay treatment (day workers)', 'weekend'],
+            ['day_saturday_treatment', 'What happens when a day worker works on Saturday?', 'weekend'],
             [
                 'day_saturday_penalty_loading',
                 'Saturday penalty loading (day workers)',
                 'number',
             ],
-            ['day_sunday_treatment', 'Sunday pay treatment (day workers)', 'weekend'],
+            ['day_sunday_treatment', 'What happens when a day worker works on Sunday?', 'weekend'],
             [
                 'day_sunday_penalty_loading',
                 'Sunday penalty loading (day workers)',
@@ -54,7 +64,7 @@ export const QUESTIONNAIRE_SECTIONS = [
             ],
             [
                 'shift_saturday_treatment',
-                'Saturday pay treatment (shift workers)',
+                'What happens when a shift worker works on Saturday?',
                 'weekend',
             ],
             [
@@ -64,7 +74,7 @@ export const QUESTIONNAIRE_SECTIONS = [
             ],
             [
                 'shift_sunday_treatment',
-                'Sunday pay treatment (shift workers)',
+                'What happens when a shift worker works on Sunday?',
                 'weekend',
             ],
             [
@@ -88,10 +98,10 @@ export const QUESTIONNAIRE_SECTIONS = [
         key: 'weekday_penalties',
         title: 'Weekday Penalties',
         description:
-            'Whole-shift loadings apply to every hour when a shift meets its start, end, duration, or combined start-and-end condition. Time-based loadings apply only to hours worked in the selected time window.',
+            'Use whole-shift penalties when a loading applies to every hour of a shift because of its start or end time. Use time-based penalties when a loading applies only to work performed during specific times.',
         fields: [
-            ['shift_based_penalties', 'Whole-shift penalty loadings', 'penalties'],
-            ['time_based_penalties', 'Time-based penalty loadings', 'penalties'],
+            ['shift_based_penalties', 'Whole-shift penalty loadings (based on start or end time)', 'penalties'],
+            ['time_based_penalties', 'Time-based penalty loadings (for specific work times)', 'penalties'],
         ],
     },
     {

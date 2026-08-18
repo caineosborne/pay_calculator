@@ -115,4 +115,27 @@ describe('InputDetails Fast Food classifications', () => {
             ],
         });
     });
+
+    it('keeps the ruleset-specific edit action and confirms before closing dirty edits', async () => {
+        payContext.state = {
+            ...baseState(),
+            view: 'customize',
+            ruleEditorDirty: true,
+        };
+        const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+        render(<InputDetails />);
+
+        await screen.findByLabelText('Rule Configuration');
+        expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
+
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Edit rule configuration' })
+        );
+        fireEvent.click(screen.getByRole('button', { name: 'Close editor' }));
+
+        expect(confirm).toHaveBeenCalledWith('Discard unsaved rule changes?');
+        expect(
+            screen.getByRole('button', { name: 'Close editor' })
+        ).toBeInTheDocument();
+    });
 });

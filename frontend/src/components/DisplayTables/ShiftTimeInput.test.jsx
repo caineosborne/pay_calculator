@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ShiftTimeInput from './ShiftTimeInput';
 
@@ -68,6 +68,41 @@ describe('ShiftTimeInput', () => {
         expect(dispatch).toHaveBeenCalledWith({
             type: 'UPDATE_SHIFTS',
             payload: [expect.objectContaining({ public_holiday: true })],
+        });
+    });
+
+    it('copies Sunday into the destination Monday of the following week', () => {
+        const dispatch = vi.fn();
+        payContext = {
+            state: {
+                shifts: [
+                    { id: 'sunday', week: 1, day: 'Sunday', start: '9', end: '17', break_duration: '0', public_holiday: false },
+                    { id: 'week-two-monday', week: 2, day: 'Monday', start: '', end: '', break_duration: '0', public_holiday: false },
+                ],
+                publicHolidays: [],
+                config: { workerType: 'shift' },
+            },
+            dispatch,
+        };
+        render(
+            <table><tbody>
+                <ShiftTimeInput renderRow={(shift, idx, renderInputs) => <tr key={shift.id}>{renderInputs(shift, idx)}</tr>} />
+            </tbody></table>
+        );
+
+        const mondayRow = screen
+            .getByLabelText('Week 2 Monday primary shift start')
+            .closest('tr');
+        fireEvent.click(
+            within(mondayRow).getAllByRole('button', { name: 'Copy previous' })[0]
+        );
+
+        expect(dispatch).toHaveBeenCalledWith({
+            type: 'UPDATE_SHIFTS',
+            payload: [
+                expect.objectContaining({ id: 'sunday', week: 1, day: 'Sunday' }),
+                expect.objectContaining({ week: 2, day: 'Monday', start: '9', end: '17' }),
+            ],
         });
     });
 });

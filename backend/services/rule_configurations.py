@@ -13,11 +13,15 @@ from importlib import import_module
 from pathlib import Path
 from typing import Any
 
+from psycopg.errors import UniqueViolation
+
 from services.award_registry import load_awards
 from services.rule_configuration_store import (
     create_configuration as create_stored_configuration,
+    delete_configuration as delete_stored_configuration,
     get_configuration as get_stored_configuration,
     list_configurations as list_stored_configurations,
+    rename_configuration as rename_stored_configuration,
     update_configuration as update_stored_configuration,
 )
 from services.rule_questionnaire import (
@@ -341,6 +345,43 @@ def update_custom_rule(
         )
     _load_custom_rule_class_cached.cache_clear()
     return get_rule_configuration(identifier)
+
+
+def _slug_for_name(name: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", name.strip().lower()).strip("-")
+    if not slug or not _SLUG_PATTERN.fullmatch(slug):
+        raise RuleConfigurationError(
+            "Configuration name must contain at least one letter or number."
+        )
+    return slug
+
+
+def rename_custom_rule(identifier: str, name: str) -> dict:
+    """Rename a saved custom configuration without changing its rule values."""
+    stored = _get_stored_configuration(identifier)
+    try:
+        renamed = rename_stored_configuration(
+            stored["id"], name.strip(), _slug_for_name(name)
+        )
+    except UniqueViolation as error:
+        raise RuleConfigurationConflict(
+            f"A custom configuration named '{name}' already exists."
+        ) from error
+    if not renamed:
+        raise RuleConfigurationNotFound(
+            f"Rule configuration not found: {identifier}"
+        )
+    return get_rule_configuration(identifier)
+
+
+def delete_custom_rule(identifier: str) -> None:
+    """Delete one custom configuration; built-ins never enter this path."""
+    stored = _get_stored_configuration(identifier)
+    if not delete_stored_configuration(stored["id"]):
+        raise RuleConfigurationNotFound(
+            f"Rule configuration not found: {identifier}"
+        )
+    _load_custom_rule_class_cached.cache_clear()
 
 
 @lru_cache(maxsize=128)

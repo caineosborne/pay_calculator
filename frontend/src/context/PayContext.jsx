@@ -6,6 +6,10 @@ const PayContext = createContext();
 const defaultAward = 'fast_food';
 
 const initialState = {
+    view: 'calculator',
+    // UI-only state used to prevent losing unsaved ruleset edits when moving
+    // between calculators or leaving Customize.
+    ruleEditorDirty: false,
     config: {
         // Fast Food Award Level 1 hourly rate. The classification selector can
         // set the other published rates or allow a manually entered rate.
@@ -67,6 +71,7 @@ function payReducer(state, action) {
         case 'SELECT_AWARD':
             return {
                 ...state,
+                view: 'calculator',
                 config: {
                     ...state.config,
                     award: action.payload.award,
@@ -76,6 +81,21 @@ function payReducer(state, action) {
                         : {}),
                 },
                 calculationError: null,
+            };
+        case 'OPEN_CUSTOMIZE':
+            return {
+                ...state,
+                view: 'customize',
+                config: {
+                    ...state.config,
+                    ruleConfiguration: `builtin:${state.config.award}`,
+                },
+                calculationError: null,
+            };
+        case 'SET_RULE_EDITOR_DIRTY':
+            return {
+                ...state,
+                ruleEditorDirty: action.payload,
             };
         case 'UPDATE_RULE_CONFIGURATION':
             return {

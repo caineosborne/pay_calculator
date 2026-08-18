@@ -54,6 +54,7 @@ SECTION_FIELDS = {
         "saturday_overtime_rate",
         "sunday_overtime_rate",
     ],
+    "long_day": ["enabled", "uses_per_week", "ordinary_limit_hours"],
     "span_overtime": ["applies", "before_cutoff_hour", "cutoff_hour"],
     "weekend_treatment": [
         "day_saturday_treatment",
@@ -179,6 +180,48 @@ def _literal(
         return None, "not_found"
 
 
+def _normalise_period_overtime_configuration(value: Any) -> dict:
+    """Keep the saved period basis compatible with its selected variation.
+
+    Older copies can contain an employment-type basis dictionary after their
+    variation has been changed to a single limit.  The calculator only needs
+    one basis in that case, so present a valid, editable value rather than
+    making the user resolve an implementation detail before saving.
+    """
+    normalised = copy.deepcopy(value) if isinstance(value, dict) else {}
+    variation = normalised.get("variation", "default")
+    valid_bases = {"weekly", "pay_period"}
+    basis = normalised.get("basis", "weekly")
+
+    if variation == "employment_type":
+        if not isinstance(basis, dict):
+            basis = {employment_type: basis for employment_type in (
+                "full_time",
+                "part_time",
+                "casual",
+            )}
+        normalised["basis"] = {
+            employment_type: (
+                basis.get(employment_type)
+                if basis.get(employment_type) in valid_bases
+                else "weekly"
+            )
+            for employment_type in ("full_time", "part_time", "casual")
+        }
+    else:
+        if isinstance(basis, dict):
+            basis = next(
+                (
+                    candidate
+                    for candidate in basis.values()
+                    if candidate in valid_bases
+                ),
+                "weekly",
+            )
+        normalised["basis"] = basis if basis in valid_bases else "weekly"
+    return normalised
+
+
 def project_rule_source(
     award_key: str, source: str, imported_context: dict | None = None
 ) -> dict:
@@ -208,13 +251,24 @@ def project_rule_source(
     top_up = groups["TOP_UP_RULES"]
 
     daily = ordinary.get("daily", {})
-    period = ordinary.get("period", {})
+    period = _normalise_period_overtime_configuration(ordinary.get("period", {}))
     questionnaire["overtime"]["daily_overtime_configuration"] = _record(
         daily, "ORDINARY_TIME_RULES", "derived"
     )
     questionnaire["overtime"]["weekly_overtime_configuration"] = _record(
         period, "ORDINARY_TIME_RULES", "derived"
     )
+
+    long_day = ordinary.get("long_day", {})
+    long_day_answers = {
+        "enabled": bool(long_day.get("uses_per_week", 0)),
+        "uses_per_week": long_day.get("uses_per_week", 1),
+        "ordinary_limit_hours": long_day.get("ordinary_limit_hours", 0),
+    }
+    for field, value in long_day_answers.items():
+        questionnaire["long_day"][field] = _record(
+            value, "ORDINARY_TIME_RULES", "derived"
+        )
 
     tier = overtime.get("two_tier", {})
     overtime_answers = {
@@ -519,6 +573,13 @@ def validate_questionnaire(questionnaire: dict) -> list[dict]:
         questionnaire, "overtime.weekly_overtime_configuration", issues
     )
 
+    _boolean(questionnaire, "long_day.enabled", issues)
+    if _answer(questionnaire, "long_day.enabled") is True:
+        _numeric(questionnaire, "long_day.uses_per_week", issues, positive=True)
+        _numeric(
+            questionnaire, "long_day.ordinary_limit_hours", issues, positive=True
+        )
+
     _boolean(questionnaire, "overtime.two_tier_overtime", issues)
     if _answer(questionnaire, "overtime.two_tier_overtime") is True:
         _numeric(
@@ -764,6 +825,18 @@ def patch_rule_source(award_key: str, source: str, questionnaire: dict) -> str:
     ordinary["period"]["part_time_uses_contracted_hours"] = _answer(
         questionnaire, "overtime.part_time_contracted_hours_overtime"
     )
+    if _answer(questionnaire, "long_day.enabled"):
+        ordinary["long_day"] = {
+            "uses_per_week": _answer(questionnaire, "long_day.uses_per_week"),
+            "ordinary_limit_hours": _answer(
+                questionnaire, "long_day.ordinary_limit_hours"
+            ),
+        }
+    else:
+        # An empty object deliberately overrides a built-in long-day rule, but
+        # do not introduce an empty override for awards that have none.
+        if "long_day" in ordinary:
+            ordinary["long_day"] = {}
     if _answer(questionnaire, "span_overtime.applies"):
         span_rules = ordinary.setdefault("span_overtime", {}).setdefault("day", {})
         default_span = span_rules.setdefault("default", {})
