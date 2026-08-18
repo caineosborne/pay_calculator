@@ -34,6 +34,7 @@ from services.rule_configurations import (
     update_custom_rule,
     validate_rule_payload,
 )
+from services.rule_configuration_store import DatabaseUnavailable
 
 app = FastAPI(
     title="Pay Calculator API",
@@ -84,10 +85,17 @@ def _configuration_http_error(error: RuleConfigurationError) -> HTTPException:
     return HTTPException(status_code=status_code, detail=str(error))
 
 
+def _database_http_error(error: DatabaseUnavailable) -> HTTPException:
+    return HTTPException(status_code=503, detail=str(error))
+
+
 @app.get("/rule-configurations")
 def get_rule_configurations() -> list[dict]:
-    """List immutable built-ins and editable custom rule files."""
-    return list_rule_configurations()
+    """List immutable built-ins and database-backed custom configurations."""
+    try:
+        return list_rule_configurations()
+    except DatabaseUnavailable as error:
+        raise _database_http_error(error) from error
 
 
 @app.post("/rule-configurations/validate")
@@ -102,6 +110,8 @@ def validate_configuration(data: RuleSourceValidationRequest) -> dict:
         )
     except RuleConfigurationError as error:
         raise _configuration_http_error(error) from error
+    except DatabaseUnavailable as error:
+        raise _database_http_error(error) from error
 
 
 @app.get("/rule-configurations/{configuration_id}")
@@ -111,30 +121,36 @@ def get_configuration(configuration_id: str) -> dict:
         return get_rule_configuration(configuration_id)
     except RuleConfigurationError as error:
         raise _configuration_http_error(error) from error
+    except DatabaseUnavailable as error:
+        raise _database_http_error(error) from error
 
 
 @app.post("/rule-configurations", status_code=201)
 def create_configuration(data: CreateRuleConfigurationRequest) -> dict:
-    """Save validated source as a new custom rule file."""
+    """Save a validated configuration as a database-backed override."""
     try:
         return create_custom_rule(
             data.base_award, data.name, data.source, data.questionnaire
         )
     except RuleConfigurationError as error:
         raise _configuration_http_error(error) from error
+    except DatabaseUnavailable as error:
+        raise _database_http_error(error) from error
 
 
 @app.put("/rule-configurations/{configuration_id}")
 def update_configuration(
     configuration_id: str, data: UpdateRuleConfigurationRequest
 ) -> dict:
-    """Replace a custom rule file after validation."""
+    """Replace a database-backed custom override after validation."""
     try:
         return update_custom_rule(
             configuration_id, data.source, data.questionnaire
         )
     except RuleConfigurationError as error:
         raise _configuration_http_error(error) from error
+    except DatabaseUnavailable as error:
+        raise _database_http_error(error) from error
 
 
 @app.post("/calculate", response_model=PayResponse)
@@ -145,6 +161,8 @@ def calculate_pay(data: PayRequest) -> PayResponse:
         result = calculator.calculate_pay()
     except RuleConfigurationError as error:
         raise _configuration_http_error(error) from error
+    except DatabaseUnavailable as error:
+        raise _database_http_error(error) from error
     except ValueError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
     return result

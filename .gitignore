@@ -9,9 +9,7 @@ __pycache__/
 .venv/
 env/
 venv/
-backend/custom_rules/*.py
-backend/custom_rules/*.questionnaire.json
-backend/custom_rules/.*.tmp
+# Local PostgreSQL connection settings are not committed.
 
 # VSCode
 .vscode/

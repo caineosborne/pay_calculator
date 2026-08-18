@@ -3,36 +3,33 @@
 from __future__ import annotations
 
 import copy
-import os
-import tempfile
 import unittest
+import uuid
 
 from models.request_models import PayRequest
 from services.pay_calculator import PayCalculator
 from services.award_registry import public_awards, public_disclaimers
 from services.rule_configurations import (
-    CUSTOM_RULES_ENV,
     RuleConfigurationError,
     create_custom_rule,
     get_rule_configuration,
     list_rule_configurations,
     validate_rule_source,
 )
+from services.rule_configuration_store import DatabaseUnavailable, initialize_store
+from services.rule_configuration_store import delete_configuration
 
 
+def _database_is_available() -> bool:
+    try:
+        initialize_store()
+        return True
+    except DatabaseUnavailable:
+        return False
+
+
+@unittest.skipUnless(_database_is_available(), "PostgreSQL is not running")
 class RuleConfigurationTests(unittest.TestCase):
-    def setUp(self):
-        self.temporary_directory = tempfile.TemporaryDirectory()
-        self.previous_custom_directory = os.environ.get(CUSTOM_RULES_ENV)
-        os.environ[CUSTOM_RULES_ENV] = self.temporary_directory.name
-
-    def tearDown(self):
-        if self.previous_custom_directory is None:
-            os.environ.pop(CUSTOM_RULES_ENV, None)
-        else:
-            os.environ[CUSTOM_RULES_ENV] = self.previous_custom_directory
-        self.temporary_directory.cleanup()
-
     def test_only_live_builtin_configurations_are_listed(self):
         builtins = {
             item["base_award"]
@@ -186,7 +183,10 @@ class RuleConfigurationTests(unittest.TestCase):
             "default": 4,
         }
         custom = create_custom_rule(
-            "fast_food", "Four Hour Day", builtin["source"], questionnaire
+            "fast_food",
+            f"Four Hour Day {uuid.uuid4().hex[:8]}",
+            builtin["source"],
+            questionnaire,
         )
 
         self.assertIn("ORDINARY_TIME_RULES", custom["source"])
@@ -210,6 +210,7 @@ class RuleConfigurationTests(unittest.TestCase):
             )
         ).calculate_pay()
         self.assertEqual(result.overtime_hours, 4)
+        delete_configuration(uuid.UUID(custom["id"].removeprefix("custom:")))
 
 
 if __name__ == "__main__":
