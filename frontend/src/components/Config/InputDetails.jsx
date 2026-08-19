@@ -364,7 +364,7 @@ export function InputDetails() {
                     {isCustomize ? (
                         <div className="flex-1">
                             <label htmlFor="award" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                                Award
+                                Base Configuration
                             </label>
                             <select
                                 id="award"

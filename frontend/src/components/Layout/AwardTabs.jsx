@@ -73,7 +73,7 @@ export function AwardTabs() {
                         className={`award-tab ${state.view === 'customize' ? 'is-active' : ''}`}
                         onClick={openCustomize}
                     >
-                        Customize
+                        Create Custom Ruleset
                     </button>
                 </div>
             </div>
