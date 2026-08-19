@@ -36,6 +36,29 @@ class AuthenticationApiTests(unittest.TestCase):
         self.assertIn("samesite=lax", cookie)
         self.assertNotIn("opaque-token", response.text)
 
+    def test_login_supports_secure_cross_site_cookie_in_production(self):
+        user = {
+            "id": "00000000-0000-0000-0000-000000000001",
+            "username": "caine",
+            "display_name": "Caine",
+        }
+        environment = {
+            "PAYCHECKER_COOKIE_SECURE": "true",
+            "PAYCHECKER_COOKIE_SAMESITE": "none",
+        }
+        with (
+            patch.dict("os.environ", environment),
+            patch("main.authenticate", return_value=("opaque-token", user)),
+        ):
+            response = self.client.post(
+                "/auth/login",
+                json={"username": "caine", "password": "shared-password"},
+            )
+
+        cookie = response.headers["set-cookie"].lower()
+        self.assertIn("secure", cookie)
+        self.assertIn("samesite=none", cookie)
+
     def test_invalid_login_uses_one_generic_message(self):
         with patch("main.authenticate", return_value=None):
             response = self.client.post(

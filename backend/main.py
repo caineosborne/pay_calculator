@@ -12,6 +12,8 @@ Dependencies:
 - services.pay_calculator: Contains PayCalculator for business logic
 """
 
+import os
+
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -117,6 +119,26 @@ def authenticated_user(user: dict | None = Depends(current_user)) -> dict:
     return user
 
 
+def _session_cookie_options() -> dict:
+    """Return local-safe defaults with explicit production overrides."""
+    secure = os.getenv("PAYCHECKER_COOKIE_SECURE", "false").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+    }
+    same_site = os.getenv("PAYCHECKER_COOKIE_SAMESITE", "lax").strip().lower()
+    if same_site not in {"lax", "strict", "none"}:
+        raise RuntimeError(
+            "PAYCHECKER_COOKIE_SAMESITE must be one of: lax, strict, none."
+        )
+    return {
+        "httponly": True,
+        "secure": secure,
+        "samesite": same_site,
+        "path": "/",
+    }
+
+
 @app.post("/auth/login", response_model=AuthenticatedUser)
 def login(data: LoginRequest, response: Response) -> dict:
     try:
@@ -132,10 +154,7 @@ def login(data: LoginRequest, response: Response) -> dict:
         key=SESSION_COOKIE_NAME,
         value=token,
         max_age=int(SESSION_TTL.total_seconds()),
-        httponly=True,
-        secure=False,
-        samesite="lax",
-        path="/",
+        **_session_cookie_options(),
     )
     return public_user(user)
 
@@ -153,10 +172,7 @@ def logout(request: Request, response: Response) -> None:
         raise _database_http_error(error) from error
     response.delete_cookie(
         key=SESSION_COOKIE_NAME,
-        httponly=True,
-        secure=False,
-        samesite="lax",
-        path="/",
+        **_session_cookie_options(),
     )
 
 
