@@ -74,6 +74,9 @@ export function ShiftCalculator({ children }) {
         let isCurrent = true;
 
         const calculateShifts = async () => {
+            if (state.config.calculatorMode === 'academic_activity') {
+                return;
+            }
             const validShifts = state.shifts.filter(shift => {
                 return parseTimeValue(shift.start) !== null && parseTimeValue(shift.end) !== null;
             });
@@ -177,6 +180,7 @@ export function ShiftCalculator({ children }) {
         state.config.ruleConfiguration,
         state.config.employmentType,
         state.config.contractedHours,
+        state.config.calculatorMode,
         state.calculationRevision,
         dispatch
     ]);

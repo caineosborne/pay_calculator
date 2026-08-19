@@ -19,6 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from models.request_models import PayRequest
 from models.response_models import PayResponse
+from models.academic_models import AcademicPayRequest, AcademicPayResponse
 from models.auth_models import AuthenticatedUser, LoginRequest
 from models.rule_configuration_models import (
     CreateRuleConfigurationRequest,
@@ -28,6 +29,7 @@ from models.rule_configuration_models import (
 )
 from services.award_registry import public_awards, public_disclaimers
 from services.pay_calculator import PayCalculator
+from services.academic_calculator import AcademicPayCalculator, public_academic_ruleset
 from services.rule_configurations import (
     RuleConfigurationConflict,
     RuleConfigurationError,
@@ -89,6 +91,15 @@ def get_awards() -> list[dict]:
 def get_disclaimers() -> dict:
     """Return the calculator and award-specific limitations notices."""
     return public_disclaimers()
+
+
+@app.get("/academic-rulesets/{scheme}")
+def get_academic_ruleset_public(scheme: str) -> dict:
+    """Return a read-only academic activity catalogue for the public UI."""
+    try:
+        return public_academic_ruleset(scheme)
+    except ValueError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
 
 
 def _configuration_http_error(error: RuleConfigurationError) -> HTTPException:
@@ -310,3 +321,12 @@ def calculate_pay(
     except ValueError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
     return result
+
+
+@app.post("/calculate/academic", response_model=AcademicPayResponse)
+def calculate_academic_pay(data: AcademicPayRequest) -> AcademicPayResponse:
+    """Calculate date-based composite activities and direct academic hours."""
+    try:
+        return AcademicPayCalculator(data).calculate()
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error

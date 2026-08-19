@@ -16,6 +16,8 @@ const initialState = {
         hourlyRate: 27.81,
         workerType: 'day', // Default to day worker ('day' or 'shift')
         award: defaultAward, // Default to the configured award
+        calculatorMode: 'shift',
+        academicScheme: null,
         ruleConfiguration: `builtin:${defaultAward}`,
         employmentType: 'full_time', // Default to Full Time ('full_time', 'part_time', 'casual')
         contractedHours: null, // Default to null, will be set based on rules for part-time
@@ -75,7 +77,11 @@ function payReducer(state, action) {
                 config: {
                     ...state.config,
                     award: action.payload.award,
-                    ruleConfiguration: `builtin:${action.payload.award}`,
+                    calculatorMode: action.payload.calculatorMode || 'shift',
+                    academicScheme: action.payload.academicScheme || null,
+                    ruleConfiguration: action.payload.calculatorMode === 'academic_activity'
+                        ? null
+                        : `builtin:${action.payload.award}`,
                     ...(action.payload.hourlyRate
                         ? { hourlyRate: action.payload.hourlyRate }
                         : {}),

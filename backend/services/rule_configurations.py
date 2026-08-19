@@ -229,6 +229,7 @@ def list_rule_configurations(owner_id: uuid.UUID | None = None) -> list[dict]:
             "kind": "builtin",
         }
         for award in load_awards()
+        if award.get("calculator_mode", "shift") == "shift"
     ]
     if owner_id is None:
         return configurations

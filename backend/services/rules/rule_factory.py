@@ -17,6 +17,8 @@ from services.rule_configurations import (
 # Built-ins are immutable modules, so resolve them once when the service starts.
 BUILTIN_RULES = {}
 for award_definition in load_awards():
+    if award_definition.get("calculator_mode", "shift") != "shift":
+        continue
     award_module = import_module(
         f"services.rules.{award_definition['module']}"
     )

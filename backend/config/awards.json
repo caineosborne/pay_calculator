@@ -66,5 +66,14 @@
       { "key": "tradesperson_level_4", "label": "Tradesperson Level 4", "hourly_rate": 31.10 },
       { "key": "tradesperson_level_5", "label": "Tradesperson Level 5", "hourly_rate": 31.63 }
     ]
+  },
+  {
+    "key": "qut_sessional",
+    "label": "QUT Sessional Academic Staff",
+    "module": "qut_sessional",
+    "class_name": "QUTSessionalAcademicRules",
+    "calculator_mode": "academic_activity",
+    "academic_scheme": "qut_sessional",
+    "public_tab": "QUT Sessional"
   }
 ]

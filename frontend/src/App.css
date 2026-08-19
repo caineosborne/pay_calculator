@@ -225,3 +225,98 @@
   .shift-card .shift-input { width: 34px !important; font-size: 10px; }
   .shift-card .shift-amount-cell { font-size: 10px !important; }
 }
+
+/* Academic activity calculator ------------------------------------------------ */
+.academic-workspace { gap: 14px; }
+.academic-intro { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 28px; align-items: end; padding: 24px; overflow: hidden; background: linear-gradient(110deg, #ffffff 0%, #ffffff 67%, #edf7f3 67%, #edf7f3 100%); }
+.academic-intro h1 { margin: 5px 0 9px; color: #17231f; font: 700 clamp(28px, 4vw, 42px)/.98 Fraunces, Georgia, serif; letter-spacing: -.045em; }
+.academic-intro > div > p:last-child { max-width: 670px; margin: 0; color: #567066; font: 14px/1.5 'DM Sans', sans-serif; }
+.academic-period-control { display: grid; gap: 7px; color: #385247; font: 500 11px/1.2 'DM Mono', monospace; text-transform: uppercase; }
+.academic-period-control input { box-sizing: border-box; min-height: 42px; border: 1px solid #bdd0c6; border-radius: 8px; padding: 8px 10px; color: #17231f; background: #fff; font: 600 14px 'DM Sans', sans-serif; }
+.academic-period-control span { color: #789086; font: 11px 'DM Sans', sans-serif; text-transform: none; }
+.academic-setup-grid { display: grid; grid-template-columns: minmax(330px, .8fr) minmax(520px, 1.2fr); gap: 14px; }
+.academic-courses, .academic-entry { padding: 18px; }
+.academic-section-heading { display: flex; align-items: start; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.academic-section-heading h2 { margin: 4px 0 0; color: #17231f; font: 700 23px/1 Fraunces, Georgia, serif; letter-spacing: -.035em; }
+.academic-section-heading > span { color: #6b8579; font: 500 10px/1 'DM Mono', monospace; }
+.academic-course-form, .academic-item-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px; }
+.academic-course-form label, .academic-item-form label { display: grid; align-content: start; gap: 6px; color: #3e554b; font: 500 11px/1.2 'DM Mono', monospace; }
+.academic-course-form input, .academic-course-form select, .academic-item-form input:not([type='checkbox']), .academic-item-form select { box-sizing: border-box; width: 100%; min-height: 39px; border: 1px solid #cbd8d0; border-radius: 7px; padding: 7px 9px; color: #17231f; background: #fbfdfb; font: 500 13px 'DM Sans', sans-serif; }
+.academic-course-form input:focus, .academic-course-form select:focus, .academic-item-form input:focus, .academic-item-form select:focus, .academic-period-control input:focus { outline: 3px solid #b9e1d3; outline-offset: 1px; border-color: #146c5a; }
+.academic-course-form label:nth-child(3) { grid-column: 1 / -1; }
+.academic-primary-button { min-height: 38px; border: 1px solid #146c5a; border-radius: 7px; padding: 8px 12px; color: #fff; background: #146c5a; font: 650 13px 'DM Sans', sans-serif; cursor: pointer; }
+.academic-primary-button:hover { background: #0f584a; }
+.academic-primary-button:disabled { cursor: not-allowed; opacity: .45; }
+.academic-course-list { display: grid; gap: 8px; margin-top: 16px; }
+.academic-empty-copy { margin: 0; padding: 14px; border: 1px dashed #cbd8d0; border-radius: 8px; color: #789086; background: #fafcfb; font: 12px/1.45 'DM Sans', sans-serif; }
+.academic-course-chip { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 11px; border-left: 3px solid #2c8b75; border-radius: 7px; background: #eef7f3; }
+.academic-course-chip > div { display: grid; gap: 3px; }
+.academic-course-chip strong { color: #173d33; font: 700 13px 'DM Mono', monospace; }
+.academic-course-chip span { color: #5f786e; font: 11px 'DM Sans', sans-serif; }
+.academic-course-chip button, .academic-day-item-top button { border: 0; color: #668077; background: transparent; font: 500 19px/1 'DM Sans', sans-serif; cursor: pointer; }
+.academic-basis-badge { border-radius: 999px; padding: 6px 8px; font: 600 9px/1 'DM Mono', monospace !important; text-transform: uppercase; }
+.academic-basis-badge.is-activity { color: #0d6551; background: #d9f1e8; }
+.academic-basis-badge.is-direct { color: #7c5814; background: #fff0c9; }
+.academic-wide-field, .academic-confirmation, .academic-add-item { grid-column: 1 / -1; }
+.academic-item-form label > span { color: #789086; font: 10px/1.35 'DM Sans', sans-serif; }
+.academic-confirmation { display: flex !important; min-height: 38px; grid-template-columns: auto 1fr; align-items: center !important; padding: 9px 10px; border: 1px solid #ead7a9; border-radius: 7px; background: #fff9ea; }
+.academic-confirmation input { width: 16px; height: 16px; margin: 0; accent-color: #146c5a; }
+.academic-confirmation span { color: #5f4d27 !important; font: 12px 'DM Sans', sans-serif !important; }
+.academic-error { margin: 0; padding: 12px 14px; color: #8e2f2f; border-color: #edc4c4; background: #fff4f4; font: 13px/1.45 'DM Sans', sans-serif; }
+.academic-calendar { overflow: hidden; }
+.academic-week + .academic-week { border-top: 1px solid #d5e0da; }
+.academic-week-heading { display: flex; align-items: center; justify-content: space-between; padding: 11px 14px; color: #4f6b60; background: #eff6f2; font: 500 10px/1 'DM Mono', monospace; text-transform: uppercase; }
+.academic-week-heading strong { color: #6b8579; font-weight: 500; }
+.academic-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.academic-day { min-width: 0; min-height: 150px; border-right: 1px solid #e0e8e4; padding: 9px; background: #fff; }
+.academic-day:last-child { border-right: 0; }
+.academic-day > header { display: flex; align-items: start; justify-content: space-between; gap: 6px; margin-bottom: 9px; }
+.academic-day > header > div { display: flex; align-items: baseline; gap: 5px; }
+.academic-day > header span { color: #668077; font: 600 9px 'DM Mono', monospace; text-transform: uppercase; }
+.academic-day > header strong { color: #1c342b; font: 700 17px/1 Fraunces, Georgia, serif; }
+.academic-day > header button { border: 0; border-radius: 5px; padding: 4px 5px; color: #146c5a; background: #e8f4ef; font: 600 9px 'DM Sans', sans-serif; cursor: pointer; }
+.academic-day > p { margin: 28px 0 0; color: #a0b0a9; font: 11px/1.3 'DM Sans', sans-serif; text-align: center; }
+.academic-day.has-work { background: #fbfdfc; }
+.academic-day-items { display: grid; gap: 7px; }
+.academic-day-item { position: relative; display: grid; gap: 4px; padding: 8px; border: 1px solid #cfe1d8; border-radius: 7px; background: #f1f8f5; }
+.academic-day-item-top { display: flex; justify-content: space-between; align-items: center; }
+.academic-day-item-top span { color: #146c5a; font: 650 9px 'DM Mono', monospace; }
+.academic-day-item-top button { font-size: 15px; }
+.academic-day-item > strong { overflow: hidden; color: #263f35; font: 650 11px/1.25 'DM Sans', sans-serif; text-overflow: ellipsis; }
+.academic-day-item > small { overflow: hidden; color: #71887e; font: 9px/1.25 'DM Sans', sans-serif; text-overflow: ellipsis; white-space: nowrap; }
+.academic-item-metrics { display: flex; justify-content: space-between; gap: 7px; color: #668077; font: 9px 'DM Mono', monospace; }
+.academic-item-metrics b { color: #173d33; font-weight: 700; }
+.academic-day-item > em { position: absolute; top: -5px; right: 5px; border-radius: 999px; padding: 3px 5px; color: #725315; background: #ffecb9; font: 700 7px/1 'DM Mono', monospace; text-transform: uppercase; }
+.academic-summary { display: grid; grid-template-columns: 1fr 1.45fr; gap: 0; overflow: hidden; }
+.academic-total { display: grid; align-content: center; padding: 26px; color: #eaf8f2; background: #146c5a; }
+.academic-total .section-kicker { color: #b8dbcd; }
+.academic-total > strong { margin: 7px 0; font: 700 clamp(34px, 4vw, 46px)/1 Fraunces, Georgia, serif; letter-spacing: -.05em; }
+.academic-total > span { color: #c9e6da; font: 11px 'DM Sans', sans-serif; }
+.academic-summary-metrics { display: grid; grid-template-columns: repeat(3, 1fr); align-content: center; gap: 9px; padding: 22px; }
+.academic-summary-metrics > div { display: grid; gap: 6px; padding: 13px; border: 1px solid #dce7e1; border-radius: 8px; background: #fbfdfc; }
+.academic-summary-metrics span { color: #668077; font: 500 9px 'DM Mono', monospace; text-transform: uppercase; }
+.academic-summary-metrics strong { color: #17231f; font: 700 18px 'DM Sans', sans-serif; }
+.academic-summary-metrics small { color: #789086; font: 11px 'DM Sans', sans-serif; }
+.academic-review { grid-column: 1 / -1; padding: 16px 20px; border-top: 1px solid #ecd9a8; color: #684f1e; background: #fff9e9; }
+.academic-review h3 { margin: 0 0 8px; font: 700 16px Fraunces, Georgia, serif; }
+.academic-review ul { margin: 0; padding-left: 18px; }
+.academic-review li { margin: 4px 0; font: 12px/1.4 'DM Sans', sans-serif; }
+
+@media (max-width: 1000px) {
+  .academic-setup-grid { grid-template-columns: 1fr; }
+  .academic-days { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .academic-day { border-bottom: 1px solid #e0e8e4; }
+  .academic-day:nth-child(even) { border-right: 0; }
+  .academic-day:last-child { grid-column: 1 / -1; }
+}
+
+@media (max-width: 700px) {
+  .academic-intro { grid-template-columns: 1fr; gap: 18px; background: #fff; }
+  .academic-course-form, .academic-item-form { grid-template-columns: 1fr; }
+  .academic-course-form label:nth-child(3), .academic-wide-field, .academic-confirmation, .academic-add-item { grid-column: 1; }
+  .academic-days { grid-template-columns: 1fr; }
+  .academic-day, .academic-day:nth-child(even), .academic-day:last-child { min-height: 0; grid-column: 1; border-right: 0; border-bottom: 1px solid #e0e8e4; }
+  .academic-day > p { margin: 10px 0; text-align: left; }
+  .academic-summary { grid-template-columns: 1fr; }
+  .academic-summary-metrics { grid-template-columns: 1fr; }
+}

@@ -52,6 +52,23 @@ export const api = {
         return responseJson(response, 'Failed to load disclaimers');
     },
 
+    async getAcademicRuleset(scheme) {
+        const response = await fetch(
+            `${BASE_URL}/academic-rulesets/${encodeURIComponent(scheme)}`
+        );
+        return responseJson(response, 'Failed to load academic rules');
+    },
+
+    async calculateAcademicPay(payload, options = {}) {
+        const response = await fetch(`${BASE_URL}/calculate/academic`, {
+            ...options,
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        return responseJson(response, 'Academic calculation failed');
+    },
+
     async getRuleConfigurations() {
         const response = await request('/rule-configurations');
         return responseJson(response, 'Failed to load rule configurations');

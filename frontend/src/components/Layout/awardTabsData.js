@@ -10,4 +10,5 @@ export const TAB_ORDER = [
     { key: 'coles_2024', label: 'Coles' },
     { key: 'fast_food', label: 'Fast Food' },
     { key: 'gria_2026', label: 'GRIA' },
+    { key: 'qut_sessional', label: 'QUT Sessional', calculatorMode: 'academic_activity', academicScheme: 'qut_sessional' },
 ];

@@ -168,6 +168,32 @@
       "closing_paragraphs": [
         "These assumptions, limitations and exclusions must be checked against the employee’s actual employment arrangements, roster and payroll records."
       ]
+    },
+    "qut_sessional": {
+      "title": "QUT Sessional scope and assumptions",
+      "paragraphs": [
+        "This calculator estimates selected sessional academic activity payments under Schedules Two and Five of the QUT Academic Enterprise Agreement. It is limited to QUT sessional academic staff and does not calculate salaries or workload allocations for ongoing, fixed-term, teaching-intensive or QUT College appointments."
+      ],
+      "assumptions": [
+        "The entered course, activity date, topic or teaching week, delivered quantity, direct hours and qualification or coordination status are correct.",
+        "Normal and repeat lecture or tutorial classification is based on matching course, activity and topic information supplied for the preceding seven calendar days.",
+        "Direct marking and other required academic activity hours were required or approved where the Agreement requires that approval.",
+        "The published rates effective from 13 December 2025 apply to the work entered. Earlier rate schedules are not included."
+      ],
+      "limitations": [
+        "Browser-local history is used for the seven-day repeat lookback. Missing or cleared history may cause an activity to be classified as original unless the user records a reasoned override.",
+        "Actual associated hours are compared with incorporated time for review only. Exceeding incorporated time does not automatically create an additional payment.",
+        "The two-hour minimum engagement is reported as a potential shortfall by user-defined occasion. The calculator does not currently value that shortfall as an additional payment.",
+        "Dates and user-defined occasion groups are recorded, but clock times are not. Separate occasions on the same date must not be grouped unless they formed one occasion of required work."
+      ],
+      "exclusions": [
+        "QUT College educators and non-sessional academic appointments.",
+        "Superannuation, tax, deductions, allowances, leave, termination payments, interest and back-pay calculations.",
+        "Industrial or factual determinations about whether work was required, approved, higher-level marking, the same subject matter, or covered by incorporated duties."
+      ],
+      "closing_paragraphs": [
+        "Review the estimate against the applicable agreement, appointment documentation, activity allocation and university records before relying on it."
+      ]
     }
   }
 }

@@ -27,6 +27,7 @@ export function AwardTabs() {
             return;
         }
         const award = awards.find((item) => item.key === awardKey);
+        const fallbackTab = TAB_ORDER.find((item) => item.key === awardKey);
         const defaultRate = award?.hourly_rate_options?.[0] || {
             hourly_rate: PUBLIC_AWARD_DEFAULT_RATES[awardKey],
         };
@@ -35,6 +36,8 @@ export function AwardTabs() {
             payload: {
                 award: awardKey,
                 hourlyRate: defaultRate?.hourly_rate,
+                calculatorMode: award?.calculator_mode || fallbackTab?.calculatorMode || 'shift',
+                academicScheme: award?.academic_scheme || fallbackTab?.academicScheme || null,
             },
         });
     };

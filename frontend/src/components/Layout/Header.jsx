@@ -35,6 +35,7 @@ export default function Header({ onOpenLimitations }) {
     const { state, dispatch } = usePay();
     const { user, openLogin, logout } = useAuth();
     const [copyStatus, setCopyStatus] = useState('');
+    const isAcademic = state.config?.calculatorMode === 'academic_activity';
 
     /**
      * Resets all shifts to default 9-5 schedule
@@ -161,7 +162,7 @@ export default function Header({ onOpenLimitations }) {
                 {/* Title and subtitle section */}
                 <span className="brand-mark" aria-hidden="true">$</span>
                 <div>
-                    <p className="eyebrow">Pay period estimate</p>
+                    <p className="eyebrow">{isAcademic ? 'Academic activity estimate' : 'Pay period estimate'}</p>
                     <h1>
                         payguide.au
                     </h1>
@@ -187,30 +188,32 @@ export default function Header({ onOpenLimitations }) {
                 >
                     Assumptions & limitations
                 </button>
-                <button
-                    onClick={copyPreviousWeek}
-                    className="pay-button"
-                >
-                    Copy Previous Week
-                </button>
-                <button
-                    onClick={copyCalculationDetails}
-                    className="pay-button"
-                >
-                    {copyStatus || 'Copy calculation details'}
-                </button>
-                <button
-                    onClick={resetToDefault}
-                    className="pay-button"
-                >
-                    Set to 9-5
-                </button>
-                <button
-                    onClick={clearAllShifts}
-                    className="pay-button"
-                >
-                    Clear All
-                </button>
+                {!isAcademic && <>
+                    <button
+                        onClick={copyPreviousWeek}
+                        className="pay-button"
+                    >
+                        Copy Previous Week
+                    </button>
+                    <button
+                        onClick={copyCalculationDetails}
+                        className="pay-button"
+                    >
+                        {copyStatus || 'Copy calculation details'}
+                    </button>
+                    <button
+                        onClick={resetToDefault}
+                        className="pay-button"
+                    >
+                        Set to 9-5
+                    </button>
+                    <button
+                        onClick={clearAllShifts}
+                        className="pay-button"
+                    >
+                        Clear All
+                    </button>
+                </>}
             </div>
         </header>
     );

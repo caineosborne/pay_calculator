@@ -18,8 +18,21 @@ QUT ongoing, fixed-term, teaching-intensive and QUT College educator
 calculations remain out of scope.
 
 Dates are required for activity records, but start and finish times are not.
-Separate occasions on the same date are distinguished through explicit
-occasion groups.
+Separate occasions on the same date are distinguished by asking whether a new
+item formed part of an existing work occasion.
+
+## Current implementation status
+
+The generic academic engine, QUT activity catalogue, date-only fortnight,
+course-specific rate basis, repeat lookback, incorporated-time comparison and
+minimum-engagement review are implemented. Same-date occasion grouping is
+presented as an optional “same work occasion” choice rather than an industrial
+relations code or free-text group name.
+
+The following planned items remain deliberately deferred: academic ruleset
+editing, a visible/editable history manager, missing-history warnings, CSV
+import and automatic monetary valuation of a minimum-engagement shortfall.
+Stored browser history is currently used automatically for repeat matching.
 
 ## Implementation phases
 
