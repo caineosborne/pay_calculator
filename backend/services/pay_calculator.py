@@ -12,6 +12,7 @@ Dependencies:
 """
 
 from collections import defaultdict
+import uuid
 
 from models.request_models import PayRequest, Shift
 from models.response_models import PayResponse, RulesetSummary
@@ -26,7 +27,7 @@ class PayCalculator:
     detailed breakdowns of hours worked.
     """
 
-    def __init__(self, data: PayRequest):
+    def __init__(self, data: PayRequest, owner_id: uuid.UUID | None = None):
         """
         Initialize calculator with request data.
         
@@ -38,7 +39,7 @@ class PayCalculator:
         
         # Keep this calculation's rules isolated from every other request.
         award = data.award.value if hasattr(data.award, 'value') else data.award
-        self.rules = PayRules(award, data.rule_configuration)
+        self.rules = PayRules(award, data.rule_configuration, owner_id)
         
         # Get employment type and contracted hours
         self.employment_type = data.employment_type.value if hasattr(data.employment_type, 'value') else data.employment_type

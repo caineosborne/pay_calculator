@@ -5,20 +5,23 @@ import { InputDetails } from './components/Config/InputDetails';
 import { ShiftCalculator } from './components/Config/ShiftCalculator';
 import ShiftTable from './components/DisplayTables/ShiftTable';
 import SummaryTable from './components/DisplayTables/SummaryTable';
+import { AuthProvider } from './context/AuthContext';
 
 function App() {
   return (
-    <PayProvider>
-      <ShiftCalculator>
-        <Layout>
-          <main className="workspace">
-            <InputDetails />
-            <ShiftTable />
-            <SummaryTable />
-          </main>
-        </Layout>
-      </ShiftCalculator>
-    </PayProvider>
+    <AuthProvider>
+      <PayProvider>
+        <ShiftCalculator>
+          <Layout>
+            <main className="workspace">
+              <InputDetails />
+              <ShiftTable />
+              <SummaryTable />
+            </main>
+          </Layout>
+        </ShiftCalculator>
+      </PayProvider>
+    </AuthProvider>
   );
 }
 

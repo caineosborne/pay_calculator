@@ -4,6 +4,7 @@ import { DisplayRules } from './DisplayRules';
 import { RuleConfigurationEditor } from './RuleConfigurationEditor';
 import { api } from '../../services/apis';
 import { PUBLIC_AWARD_DEFAULT_RATES } from '../Layout/awardTabsData';
+import { useAuth } from '../../context/AuthContext';
 
 const FALLBACK_AWARD_DETAILS = {
     woolies_2024_demo: { label: 'Woolies EA 2024' },
@@ -14,6 +15,7 @@ const FALLBACK_AWARD_DETAILS = {
 
 export function InputDetails() {
     const { state, dispatch } = usePay();
+    const { user, openLogin } = useAuth();
     const isCustomize = state.view === 'customize';
     const [showRules, setShowRules] = useState(false);
     const [showConfigurationEditor, setShowConfigurationEditor] = useState(false);
@@ -192,7 +194,7 @@ export function InputDetails() {
         refreshRuleConfigurations().catch((error) => {
             console.error('Failed to load rule configurations:', error);
         });
-    }, [isCustomize]);
+    }, [isCustomize, user?.id]);
 
     useEffect(() => {
         if (!isCustomize || !ruleConfigurations.length) {
@@ -594,7 +596,8 @@ export function InputDetails() {
             {showConfigurationEditor && (
                 <RuleConfigurationEditor
                     configurationId={state.config.ruleConfiguration}
-                    allowSaving={isCustomize}
+                    allowSaving={Boolean(user)}
+                    onSignInRequested={openLogin}
                     onConfigurationSaved={handleConfigurationSaved}
                     onDirtyChange={handleEditorDirtyChange}
                 />

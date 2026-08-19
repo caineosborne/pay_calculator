@@ -16,6 +16,7 @@ Dependencies:
 """
 
 from copy import deepcopy
+import uuid
 
 from .rules import get_rules_for_award
 
@@ -37,13 +38,14 @@ class PayRules:
         self,
         award: str,
         configuration_identifier: str = None,
+        owner_id: uuid.UUID | None = None,
     ):
         if not award:
             raise ValueError("An award must be selected.")
         # Store the selected class on this adapter instance. A class-level value
         # would allow one request to replace the rules used by another request.
         self.active_rules = get_rules_for_award(
-            award, configuration_identifier
+            award, configuration_identifier, owner_id
         )
         self.config = {
             "shift": deepcopy(self.active_rules.SHIFT_RULES),

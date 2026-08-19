@@ -12,6 +12,7 @@
 import React, { useState } from 'react';
 import { usePay } from '../../context/PayContext';
 import { createFortnightShifts, createShift } from '../Config/shifts';
+import { useAuth } from '../../context/AuthContext';
 
 /**
  * Default shift template for a 9-5 work schedule
@@ -32,6 +33,7 @@ const EMPTY_SHIFTS = createFortnightShifts(false);
  */
 export default function Header({ onOpenLimitations }) {
     const { state, dispatch } = usePay();
+    const { user, openLogin, logout } = useAuth();
     const [copyStatus, setCopyStatus] = useState('');
 
     /**
@@ -171,6 +173,14 @@ export default function Header({ onOpenLimitations }) {
 
             {/* Control buttons section */}
             <div className="header-actions">
+                {user ? (
+                    <>
+                        <span className="auth-user">Signed in as {user.display_name}</span>
+                        <button onClick={logout} className="pay-button">Sign out</button>
+                    </>
+                ) : (
+                    <button onClick={openLogin} className="pay-button">Sign in to save</button>
+                )}
                 <button
                     onClick={onOpenLimitations}
                     className="pay-button"

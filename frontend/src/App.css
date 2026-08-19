@@ -22,6 +22,7 @@
 .award-tab.is-unavailable { color: #b8dbcd; background: rgba(0,0,0,.12); cursor: not-allowed; }
 .award-tab.is-unavailable span { display: block; margin-top: 5px; color: #b8dbcd; font: 500 9px 'DM Mono', monospace; text-transform: uppercase; }
 .header-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.auth-user { display: inline-flex; align-items: center; padding: 0 4px; color: #517064; font: 500 11px/1.2 'DM Mono', monospace; }
 .pay-button { border: 1px solid #b9c9c0; border-radius: 8px; padding: 9px 12px; color: #284338; background: rgba(255,255,255,.58); font: 500 12px/1 'DM Sans', sans-serif; cursor: pointer; }
 .pay-button:hover { color: #fff; border-color: #146c5a; background: #146c5a; }
 .workspace { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 14px 0 30px; }
@@ -120,6 +121,16 @@
 .disclaimer-error { color: #9b2c2c !important; }
 .disclaimer-close { margin-top: 6px; color: #fff; border-color: #146c5a; background: #146c5a; }
 .disclaimer-close:hover { background: #0d5646; }
+.auth-dialog { width: min(460px, 100%); padding: 28px; border: 1px solid #cbd8d0; border-radius: 16px; background: #fff; box-shadow: 0 24px 70px rgba(14, 32, 24, .32); }
+.auth-dialog h2 { margin: 5px 0 16px; color: #17231f; font: 700 30px/1 Fraunces, Georgia, serif; letter-spacing: -.04em; }
+.auth-testing-notice { margin: 0 0 18px; padding: 12px; border-left: 3px solid #d0a24c; color: #6a542c; background: #fff9ec; font: 13px/1.5 'DM Sans', sans-serif; }
+.auth-form { display: grid; gap: 14px; }
+.auth-form label { display: grid; gap: 6px; color: #3e554b; font: 500 12px/1.2 'DM Mono', monospace; }
+.auth-form input { min-height: 40px; border: 1px solid #cbd8d0; border-radius: 7px; padding: 8px 10px; color: #17231f; background: #fbfdfb; font: 500 14px 'DM Sans', sans-serif; }
+.auth-form input:focus { outline: 3px solid #b9e1d3; outline-offset: 1px; border-color: #146c5a; }
+.auth-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.auth-submit { color: #fff; border-color: #146c5a; background: #146c5a; }
+.auth-error { margin: 0; color: #9b2c2c; font: 13px/1.4 'DM Sans', sans-serif; }
 
 @media (max-width: 760px) {
   .pay-app { padding: 14px; }

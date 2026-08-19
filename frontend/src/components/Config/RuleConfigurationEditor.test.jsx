@@ -353,18 +353,21 @@ describe('RuleConfigurationEditor', () => {
         await waitFor(() => expect(document.activeElement).toBe(summary));
     });
 
-    it('keeps guided edits temporary and exposes no save action', async () => {
+    it('keeps guided edits temporary and offers sign in instead of saving', async () => {
+        const onSignInRequested = vi.fn();
         render(
             <RuleConfigurationEditor
                 configurationId="builtin:fast_food"
+                onSignInRequested={onSignInRequested}
             />
         );
         fireEvent.change(
             await screen.findByLabelText('Standard overtime rate'),
             { target: { value: '9' } }
         );
-        expect(screen.queryByRole('button', { name: /save/i })).not.toBeInTheDocument();
-        expect(screen.getByText(/never saved/i)).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Sign in to save' }));
+        expect(onSignInRequested).toHaveBeenCalledTimes(1);
+        expect(screen.getByText(/temporary/i)).toBeInTheDocument();
         expect(api.createRuleConfiguration).not.toHaveBeenCalled();
     });
 

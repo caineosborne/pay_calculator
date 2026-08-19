@@ -4,7 +4,8 @@
     "paragraphs": [
       "This calculator provides an indicative estimate of your pay entitlement for the hours entered. It should not be used to make, process, approve or determine employee payments. It is not legal, industrial relations, payroll, taxation or accounting advice and should not be relied upon to determine an employee’s legal entitlement or an employer’s payroll obligation.",
       "Results depend on the information entered and the rules configured in the calculator. Any payment decision must be made using the applicable industrial instrument, employment contract, roster and payroll records, with appropriate payroll, legal or industrial-relations review where required.",
-      "For accurate workplace pay and entitlement information, please contact the Fair Work Ombudsman or visit fairwork.gov.au."
+      "For accurate workplace pay and entitlement information, please contact the Fair Work Ombudsman or visit fairwork.gov.au.",
+      "Testing access only: named accounts use a shared password and are intended only for controlled testing. Full user authentication is not yet live. Do not use these accounts for sensitive or production data."
     ]
   },
   "awards": {

@@ -6,6 +6,7 @@ based on the specified award type.
 """
 
 from importlib import import_module
+import uuid
 
 from services.award_registry import load_awards
 from services.rule_configurations import (
@@ -26,7 +27,11 @@ for award_definition in load_awards():
     BUILTIN_RULES[award_definition["key"]] = rule_class
 
 
-def get_rules_for_award(award: str, configuration_identifier: str | None = None):
+def get_rules_for_award(
+    award: str,
+    configuration_identifier: str | None = None,
+    owner_id: uuid.UUID | None = None,
+):
     """
     Factory function to get the appropriate rule set based on award type.
     
@@ -50,7 +55,7 @@ def get_rules_for_award(award: str, configuration_identifier: str | None = None)
                 )
         else:
             return load_custom_rule_class(
-                configuration_identifier, normalized_award
+                configuration_identifier, normalized_award, owner_id
             )
 
     try:

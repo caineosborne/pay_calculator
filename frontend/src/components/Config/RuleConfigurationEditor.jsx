@@ -776,6 +776,7 @@ export function RuleConfigurationEditor({
     allowSaving = false,
     onConfigurationSaved,
     onDirtyChange,
+    onSignInRequested,
 }) {
     const [configuration, setConfiguration] = useState(null);
     const [source, setSource] = useState('');
@@ -1012,7 +1013,7 @@ export function RuleConfigurationEditor({
                         </p>
                     </div>
                 )
-            ) : <p className="temporary-rules-note">These rule edits are temporary. They are used for review in this session and are never saved.</p>}
+            ) : <p className="temporary-rules-note">These rule edits are temporary. Sign in with a testing account to save a private copy.</p>}
 
             <div
                 className="sticky top-2 z-10 mt-4 rounded-lg border border-gray-200 bg-white/95 p-3 shadow-sm backdrop-blur dark:border-gray-600 dark:bg-gray-800/95"
@@ -1048,6 +1049,15 @@ export function RuleConfigurationEditor({
                             className="bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
                         >
                             {saveActionLabel}
+                        </button>
+                    )}
+                    {!allowSaving && (
+                        <button
+                            type="button"
+                            onClick={onSignInRequested}
+                            className="bg-blue-600 text-white hover:bg-blue-700"
+                        >
+                            Sign in to save
                         </button>
                     )}
                     <button

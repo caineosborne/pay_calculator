@@ -16,6 +16,7 @@ export const calculatePay = async (hourlyRate, shifts) => {
     try {
         const response = await fetch(apiUrl, {
             method: 'POST',
+            credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
         });

@@ -218,8 +218,8 @@ def validate_rule_source(award_key: str, source: str) -> dict:
     }
 
 
-def list_rule_configurations() -> list[dict]:
-    """Return immutable built-ins and shared local custom configurations."""
+def list_rule_configurations(owner_id: uuid.UUID | None = None) -> list[dict]:
+    """Return public built-ins and, when signed in, the owner's custom rules."""
     configurations = [
         {
             "id": f"{BUILTIN_ID_PREFIX}{award['key']}",
@@ -230,13 +230,18 @@ def list_rule_configurations() -> list[dict]:
         }
         for award in load_awards()
     ]
+    if owner_id is None:
+        return configurations
     return configurations + [
-        _configuration_metadata(record) for record in list_stored_configurations()
+        _configuration_metadata(record)
+        for record in list_stored_configurations(owner_id)
     ]
 
 
-def _get_stored_configuration(identifier: str) -> dict:
-    record = get_stored_configuration(_parse_custom_identifier(identifier))
+def _get_stored_configuration(identifier: str, owner_id: uuid.UUID) -> dict:
+    record = get_stored_configuration(
+        _parse_custom_identifier(identifier), owner_id
+    )
     if record is None:
         raise RuleConfigurationNotFound(
             f"Rule configuration not found: {identifier}"
@@ -244,7 +249,9 @@ def _get_stored_configuration(identifier: str) -> dict:
     return record
 
 
-def get_rule_configuration(identifier: str) -> dict:
+def get_rule_configuration(
+    identifier: str, owner_id: uuid.UUID | None = None
+) -> dict:
     """Return configuration metadata plus source reconstructed from its patch."""
     if identifier.startswith(BUILTIN_ID_PREFIX):
         award_key = identifier.removeprefix(BUILTIN_ID_PREFIX)
@@ -258,7 +265,11 @@ def get_rule_configuration(identifier: str) -> dict:
         }
         source = _builtin_source_path(award_key).read_text(encoding="utf-8")
     else:
-        stored = _get_stored_configuration(identifier)
+        if owner_id is None:
+            raise RuleConfigurationNotFound(
+                f"Rule configuration not found: {identifier}"
+            )
+        stored = _get_stored_configuration(identifier, owner_id)
         metadata = _configuration_metadata(stored)
         source = _source_with_overrides(stored["base_award"], stored["rules_json"])
 
@@ -313,6 +324,7 @@ def create_custom_rule(
     name: str,
     source: str,
     questionnaire: dict | None = None,
+    owner_id: uuid.UUID | None = None,
 ) -> dict:
     """Save only the fields changed from the selected immutable base award."""
     validation = validate_rule_payload(award_key, source, questionnaire)
@@ -321,30 +333,45 @@ def create_custom_rule(
         raise RuleConfigurationError(
             "Configuration name must contain at least one letter or number."
         )
+    if owner_id is None:
+        raise RuleConfigurationError("Sign in to save a custom configuration.")
     identifier = create_stored_configuration(
-        award_key, name.strip(), slug, _rule_overrides(award_key, validation["source"])
+        award_key,
+        name.strip(),
+        slug,
+        _rule_overrides(award_key, validation["source"]),
+        owner_id,
     )
     if identifier is None:
         raise RuleConfigurationConflict(
             f"A custom configuration named '{name}' already exists."
         )
-    return get_rule_configuration(_custom_identifier(identifier))
+    return get_rule_configuration(_custom_identifier(identifier), owner_id)
 
 
 def update_custom_rule(
-    identifier: str, source: str, questionnaire: dict | None = None
+    identifier: str,
+    source: str,
+    questionnaire: dict | None = None,
+    owner_id: uuid.UUID | None = None,
 ) -> dict:
     """Replace one saved override patch without modifying core rule files."""
-    stored = _get_stored_configuration(identifier)
+    if owner_id is None:
+        raise RuleConfigurationNotFound(
+            f"Rule configuration not found: {identifier}"
+        )
+    stored = _get_stored_configuration(identifier, owner_id)
     validation = validate_rule_payload(stored["base_award"], source, questionnaire)
     if not update_stored_configuration(
-        stored["id"], _rule_overrides(stored["base_award"], validation["source"])
+        stored["id"],
+        _rule_overrides(stored["base_award"], validation["source"]),
+        owner_id,
     ):
         raise RuleConfigurationNotFound(
             f"Rule configuration not found: {identifier}"
         )
     _load_custom_rule_class_cached.cache_clear()
-    return get_rule_configuration(identifier)
+    return get_rule_configuration(identifier, owner_id)
 
 
 def _slug_for_name(name: str) -> str:
@@ -356,12 +383,18 @@ def _slug_for_name(name: str) -> str:
     return slug
 
 
-def rename_custom_rule(identifier: str, name: str) -> dict:
+def rename_custom_rule(
+    identifier: str, name: str, owner_id: uuid.UUID | None = None
+) -> dict:
     """Rename a saved custom configuration without changing its rule values."""
-    stored = _get_stored_configuration(identifier)
+    if owner_id is None:
+        raise RuleConfigurationNotFound(
+            f"Rule configuration not found: {identifier}"
+        )
+    stored = _get_stored_configuration(identifier, owner_id)
     try:
         renamed = rename_stored_configuration(
-            stored["id"], name.strip(), _slug_for_name(name)
+            stored["id"], name.strip(), _slug_for_name(name), owner_id
         )
     except UniqueViolation as error:
         raise RuleConfigurationConflict(
@@ -371,13 +404,19 @@ def rename_custom_rule(identifier: str, name: str) -> dict:
         raise RuleConfigurationNotFound(
             f"Rule configuration not found: {identifier}"
         )
-    return get_rule_configuration(identifier)
+    return get_rule_configuration(identifier, owner_id)
 
 
-def delete_custom_rule(identifier: str) -> None:
+def delete_custom_rule(
+    identifier: str, owner_id: uuid.UUID | None = None
+) -> None:
     """Delete one custom configuration; built-ins never enter this path."""
-    stored = _get_stored_configuration(identifier)
-    if not delete_stored_configuration(stored["id"]):
+    if owner_id is None:
+        raise RuleConfigurationNotFound(
+            f"Rule configuration not found: {identifier}"
+        )
+    stored = _get_stored_configuration(identifier, owner_id)
+    if not delete_stored_configuration(stored["id"], owner_id):
         raise RuleConfigurationNotFound(
             f"Rule configuration not found: {identifier}"
         )
@@ -400,9 +439,15 @@ def _load_custom_rule_class_cached(
     return type(f"Custom{award['class_name']}{identifier.hex}", (base_class,), attributes)
 
 
-def load_custom_rule_class(identifier: str, award_key: str) -> type:
+def load_custom_rule_class(
+    identifier: str, award_key: str, owner_id: uuid.UUID | None = None
+) -> type:
     """Load a saved override as an in-memory derivative of its base class."""
-    stored = _get_stored_configuration(identifier)
+    if owner_id is None:
+        raise RuleConfigurationNotFound(
+            f"Rule configuration not found: {identifier}"
+        )
+    stored = _get_stored_configuration(identifier, owner_id)
     if stored["base_award"] != award_key:
         raise RuleConfigurationError(
             "The selected configuration does not belong to the requested award."

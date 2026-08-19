@@ -17,7 +17,7 @@ from services.rule_configurations import (
     validate_rule_source,
 )
 from services.rule_configuration_store import DatabaseUnavailable, initialize_store
-from services.rule_configuration_store import delete_configuration
+from services.auth_store import add_user, delete_user
 
 
 def _database_is_available() -> bool:
@@ -176,41 +176,47 @@ class RuleConfigurationTests(unittest.TestCase):
             )
 
     def test_guided_editor_writes_grouped_rules_and_changes_calculation(self):
+        username = f"guided-test-{uuid.uuid4().hex[:8]}"
+        owner_id = add_user(username, "Guided Test")["id"]
         builtin = get_rule_configuration("builtin:fast_food")
         questionnaire = copy.deepcopy(builtin["questionnaire"])
         questionnaire["overtime"]["daily_overtime_configuration"]["answer"] = {
             "variation": "default",
             "default": 4,
         }
-        custom = create_custom_rule(
-            "fast_food",
-            f"Four Hour Day {uuid.uuid4().hex[:8]}",
-            builtin["source"],
-            questionnaire,
-        )
-
-        self.assertIn("ORDINARY_TIME_RULES", custom["source"])
-        self.assertNotIn("ORDINARY_HOURS_LIMIT_DAILY", custom["source"])
-
-        result = PayCalculator(
-            PayRequest(
-                hourly_rate=20,
-                worker_type="shift",
-                award="fast_food",
-                employment_type="full_time",
-                rule_configuration=custom["id"],
-                shifts=[
-                    {
-                        "day": "Monday",
-                        "start": 9,
-                        "end": 17,
-                        "break_duration": 0,
-                    }
-                ],
+        try:
+            custom = create_custom_rule(
+                "fast_food",
+                f"Four Hour Day {uuid.uuid4().hex[:8]}",
+                builtin["source"],
+                questionnaire,
+                owner_id,
             )
-        ).calculate_pay()
-        self.assertEqual(result.overtime_hours, 4)
-        delete_configuration(uuid.UUID(custom["id"].removeprefix("custom:")))
+
+            self.assertIn("ORDINARY_TIME_RULES", custom["source"])
+            self.assertNotIn("ORDINARY_HOURS_LIMIT_DAILY", custom["source"])
+
+            result = PayCalculator(
+                PayRequest(
+                    hourly_rate=20,
+                    worker_type="shift",
+                    award="fast_food",
+                    employment_type="full_time",
+                    rule_configuration=custom["id"],
+                    shifts=[
+                        {
+                            "day": "Monday",
+                            "start": 9,
+                            "end": 17,
+                            "break_duration": 0,
+                        }
+                    ],
+                ),
+                owner_id,
+            ).calculate_pay()
+            self.assertEqual(result.overtime_hours, 4)
+        finally:
+            delete_user(username)
 
 
 if __name__ == "__main__":
