@@ -133,12 +133,20 @@ describe('DisplayRules', () => {
             const row = screen.getByText(label).closest('.penalty-row');
             expect(row.closest('.penalty-card')).toBeInTheDocument();
             expect(within(row).getByText('Day worker')).toBeInTheDocument();
-            expect(within(row).queryByText(/loading/)).not.toBeInTheDocument();
+            expect(within(row).getByText(/loading/)).toBeInTheDocument();
         }
-        const saturdayRate = screen.getByText('Saturday ordinary hours rate').closest('.rule-row');
-        expect(within(saturdayRate).getByText(/25% loading/)).toBeInTheDocument();
-        expect(screen.getByText('Short break between shifts')).toBeInTheDocument();
-        expect(screen.getByText('Short-break penalty rate')).toBeInTheDocument();
+        const saturdayPenalty = screen.getByText('Saturday ordinary hours').closest('.penalty-row');
+        expect(within(saturdayPenalty).getByText(/25% loading/)).toBeInTheDocument();
+        const shortBreakPenalty = screen.getByText('Short break between shifts').closest('.penalty-row');
+        expect(within(shortBreakPenalty).getByText(/100% loading/)).toBeInTheDocument();
+        const casualLoading = screen.getByText('Casual ordinary-hours loading').closest('.penalty-row');
+        expect(within(casualLoading).getByText('25% loading')).toBeInTheDocument();
+        const ratesSection = screen.getByText('Rates').closest('.rule-details');
+        expect(within(ratesSection).getByText('Weekday overtime')).toBeInTheDocument();
+        expect(within(ratesSection).queryByText('Casual ordinary-hours loading')).not.toBeInTheDocument();
+        expect(within(ratesSection).queryByText('Late work')).not.toBeInTheDocument();
+        expect(screen.queryByText('Saturday ordinary hours rate')).not.toBeInTheDocument();
+        expect(screen.queryByText('Short-break penalty rate')).not.toBeInTheDocument();
         expect(screen.queryByText('Standard ordinary span (Shift workers)')).not.toBeInTheDocument();
         expect(screen.getByText('Complete configuration')).toBeInTheDocument();
         expect(screen.getByText(/Authoritative normalized settings/)).toBeInTheDocument();
@@ -172,9 +180,8 @@ describe('DisplayRules', () => {
 
         const row = screen.getByText('Saturday ordinary hours').closest('.penalty-row');
         expect(within(row).getByText('Shift worker')).toBeInTheDocument();
-        expect(within(row).queryByText(/loading/)).not.toBeInTheDocument();
-        const rateRow = screen.getByText('Saturday ordinary hours rate').closest('.rule-row');
-        expect(within(rateRow).getByText('50% loading')).toBeInTheDocument();
-        expect(within(rateRow).queryByText('25% loading')).not.toBeInTheDocument();
+        expect(within(row).getByText('50% loading')).toBeInTheDocument();
+        expect(within(row).queryByText('25% loading')).not.toBeInTheDocument();
+        expect(screen.queryByText('Saturday ordinary hours rate')).not.toBeInTheDocument();
     });
 });

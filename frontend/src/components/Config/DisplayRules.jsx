@@ -180,10 +180,25 @@ export function DisplayRules({ showRules }) {
         || (config.gap_between_shifts?.minimum_hours
             ? `Less than ${config.gap_between_shifts.minimum_hours} hours between shifts`
             : null);
-    const penaltyEntitlementRows = [
-        ...configuredPenalties.map((penalty) => [penalty.name, penalty.detail]),
-        ...weekendAndPublicHolidayRules.map((penalty) => [penalty.name, penalty.detail]),
-        shortBreakThreshold && ['Short break between shifts', shortBreakThreshold],
+    const shortBreakRate = config.gap_between_shifts?.minimum_hours
+        ? formatEmploymentLoadings(config.gap_between_shifts)
+        : rules.gap_penalty?.rate
+            || (rules.gap_penalty?.penalty_rate
+                ? formatRate(rules.gap_penalty.penalty_rate)
+                : null);
+    const penaltyRows = [
+        ...configuredPenalties,
+        ...weekendAndPublicHolidayRules,
+        shortBreakThreshold && {
+            name: 'Short break between shifts',
+            detail: shortBreakThreshold,
+            employmentRate: shortBreakRate || 'Not specified',
+        },
+        hasValue(ordinaryTime.ordinary_rates?.casual_loading) && {
+            name: 'Casual ordinary-hours loading',
+            detail: 'Casual employees',
+            employmentRate: formatRate(ordinaryTime.ordinary_rates.casual_loading),
+        },
     ].filter(Boolean);
     const rateRows = [
         overtimeRates.weekday && ['Weekday overtime', formatEmploymentRates(overtimeRates.weekday)],
@@ -195,16 +210,6 @@ export function DisplayRules({ showRules }) {
         overtimeRates.saturday && ['Saturday overtime', formatEmploymentRates(overtimeRates.saturday)],
         overtimeRates.sunday && ['Sunday overtime', formatEmploymentRates(overtimeRates.sunday)],
         overtimeRates.public_holiday && ['Public-holiday overtime', formatEmploymentRates(overtimeRates.public_holiday)],
-        ...configuredPenalties.map((penalty) => [`${penalty.name} rate`, penalty.employmentRate]),
-        ...weekendAndPublicHolidayRules.map((penalty) => [`${penalty.name} rate`, penalty.employmentRate]),
-        config.gap_between_shifts?.minimum_hours && [
-            'Short-break penalty rate',
-            formatEmploymentLoadings(config.gap_between_shifts),
-        ],
-        hasValue(ordinaryTime.ordinary_rates?.casual_loading) && [
-            'Casual ordinary-hours loading',
-            formatRate(ordinaryTime.ordinary_rates.casual_loading),
-        ],
     ].filter(Boolean);
     const otherRuleRows = [
         contractedHours && ['Contracted hours', contractedHours],
@@ -242,13 +247,14 @@ export function DisplayRules({ showRules }) {
             <div className="penalty-card">
                 <div className="penalty-card-heading">
                     <div><span className="penalty-icon" aria-hidden="true">+</span><h4>Penalty loadings</h4></div>
-                    <span>{penaltyEntitlementRows.length} configured</span>
+                    <span>{penaltyRows.length} configured</span>
                 </div>
-                {penaltyEntitlementRows.length ? (
+                {penaltyRows.length ? (
                     <div className="penalty-list">
-                        {penaltyEntitlementRows.map(([label, value]) => (
-                            <div className="penalty-row" key={label}>
-                                <div><strong>{label}</strong><span>{value}</span></div>
+                        {penaltyRows.map((penalty) => (
+                            <div className="penalty-row" key={penalty.name}>
+                                <div><strong>{penalty.name}</strong><span>{penalty.detail}</span></div>
+                                <b>{penalty.employmentRate}</b>
                             </div>
                         ))}
                     </div>
