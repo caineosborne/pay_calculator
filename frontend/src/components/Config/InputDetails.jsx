@@ -474,14 +474,14 @@ export function InputDetails() {
                         </div>
                     </div>
 
-                    {/* Effective contracted hours input - only shown for part-time employees */}
+                    {/* Contracted hours input - only shown for part-time employees */}
                     {state.config.employmentType === 'part_time' && (
                         <div className="flex-1">
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                                Effective Contracted Hours per Week
+                                Contracted Hours per Week
                             </label>
                             <input
-                                aria-label="Effective Contracted Hours per Week"
+                                aria-label="Contracted Hours per Week"
                                 type="number"
                                 value={state.config.contractedHours || ''}
                                 onChange={(event) =>
@@ -500,11 +500,11 @@ export function InputDetails() {
                         </div>
                     )}
 
-                    {/* Display effective contracted hours for full-time */}
+                    {/* Display contracted hours for full-time */}
                     {state.config.employmentType === 'full_time' && (
                         <div className="flex-1">
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                                Effective Contracted Hours per Week
+                                Contracted Hours per Week
                             </label>
                             <div className="mt-1 py-2 px-3 bg-gray-100 dark:bg-gray-700 rounded-md text-gray-700 dark:text-gray-200">
                                 {state.config.contractedHours || 38}

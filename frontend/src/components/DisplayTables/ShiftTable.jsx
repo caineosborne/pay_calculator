@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { usePay } from '../../context/PayContext';
+import { formatCurrency } from '../../utils/formatters';
 import ShiftTimeInput from './ShiftTimeInput';
 import ShiftResults from './ShiftResults';
 
@@ -34,7 +35,7 @@ export default function ShiftTable() {
                     </td>
                     <td className="shift-output-cell shift-ordinary-cell px-2 py-1 whitespace-nowrap text-sm text-gray-600" data-label="Ordinary">{breakdown?.hours?.ordinary || '0.00'}</td>
                     <td className="shift-output-cell shift-overtime-cell px-2 py-1 whitespace-nowrap text-sm text-red-600" data-label="Overtime">{breakdown?.hours?.overtime || '0.00'}</td>
-                    <td className="shift-output-cell shift-amount-cell px-2 py-1 whitespace-nowrap text-sm font-medium text-gray-900" data-label="Pay">${breakdown?.pay?.total || '0.00'}</td>
+                    <td className="shift-output-cell shift-amount-cell px-2 py-1 whitespace-nowrap text-sm font-medium text-gray-900" data-label="Pay">{formatCurrency(breakdown?.pay?.total || 0)}</td>
                     <td className={`shift-rules-cell ${appliedRules === '-' ? 'is-empty' : ''} min-w-64 px-2 py-1 text-sm text-gray-600 whitespace-normal`} data-label="Rules">{appliedRules}</td>
                 </> : <td colSpan="5" className="shift-combined-cell px-2 py-1 text-xs italic text-gray-500">Combined with the workday above</td>}
             </tr>

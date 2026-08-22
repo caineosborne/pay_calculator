@@ -11,6 +11,7 @@
 
 import React, { useState } from 'react';
 import { usePay } from '../../context/PayContext';
+import { formatCurrency } from '../../utils/formatters';
 import { createFortnightShifts, createShift } from '../Config/shifts';
 import { useAuth } from '../../context/AuthContext';
 
@@ -142,7 +143,7 @@ export default function Header({ onOpenLimitations }) {
                     lunchTime: formatTime(shift.lunch_start),
                     lunchLengthHours: Number.parseFloat(shift.break_duration) || 0,
                     flags,
-                    amount: isPrimary && daily ? `$${daily.pay?.total ?? '0.00'}` : null,
+                    amount: isPrimary && daily ? formatCurrency(daily.pay?.total ?? 0) : null,
                     appliedRules: isPrimary ? (daily?.applied_rules || []) : [],
                 };
             });

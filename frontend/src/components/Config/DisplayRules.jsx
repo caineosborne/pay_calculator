@@ -25,14 +25,10 @@ const formatOvertime = (rule) => {
         : rule.threshold;
 };
 
-const formatSpan = (rule) => rule?.threshold || 'Not specified';
-
-const formatWeekendRule = (rule) => {
-    if (!rule) return 'Not specified';
-    if (rule.is_overtime || rule.base_classification === 'overtime') return 'All hours are paid as overtime';
-    const loading = rule.ordinary_loading ?? rule.penalty_rate;
-    if (hasValue(loading)) return formatRate(loading);
-    return 'Not specified';
+const formatPeriodOvertime = (rule) => {
+    if (!rule?.threshold) return 'Not specified';
+    const period = rule.basis === 'weekly' ? 'week' : 'pay period';
+    return `After ${rule.threshold} hours per ${period}`;
 };
 
 const hasValue = (value) => value !== null && value !== undefined && value !== '';
@@ -60,9 +56,12 @@ const formatMinimumEngagement = (rule) => {
     if (!rule || typeof rule !== 'object') return null;
     const values = Object.entries(rule)
         .filter(([key]) => key !== 'variation')
-        .map(([employmentType, hours]) =>
-            `${titleCase(employmentType)}: ${hours || 0} hours`
-        );
+        .map(([employmentType, hours]) => {
+            const formattedHours = employmentType === 'full_time' && Number(hours) === 0
+                ? 'N/A'
+                : `${hours || 0} hours`;
+            return `${titleCase(employmentType)}: ${formattedHours}`;
+        });
     return values.length ? values.join('; ') : null;
 };
 
@@ -84,27 +83,6 @@ const formatSpanWindow = (window = {}) => {
     return limits.length ? limits.join(' or ') : 'Not applicable';
 };
 
-const formatOrdinaryHoursLimits = (rule = {}) => {
-    const excluded = new Set([
-        'variation',
-        'basis',
-        'max_work_days',
-        'max_work_days_basis',
-        'part_time_uses_contracted_hours',
-    ]);
-    const limits = Object.entries(rule)
-        .filter(([key, value]) => !excluded.has(key) && hasValue(value))
-        .map(([group, hours]) => `${titleCase(group)}: ${hours} hours`);
-    if (!limits.length) return null;
-    const basis = rule.basis;
-    if (typeof basis === 'object') {
-        limits.push(`Basis: ${Object.entries(basis).map(([group, value]) => `${titleCase(group)} ${value === 'pay_period' ? 'pay period' : 'weekly'}`).join('; ')}`);
-    } else if (basis) {
-        limits.push(`Basis: ${basis === 'pay_period' ? 'pay period' : 'weekly'}`);
-    }
-    return limits.join('; ');
-};
-
 export function DisplayRules({ showRules }) {
     const { state } = usePay();
     const rules = state.calculations?.appliedRules;
@@ -112,8 +90,19 @@ export function DisplayRules({ showRules }) {
     if (!showRules || !rules) return null;
 
     const config = rules.configuration || {};
+    const selectedWorkerType = state.config.workerType === 'shift' ? 'shift' : 'day';
+    const ordinaryTime = config.ordinary_time || {};
+    const overtimeRates = config.pay_rates?.overtime || {};
+    const shiftRules = config.shift || {};
+    const dayTreatment = config.day_treatment || {};
     // Normalize the canonical penalty dictionary into one readable list.
-    const penalties = Object.entries(config.penalties || rules.penalties || {})
+    const configuredPenalties = Object.entries(config.penalties || rules.penalties || {})
+        .filter(([, penalty]) => {
+            const appliesTo = penalty?.applies_to;
+            return !Array.isArray(appliesTo)
+                || appliesTo.length === 0
+                || appliesTo.includes(selectedWorkerType);
+        })
         .map(([name, penalty]) => {
             if (!penalty || typeof penalty !== 'object') return null;
             const kind = penalty.type === 'time_based'
@@ -140,72 +129,63 @@ export function DisplayRules({ showRules }) {
         })
         .filter(Boolean);
 
-    const allPenalties = penalties;
+    const weekendAndPublicHolidayRules = [
+        ['Saturday', 'Saturday ordinary hours'],
+        ['Sunday', 'Sunday ordinary hours'],
+        ['public_holiday', 'Public-holiday ordinary hours'],
+    ].map(([day, name]) => {
+        const treatment = dayTreatment[day]?.[selectedWorkerType];
+        if (!treatment) return null;
+        return {
+            name,
+            employmentRate: formatDayTreatment(treatment),
+            detail: `${titleCase(selectedWorkerType)} worker`,
+        };
+    }).filter(Boolean);
+
     const worker = state.config.workerType === 'shift' ? 'Shift worker' : 'Day worker';
-    const gapPenalty =
-        rules.gap_penalty?.threshold && rules.gap_penalty?.rate
-            ? `${rules.gap_penalty.threshold} · ${rules.gap_penalty.rate}`
-            : rules.gap_penalty?.penalty_rate
-              ? formatRate(rules.gap_penalty.penalty_rate)
-              : null;
     const contractedHours = hasValue(rules.contracted_hours)
         ? `${rules.contracted_hours} hours per week`
         : null;
-    const detailRows = [
-        contractedHours && ['Effective contracted hours', contractedHours],
-        hasValue(rules.use_contracted_hours_for_overtime) && [
-            'Overtime based on contracted hours',
-            rules.use_contracted_hours_for_overtime
-                ? `Yes — after ${contractedHours || 'contracted hours'}`
-                : `No${contractedHours ? ` — after ${contractedHours}` : ''}`,
-        ],
-        hasValue(rules.pt_employees_entitled_to_contracted_topup) && ['Contracted-hours top-up for part-time employees', rules.pt_employees_entitled_to_contracted_topup ? 'Included' : 'Not included'],
-        hasValue(rules.ft_employees_entitled_to_contracted_topup) && ['Contracted-hours top-up for full-time employees', rules.ft_employees_entitled_to_contracted_topup ? 'Included' : 'Not included'],
-    ].filter(Boolean);
     const fullConfiguration = rules.configuration
         ? JSON.stringify(rules.configuration, null, 2)
         : null;
-    const ordinaryTime = config.ordinary_time || {};
-    const overtimeRates = config.pay_rates?.overtime || {};
-    const shiftRules = config.shift || {};
-    const dayTreatment = config.day_treatment || {};
-    const spanRuleRows = Object.entries(ordinaryTime.span_overtime || {})
-        .flatMap(([workerType, windows]) =>
-            Object.entries(windows || {}).map(([day, window]) => [
-                `${day === 'default' ? 'Standard' : day} ordinary span (${titleCase(workerType)} workers)`,
-                formatSpanWindow(window),
-            ])
-        );
-    const additionalRules = [
-        hasValue(shiftRules.default_break_hours) && [
-            'Default unpaid break',
-            `${shiftRules.default_break_hours} hours`,
-        ],
-        formatMinimumEngagement(shiftRules.minimum_paid_shift_hours) && [
-            'Minimum paid shift',
-            formatMinimumEngagement(shiftRules.minimum_paid_shift_hours),
-        ],
-        formatOrdinaryHoursLimits(ordinaryTime.daily) && [
-            'Daily ordinary-hours limits',
-            formatOrdinaryHoursLimits(ordinaryTime.daily),
-        ],
-        formatOrdinaryHoursLimits(ordinaryTime.period) && [
-            'Period ordinary-hours limits',
-            formatOrdinaryHoursLimits(ordinaryTime.period),
-        ],
-        hasValue(ordinaryTime.ordinary_rates?.casual_loading) && [
-            'Casual ordinary-hours loading',
-            formatRate(ordinaryTime.ordinary_rates.casual_loading),
-        ],
+    const selectedSpanWindows = ordinaryTime.span_overtime?.[selectedWorkerType] || {};
+    const defaultSpan = selectedSpanWindows.default
+        ? formatSpanWindow(selectedSpanWindows.default)
+        : rules.span_hours?.threshold === 'N/A'
+            ? 'Not applicable'
+            : rules.span_hours?.threshold || 'Not applicable';
+    const overtimeEntitlementRows = [
+        ['Span of hours', defaultSpan],
+        ...Object.entries(selectedSpanWindows)
+            .filter(([day]) => day !== 'default')
+            .map(([day, window]) => [`${day} ordinary span`, formatSpanWindow(window)]),
+        ['Daily overtime', formatOvertime(rules.daily_overtime)],
         ordinaryTime.long_day?.ordinary_limit_hours && [
             'Long-day ordinary-hours exception',
             `Up to ${ordinaryTime.long_day.ordinary_limit_hours} hours, ${ordinaryTime.long_day.uses_per_week || 0} time${ordinaryTime.long_day.uses_per_week === 1 ? '' : 's'} per week`,
         ],
-        config.gap_between_shifts?.minimum_hours && [
-            'Insufficient-break loading',
-            `After a break of less than ${config.gap_between_shifts.minimum_hours} hours: ${formatEmploymentLoadings(config.gap_between_shifts)}`,
+        ['Period overtime', formatPeriodOvertime(rules.weekly_overtime)],
+        rules.weekly_overtime?.max_work_days && [
+            'Maximum worked days',
+            `${rules.weekly_overtime.max_work_days} per ${rules.weekly_overtime.max_work_days_basis === 'weekly' ? 'week' : 'pay period'}`,
         ],
-        ...spanRuleRows,
+        hasValue(rules.use_contracted_hours_for_overtime) && [
+            'Overtime based on contracted hours',
+            rules.use_contracted_hours_for_overtime ? 'Yes' : 'No',
+        ],
+    ].filter(Boolean);
+    const shortBreakThreshold = rules.gap_penalty?.threshold
+        || (config.gap_between_shifts?.minimum_hours
+            ? `Less than ${config.gap_between_shifts.minimum_hours} hours between shifts`
+            : null);
+    const penaltyEntitlementRows = [
+        ...configuredPenalties.map((penalty) => [penalty.name, penalty.detail]),
+        ...weekendAndPublicHolidayRules.map((penalty) => [penalty.name, penalty.detail]),
+        shortBreakThreshold && ['Short break between shifts', shortBreakThreshold],
+    ].filter(Boolean);
+    const rateRows = [
         overtimeRates.weekday && ['Weekday overtime', formatEmploymentRates(overtimeRates.weekday)],
         overtimeRates.extended && overtimeRates.two_tier?.enabled && [
             'Higher-rate overtime',
@@ -215,24 +195,29 @@ export function DisplayRules({ showRules }) {
         overtimeRates.saturday && ['Saturday overtime', formatEmploymentRates(overtimeRates.saturday)],
         overtimeRates.sunday && ['Sunday overtime', formatEmploymentRates(overtimeRates.sunday)],
         overtimeRates.public_holiday && ['Public-holiday overtime', formatEmploymentRates(overtimeRates.public_holiday)],
-        dayTreatment.public_holiday?.day && [
-            'Public-holiday ordinary hours (day workers)',
-            formatDayTreatment(dayTreatment.public_holiday.day),
+        ...configuredPenalties.map((penalty) => [`${penalty.name} rate`, penalty.employmentRate]),
+        ...weekendAndPublicHolidayRules.map((penalty) => [`${penalty.name} rate`, penalty.employmentRate]),
+        config.gap_between_shifts?.minimum_hours && [
+            'Short-break penalty rate',
+            formatEmploymentLoadings(config.gap_between_shifts),
         ],
-        dayTreatment.public_holiday?.shift && [
-            'Public-holiday ordinary hours (shift workers)',
-            formatDayTreatment(dayTreatment.public_holiday.shift),
+        hasValue(ordinaryTime.ordinary_rates?.casual_loading) && [
+            'Casual ordinary-hours loading',
+            formatRate(ordinaryTime.ordinary_rates.casual_loading),
         ],
-        ...['Saturday', 'Sunday'].flatMap((day) => [
-            dayTreatment[day]?.day && [
-                `${day} ordinary hours (day workers)`,
-                formatDayTreatment(dayTreatment[day].day),
-            ],
-            dayTreatment[day]?.shift && [
-                `${day} ordinary hours (shift workers)`,
-                formatDayTreatment(dayTreatment[day].shift),
-            ],
-        ]),
+    ].filter(Boolean);
+    const otherRuleRows = [
+        contractedHours && ['Contracted hours', contractedHours],
+        hasValue(rules.pt_employees_entitled_to_contracted_topup) && ['Contracted-hours top-up for part-time employees', rules.pt_employees_entitled_to_contracted_topup ? 'Included' : 'Not included'],
+        hasValue(rules.ft_employees_entitled_to_contracted_topup) && ['Contracted-hours top-up for full-time employees', rules.ft_employees_entitled_to_contracted_topup ? 'Included' : 'Not included'],
+        hasValue(shiftRules.default_break_hours) && [
+            'Default unpaid break',
+            `${shiftRules.default_break_hours} hours`,
+        ],
+        formatMinimumEngagement(shiftRules.minimum_paid_shift_hours) && [
+            'Minimum paid shift',
+            formatMinimumEngagement(shiftRules.minimum_paid_shift_hours),
+        ],
     ].filter(Boolean);
 
     return (
@@ -245,52 +230,47 @@ export function DisplayRules({ showRules }) {
                 <span className="rules-badge">Current award settings</span>
             </div>
 
+            <div className="rule-details rules-section-first">
+                <p className="section-kicker">Overtime entitlements</p>
                 <div className="rule-grid">
-                <div className="rule-row"><span>Span of hours</span><strong>{rules.span_hours?.threshold === 'N/A' ? 'Not applicable' : formatSpan(rules.span_hours)}</strong></div>
-                {hasValue(rules.span_hours?.rate) && rules.span_hours.rate !== 'N/A' && <div className="rule-row"><span>Span overtime rate</span><strong>{rules.span_hours.rate}</strong></div>}
-                <div className="rule-row"><span>Daily overtime</span><strong>{formatOvertime(rules.daily_overtime)}</strong></div>
-                <div className="rule-row"><span>Daily overtime rate</span><strong>{rules.daily_overtime?.rate || 'Not specified'}</strong></div>
-                <div className="rule-row"><span>{rules.weekly_overtime?.basis === 'weekly' ? 'Weekly overtime' : 'Pay-period overtime'}</span><strong>{formatOvertime(rules.weekly_overtime)}</strong></div>
-                <div className="rule-row"><span>Period overtime rate</span><strong>{rules.weekly_overtime?.rate || 'Not specified'}</strong></div>
-                {rules.weekly_overtime?.max_work_days && <div className="rule-row"><span>Maximum worked days</span><strong>{rules.weekly_overtime.max_work_days} per {rules.weekly_overtime.max_work_days_basis === 'weekly' ? 'week' : 'pay period'}</strong></div>}
-                <div className="rule-row"><span>Saturday</span><strong>{formatWeekendRule(rules.saturday_rules)}</strong></div>
-                <div className="rule-row"><span>Sunday</span><strong>{formatWeekendRule(rules.sunday_rules)}</strong></div>
-                {gapPenalty && <div className="rule-row"><span>Short break between shifts</span><strong>{gapPenalty}</strong></div>}
+                    {overtimeEntitlementRows.map(([label, value]) => (
+                        <div className="rule-row" key={label}><span>{label}</span><strong>{value}</strong></div>
+                    ))}
+                </div>
             </div>
 
             <div className="penalty-card">
                 <div className="penalty-card-heading">
                     <div><span className="penalty-icon" aria-hidden="true">+</span><h4>Penalty loadings</h4></div>
-                    <span>{allPenalties.length} configured</span>
+                    <span>{penaltyEntitlementRows.length} configured</span>
                 </div>
-                {allPenalties.length ? (
+                {penaltyEntitlementRows.length ? (
                     <div className="penalty-list">
-                        {allPenalties.map((penalty) => (
-                            <div className="penalty-row" key={`${penalty.name}-${penalty.detail}`}>
-                                <div><strong>{penalty.name}</strong><span>{penalty.detail}</span></div>
-                                <b>{penalty.employmentRate}</b>
+                        {penaltyEntitlementRows.map(([label, value]) => (
+                            <div className="penalty-row" key={label}>
+                                <div><strong>{label}</strong><span>{value}</span></div>
                             </div>
                         ))}
                     </div>
-                ) : <p className="no-penalties">No weekday penalty loadings are configured for this award.</p>}
+                ) : <p className="no-penalties">No penalty loadings are configured for this worker type.</p>}
             </div>
 
-            {detailRows.length > 0 && (
+            {rateRows.length > 0 && (
                 <div className="rule-details">
-                    <p className="section-kicker">Other rule details</p>
+                    <p className="section-kicker">Rates</p>
                     <div className="rule-grid">
-                        {detailRows.map(([label, value]) => (
+                        {rateRows.map(([label, value]) => (
                             <div className="rule-row" key={label}><span>{label}</span><strong>{value}</strong></div>
                         ))}
                     </div>
                 </div>
             )}
 
-            {additionalRules.length > 0 && (
+            {otherRuleRows.length > 0 && (
                 <div className="rule-details">
-                    <p className="section-kicker">Additional configured rules</p>
+                    <p className="section-kicker">Other rules</p>
                     <div className="rule-grid">
-                        {additionalRules.map(([label, value]) => (
+                        {otherRuleRows.map(([label, value]) => (
                             <div className="rule-row" key={label}><span>{label}</span><strong>{value}</strong></div>
                         ))}
                     </div>
@@ -300,7 +280,7 @@ export function DisplayRules({ showRules }) {
             {fullConfiguration && (
                 <details className="full-rule-config">
                     <summary>Complete configuration</summary>
-                    <p>All normalized award settings used for this calculation.</p>
+                    <p>Authoritative normalized settings from the award’s Python rules configuration.</p>
                     <pre>{fullConfiguration}</pre>
                 </details>
             )}

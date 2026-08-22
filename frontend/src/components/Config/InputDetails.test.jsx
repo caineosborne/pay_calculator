@@ -95,6 +95,22 @@ describe('InputDetails Fast Food classifications', () => {
         });
     });
 
+    it('labels the part-time input as contracted hours', async () => {
+        payContext.state = {
+            ...baseState(),
+            config: {
+                ...baseState().config,
+                employmentType: 'part_time',
+                contractedHours: 24,
+            },
+        };
+
+        render(<InputDetails />);
+
+        expect(await screen.findByLabelText('Contracted Hours per Week')).toHaveValue(24);
+        expect(screen.queryByLabelText('Effective Contracted Hours per Week')).not.toBeInTheDocument();
+    });
+
     it('changes every shift break when the worker type changes', async () => {
         payContext.state = {
             ...baseState(),

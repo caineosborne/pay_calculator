@@ -2,8 +2,8 @@
   "generic": {
     "title": "Important disclaimer",
     "paragraphs": [
-      "This calculator provides an indicative estimate of your pay entitlement for the hours entered. It should not be used to make, process, approve or determine employee payments. It is not legal, industrial relations, payroll, taxation or accounting advice and should not be relied upon to determine an employee’s legal entitlement or an employer’s payroll obligation.",
-      "Results depend on the information entered and the rules configured in the calculator. Any payment decision must be made using the applicable industrial instrument, employment contract, roster and payroll records, with appropriate payroll, legal or industrial-relations review where required.",
+      "This calculator provides an indicative estimate of your pay entitlement for the hours entered. Do not use it to make payroll decisions or to process or approve employee payments. It does not provide legal, industrial relations, payroll, taxation or accounting advice. Do not rely on it to determine an employee’s legal entitlement or an employer’s payroll obligation.",
+      "Results depend on the information entered and the rules configured in the calculator. Payment decisions must be based on the applicable industrial instrument, employment contract, roster and payroll records. Seek payroll, legal or industrial relations advice where required.",
       "For accurate workplace pay and entitlement information, please contact the Fair Work Ombudsman or visit fairwork.gov.au.",
       "Testing access only: named accounts use a shared password and are intended only for controlled testing. Full user authentication is not yet live. Do not use these accounts for sensitive or production data."
     ]
@@ -12,31 +12,31 @@
     "fast_food": {
       "title": "Scope and assumptions",
       "paragraphs": [
-        "This model is a guide to selected adult employee payments under the Fast Food Industry Award 2020. It applies the configured ordinary-hour limits, casual loading, minimum paid engagements for part-time and casual employees, weekday late-night and early-morning penalties, weekend and public-holiday rates, daily and period overtime thresholds, and two-tier Monday-to-Saturday overtime rates."
+        "This calculator provides a guide to selected payments for adult employees under the Fast Food Industry Award 2020. It applies the configured ordinary-hour limits, casual loading, minimum paid engagements for part-time and casual employees, weekday late-night and early-morning penalties, weekend and public-holiday rates, daily and period overtime thresholds, and two-tier Monday-to-Saturday overtime rates."
       ],
       "assumptions": [
         "The selected instrument, classification, employment type, base hourly rate and entered shift details are correct, and the employee is covered by the Fast Food Industry Award 2020 without an enterprise agreement or other overriding arrangement.",
-        "The two entered weeks form one chronological fortnight. Full-time ordinary hours are assessed against 76 hours for that fortnight; part-time and casual period thresholds are assessed weekly.",
-        "For a part-time employee, the contracted-hours entry is the employee’s current agreed ordinary hours per week. The calculator uses that entry as the weekly overtime threshold, or 38 hours per week if no contracted-hours value is supplied.",
+        "All calculations are based on one two-week pay period. The calculator assesses full-time ordinary hours against 76 hours for the pay period. Part-time and casual period thresholds are assessed weekly.",
+        "For part-time employees, the contracted-hours entry must match the employee’s current agreed ordinary hours per week. The calculator uses this value as the weekly overtime threshold. If no value is entered, it uses 38 hours per week.",
         "Entered start and finish times, unpaid breaks, public-holiday selections and any manual ordinary-time or overtime selections accurately reflect the employee’s records and applicable arrangements.",
-        "A manual ordinary-time or overtime selection applies to the entire entered shift, and the user has determined that classification is appropriate."
+        "Any manual ordinary-time or overtime selection applies to the whole entered shift. The user must ensure that the selected classification is appropriate."
       ],
       "limitations": [
-        "The Award’s five-days-per-week rule, including the exception permitting 6 days in one week where no more than 4 days are worked in the following week, is approximated by a maximum of 10 worked days across the entered fortnight.",
-        "Roster-based overtime is supported through manual classification. The user identifies hours worked outside a full-time employee’s roster or the days, start and finish times, and meal breaks in a part-time employee’s agreed or validly varied regular pattern.",
+        "The calculator approximates the Award’s five-days-per-week rule by applying a maximum of 10 worked days across the two-week pay period. This includes the exception that permits 6 days in one week when no more than 4 days are worked in the following week.",
+        "The calculator supports roster-based overtime through manual classification. The user must manually classify any hours worked outside a full-time employee’s roster. For a part-time employee, the user must manually classify hours worked outside the days, start and finish times, or meal-break arrangements in the employee’s agreed or validly varied regular pattern.",
         "Sunday ordinary-hour penalties default to the Level 1 rate. The higher Sunday ordinary-hour rates for Level 2 and Level 3 employees are not selected automatically.",
-        "Entered unpaid breaks are deducted from worked time, and a 30-minute unpaid break is used where no break duration is supplied. Break entitlement and compliance remain matters for review against the roster and Award.",
-        "Public holidays and manual classifications are user-selected. The user confirms the applicable date, location and substitution arrangements and, where only part of a shift requires manual classification, enters that part as a separate shift segment."
+        "The calculator deducts entered unpaid breaks from worked time. If no break duration is entered, it deducts a 30-minute unpaid break. Break entitlements and compliance must be checked separately against the roster and Award.",
+        "The user selects public holidays and manual classifications and must confirm the applicable date, location and substitution arrangements. If only part of a shift requires manual classification, the user must enter that part as a separate shift segment."
       ],
       "exclusions": [
-        "The configured scope is limited to the rules shown under ‘Show ruleset’ and described above. Rules outside that scope include the examples below.",
+        "The calculator only applies the configured rules shown under ‘Show ruleset’ and described above. It does not cover the examples below.",
         "The 4-hour minimum payment for Sunday overtime that is not continuous with ordinary hours.",
         "Junior, apprentice, trainee, supported-wage and school-based trainee rates.",
         "Classification progression, higher duties, future annual wage changes and minimum-wage compliance.",
         "Allowances and reimbursements, including meals, uniforms, cold work, travel, vehicle use and other expenses.",
         "Split or broken shifts, recalls, call-backs, time off instead of overtime, and minimum-payment rules other than the configured part-time and casual minimum engagements.",
         "Leave, leave loading, superannuation, tax, deductions, termination payments, interest and back-pay calculations.",
-        "Enterprise agreements, annualised salaries, individual flexibility arrangements, employment-contract terms and other arrangements that may apply instead of, or alongside, the Award."
+        "Enterprise agreements, annualised salaries, individual flexibility arrangements, employment-contract terms and other arrangements that may apply instead of or alongside the Award."
       ],
       "closing_paragraphs": [
         "These assumptions, limitations and exclusions must be checked against the employee’s actual employment arrangements, roster and payroll records."
@@ -45,34 +45,34 @@
     "woolies_2024_demo": {
       "title": "Scope and assumptions",
       "paragraphs": [
-        "This calculator estimates pay for the hours entered using selected rules from the Woolworths Australian Food Group Agreement 2024. It calculates ordinary pay, casual loading, minimum paid engagements, weekday and weekend penalties, public-holiday rates, overtime, shiftwork rates and insufficient-break payments."
+        "This calculator provides a guide to selected payments for adult employees under the Woolworths Australian Food Group Agreement 2024. It calculates ordinary pay, casual loading, minimum paid engagements, weekday and weekend penalties, public-holiday rates, overtime, shiftwork rates and insufficient-break payments."
       ],
       "assumptions": [
         "The employee is a wages-paid team member covered by the Woolworths Australian Food Group Agreement 2024, and the selected classification, employment type and worker type are correct.",
-        "Select or enter the adult non-casual base hourly rate for the employee’s classification. For casual employees, the calculator applies both the casual loading and any applicable penalty or overtime rate.",
-        "The two entered weeks are assumed to be one pay period.",
-        "The calculator applies an insufficient-break payment when the employee has fewer than 10 hours between shifts. This assumes the employee has agreed to reduce the standard gap between shifts to 10 hours (clause 7.3).",
-        "Part-time employees are assumed to have agreed to work above their contracted hours as flex-up hours. These hours are treated as ordinary hours until the employee exceeds 38 hours in a week (clause 8.4).",
-        "Shiftworkers are assumed to be employees who were hired as shiftworkers and are rostered solely for shiftwork during the week. All entered shifts are treated as shiftwork shifts.",
+        "The hourly rate entered is the correct adult non-casual base rate for the employee’s classification. For casual employees, the calculator applies both the casual loading and any applicable penalty or overtime rate.",
+        "All calculations are based on one two-week pay period.",
+        "The calculator applies an insufficient-break payment when the employee has fewer than 10 hours between shifts. It assumes the employee has agreed to reduce the standard gap between shifts to 10 hours (clause 7.3).",
+        "The calculator assumes that part-time employees have agreed to work above their contracted hours as flex-up hours. It treats these hours as ordinary hours until the employee exceeds 38 hours in a week (clause 8.4).",
+        "When shiftworker is selected, the calculator assumes the employee was hired as a shiftworker and is rostered solely for shiftwork during the week. It treats all entered shifts as shiftwork shifts.",
         "The entered start and finish times, unpaid breaks and public-holiday selections accurately reflect the employee’s roster and payroll records.",
-        "Any manual ordinary-time or overtime selection is assumed to be correct and applies to the whole entered shift."
+        "Any manual ordinary-time or overtime selection applies to the whole entered shift. The user must ensure that the selected classification is appropriate."
       ],
       "limitations": [
-        "The calculator covers the two entered weeks. It applies a 76-hour full-time threshold and a maximum of 10 worked days across the fortnight. Four-week roster requirements should be reviewed separately against the employee’s roster.",
-        "The first entered shift above 9 ordinary hours in a week is treated as the permitted shift of up to 11 ordinary hours. The user should confirm that this is the employee’s rostered long day.",
-        "Part-time hours above contracted hours are treated as agreed flex-up hours. Hours that were not validly accepted as flex-up should be manually identified as overtime (clause 8.4).",
-        "Hours outside the ordinary span are treated as overtime. Where the employee has agreed to work those hours under a different arrangement, the user should apply the appropriate manual classification (clause 6.1(b)).",
-        "For an insufficient break, the calculator adds an amount equal to 100% of the base hourly rate to the affected hours. The result should be reviewed where another penalty or loading would otherwise apply, because the Agreement describes the entitlement as double the rate the employee would otherwise receive (clause 7.3).",
-        "Meal and rest breaks for shiftworkers are paid. Any break entered in the calculator is treated as unpaid and deducted from worked hours, so shiftworker breaks should be entered in line with the employee’s paid-break entitlement (clause 11.5).",
-        "Public holidays are selected by the user. The applicable date, location, substitution arrangements and shift-start treatment should be confirmed against the employee’s records and the Agreement."
+        "For the two-week pay period, the calculator applies a 76-hour full-time threshold and a maximum of 10 worked days. Four-week roster requirements must be checked separately against the employee’s roster.",
+        "The calculator treats the first entered shift above 9 ordinary hours in a week as the permitted shift of up to 11 ordinary hours. The user must confirm that this is the employee’s rostered long day.",
+        "The calculator treats part-time hours above contracted hours as agreed flex-up hours. The user must manually classify any hours that were not validly accepted as flex-up as overtime (clause 8.4).",
+        "The calculator treats hours outside the ordinary span as overtime. If the employee has agreed to work those hours under a different arrangement, the user must apply the appropriate manual classification (clause 6.1(b)).",
+        "For an insufficient break, the calculator adds an amount equal to 100% of the base hourly rate to the affected hours. The Agreement describes the entitlement as double the rate the employee would otherwise receive. The result must therefore be reviewed if another penalty or loading would otherwise apply (clause 7.3).",
+        "Meal and rest breaks for shiftworkers are paid. The calculator treats any entered break as unpaid and deducts it from worked hours. Do not enter paid shiftworker breaks as unpaid breaks (clause 11.5).",
+        "The user selects public holidays and must confirm the applicable date, location, substitution arrangements and shift-start treatment against the employee’s records and the Agreement."
       ],
       "exclusion_groups": [
         {
           "title": "Specific exclusions",
           "items": [
-            "The calculator reviews pay-period calculations only. Longer-period rules are outside the calculation, including the 144-hour part-time and 152-hour full-time limits, 19-day and 20-day roster arrangements, 16-day four-day-week arrangement, 9.5-hour four-day-week limit, consecutive-day rules, consecutive days off and regularly-worked-Sunday arrangements.",
-            "All employees are treated the same for shiftwork calculations. No special treatment is applied for baking-production employees, including their early-morning and night-shift rates.",
-            "Adult rates are used. Junior, apprentice, trainee, school-based apprentice and supported-wage rates are outside the calculation."
+            "The calculator only reviews one pay period. It does not apply longer-period rules, including the 144-hour part-time and 152-hour full-time limits, 19-day and 20-day roster arrangements, 16-day four-day-week arrangement, 9.5-hour four-day-week limit, consecutive-day rules, consecutive days off and regularly-worked-Sunday arrangements.",
+            "The calculator treats all shiftworkers the same. It does not apply the special early-morning and night-shift rates for baking-production employees.",
+            "The calculator uses adult rates. It does not cover junior, apprentice, trainee, school-based apprentice or supported-wage rates."
           ]
         },
         {
@@ -93,29 +93,29 @@
     "coles_2024": {
       "title": "Scope and assumptions",
       "paragraphs": [
-        "This model is a guide to selected adult employee payments under the Coles Retail Enterprise Agreement 2024. It applies the configured ordinary-hour spans, casual loading, minimum paid engagements for part-time and casual employees, weekday and weekend penalties, public-holiday rates, daily and period overtime thresholds, two-tier Monday-to-Saturday overtime rates, generic shiftwork rates and the configured break-between-work-periods rule."
+        "This calculator provides a guide to selected payments for adult employees under the Coles Retail Enterprise Agreement 2024. It applies the configured ordinary-hour spans, casual loading, minimum paid engagements for part-time and casual employees, weekday and weekend penalties, public-holiday rates, daily and period overtime thresholds, two-tier Monday-to-Saturday overtime rates, generic shiftwork rates and the configured break-between-work-periods rule."
       ],
       "assumptions": [
         "The selected instrument, classification, employment type, worker type, base hourly rate and entered shift details are correct, and the employee is a wages-paid team member covered by the Coles Retail Enterprise Agreement 2024.",
-        "The two entered weeks form one chronological fortnight. Full-time ordinary hours are assessed against 76 hours for that fortnight; part-time and casual period thresholds are assessed weekly.",
-        "The calculator applies the insufficient-break payment when the employee has less than 12 hours between work periods, on the assumption that the standard 12-hour gap applies and the employee has not selected the 10-hour Roster Choice.",
-        "Any part-time hours above the agreed pattern that are not manually marked as overtime are assumed to have been validly varied under the Agreement.",
-        "Selecting shiftworker means the employee is employed as a shiftworker, every submitted shift qualifies for the selected shiftwork treatment, and the employee is not rostered for a mixture of shiftwork and non-shiftwork in the same week.",
+        "All calculations are based on one two-week pay period. The calculator assesses full-time ordinary hours against 76 hours for the pay period. Part-time and casual period thresholds are assessed weekly.",
+        "The calculator applies an insufficient-break payment when the employee has less than 12 hours between work periods. It assumes the standard 12-hour gap applies and the employee has not selected the 10-hour Roster Choice.",
+        "Unless manually marked as overtime, the calculator assumes that any part-time hours above the agreed pattern have been validly varied under the Agreement.",
+        "When shiftworker is selected, the calculator assumes the employee is employed as a shiftworker and every entered shift qualifies for the selected shiftwork treatment. It also assumes the employee is not rostered for both shiftwork and non-shiftwork in the same week.",
         "Entered start and finish times, unpaid breaks, public-holiday selections and any manual ordinary-time or overtime selections accurately reflect the employee’s records and applicable arrangements.",
-        "A manual ordinary-time or overtime selection applies to the entire entered shift, and the user has determined that classification is appropriate."
+        "Any manual ordinary-time or overtime selection applies to the whole entered shift. The user must ensure that the selected classification is appropriate."
       ],
       "limitations": [
-        "The calculator covers one 14-day period. It uses a 76-hour full-time threshold and a maximum of 10 worked days as fortnightly proxies, with the complete four-week roster tests and exact 5-day and 6-day/4-day pattern reserved for review against the roster.",
-        "The first entered shift exceeding 9 ordinary hours in a week is treated as the permitted shift of up to 11 ordinary hours. The user confirms that this is the rostered long day.",
-        "Part-time overtime outside the agreed or validly varied pattern is only partially represented. Weekly and daily thresholds are applied, but other hours outside the pattern must be manually marked as overtime.",
-        "Outside-span work is classified as overtime by default. Where clause 4.9.5 permits it to count as ordinary hours while retaining the applicable overtime rate, the result requires review because manual ordinary-time classification changes both its classification and payment treatment.",
-        "The break-between-work-periods calculation uses the standard 12-hour threshold. Employees who have selected the 10-hour Roster Choice require separate review.",
-        "Shiftworker meal and rest breaks are paid under the Agreement, but the calculator deducts any break entered as unpaid. The user must enter shiftworker breaks consistently with the applicable paid-break entitlement.",
-        "Public holidays are user-selected. The user confirms the applicable date, location, store-level substitution arrangements and shift-start treatment under the Agreement."
+        "For the two-week pay period, the calculator approximates the fortnightly rules using a 76-hour full-time threshold and a maximum of 10 worked days. The complete four-week roster tests and exact 5-day and 6-day/4-day pattern must be checked separately against the roster.",
+        "The calculator treats the first entered shift exceeding 9 ordinary hours in a week as the permitted shift of up to 11 ordinary hours. The user must confirm that this is the rostered long day.",
+        "The calculator only partially accounts for part-time overtime outside the agreed or validly varied pattern. It applies weekly and daily thresholds, but the user must manually mark any other hours outside the pattern as overtime.",
+        "The calculator classifies work outside the ordinary span as overtime by default. Clause 4.9.5 may allow this work to count as ordinary hours while retaining the applicable overtime rate. The result must be reviewed because a manual ordinary-time selection changes both the classification and payment treatment.",
+        "The break-between-work-periods calculation uses the standard 12-hour threshold. If the employee has selected the 10-hour Roster Choice, the result must be reviewed separately.",
+        "Shiftworker meal and rest breaks are paid under the Agreement. The calculator treats any entered break as unpaid and deducts it from worked hours. Do not enter paid shiftworker breaks as unpaid breaks.",
+        "The user selects public holidays and must confirm the applicable date, location, store-level substitution arrangements and shift-start treatment under the Agreement."
       ],
       "exclusions": [
-        "The configured scope is limited to the rules shown under ‘Show ruleset’ and described above. Rules outside that scope include the examples below.",
-        "Voluntary Additional Shifts, including their consent, separate minimum engagements, break and recall treatment.",
+        "The calculator only applies the configured rules shown under ‘Show ruleset’ and described above. It does not cover the examples below.",
+        "Voluntary Additional Shifts, including consent requirements, separate minimum engagements, break treatment and recall treatment.",
         "The 152-hour and 19-day or agreed 20-day four-week roster tests, maximum consecutive days, consecutive days off and regularly-worked-Sunday arrangements.",
         "Baking-production shiftworker provisions and employee-specific saved provisions.",
         "Junior and other special wage rates, classification progression, higher duties, future wage changes and minimum-wage compliance.",
@@ -131,30 +131,30 @@
     "gria_2026": {
       "title": "Scope and assumptions",
       "paragraphs": [
-        "This model is a guide to selected adult employee payments under the General Retail Industry Award 2020. It applies the configured ordinary-hour spans, casual loading, casual minimum paid engagement, weekday and weekend penalties, public-holiday rates, daily and period overtime thresholds, two-tier Monday-to-Saturday overtime rates, generic shiftwork rates and the configured break-between-work-periods rule."
+        "This calculator provides a guide to selected payments for adult employees under the General Retail Industry Award 2020. It applies the configured ordinary-hour spans, casual loading, casual minimum paid engagement, weekday and weekend penalties, public-holiday rates, daily and period overtime thresholds, two-tier Monday-to-Saturday overtime rates, generic shiftwork rates and the configured break-between-work-periods rule."
       ],
       "assumptions": [
         "The selected instrument, classification, employment type, worker type, base hourly rate and entered shift details are correct, and the employee is covered by the General Retail Industry Award 2020 without an enterprise agreement or other overriding arrangement.",
-        "The two entered weeks form one chronological fortnight. Full-time ordinary hours are assessed against 76 hours for that fortnight; part-time and casual period thresholds are assessed weekly.",
+        "All calculations are based on one two-week pay period. The calculator assesses full-time ordinary hours against 76 hours for the pay period. Part-time and casual period thresholds are assessed weekly.",
         "The retailer’s trading hours satisfy clause 15.2(c), so the configured ordinary-hour span extends to 11:00 pm on every day.",
-        "Any part-time hours above guaranteed hours that are not manually marked as overtime are assumed to be covered by a valid variation to the employee’s guaranteed-hours arrangement.",
-        "Selecting shiftworker means the employee is specifically employed to perform shiftwork, every submitted shift qualifies for the selected shiftwork treatment, and the employee is not rostered for a mixture of shiftwork and non-shiftwork in the same week.",
-        "The calculator applies the insufficient-break payment when the employee has less than 12 hours between work periods, on the assumption that the standard 12-hour gap applies and no agreement reducing it to 10 hours is in place.",
+        "Unless manually marked as overtime, the calculator assumes that any part-time hours above guaranteed hours are covered by a valid variation to the employee’s guaranteed-hours arrangement.",
+        "When shiftworker is selected, the calculator assumes the employee is specifically employed to perform shiftwork and every entered shift qualifies for the selected shiftwork treatment. It also assumes the employee is not rostered for both shiftwork and non-shiftwork in the same week.",
+        "The calculator applies an insufficient-break payment when the employee has less than 12 hours between work periods. It assumes the standard 12-hour gap applies and no agreement reducing it to 10 hours is in place.",
         "Entered start and finish times, unpaid breaks, public-holiday selections and any manual ordinary-time or overtime selections accurately reflect the employee’s records and applicable arrangements.",
-        "A manual ordinary-time or overtime selection applies to the entire entered shift, and the user has determined that classification is appropriate."
+        "Any manual ordinary-time or overtime selection applies to the whole entered shift. The user must ensure that the selected classification is appropriate."
       ],
       "limitations": [
-        "The calculator covers one 14-day period. It uses a 76-hour full-time threshold and a maximum of 10 worked days as fortnightly proxies, with other averaging arrangements and the Award’s exact weekly and four-week roster tests reserved for review against the roster.",
-        "The first entered shift exceeding 9 ordinary hours in a week is treated as the permitted shift of up to 11 ordinary hours. The user confirms that this is the rostered long day.",
-        "The configured 11:00 pm span assumes the retailer satisfies clause 15.2(c). Retailers with different trading hours require review against the applicable ordinary-hour span.",
-        "Part-time overtime outside guaranteed hours or a valid variation is only partially represented. Weekly and daily thresholds are applied, but other hours outside the arrangement must be manually marked as overtime.",
+        "For the two-week pay period, the calculator approximates the fortnightly rules using a 76-hour full-time threshold and a maximum of 10 worked days. Other averaging arrangements and the Award’s exact weekly and four-week roster tests must be checked separately against the roster.",
+        "The calculator treats the first entered shift exceeding 9 ordinary hours in a week as the permitted shift of up to 11 ordinary hours. The user must confirm that this is the rostered long day.",
+        "The configured 11:00 pm span assumes the retailer satisfies clause 15.2(c). If the retailer has different trading hours, the applicable ordinary-hour span must be checked separately.",
+        "The calculator only partially accounts for part-time overtime outside guaranteed hours or a valid variation. It applies weekly and daily thresholds, but the user must manually mark any other hours outside the arrangement as overtime.",
         "Shiftworker mode applies the weekday shiftwork loading to all submitted Monday-to-Friday hours. The user confirms that the employee and each entered shift satisfy the Award’s shiftwork definitions.",
         "The break-between-work-periods calculation uses the standard 12-hour threshold. An agreed reduction to 10 hours requires separate review.",
-        "Shiftworker meal and rest breaks are paid under the Award, but the calculator deducts any break entered as unpaid. The user must enter shiftworker breaks consistently with the applicable paid-break entitlement.",
-        "Public holidays are user-selected. The user confirms the applicable date, location and substitution arrangements."
+        "Shiftworker meal and rest breaks are paid under the Award. The calculator treats any entered break as unpaid and deducts it from worked hours. Do not enter paid shiftworker breaks as unpaid breaks.",
+        "The user selects public holidays and must confirm the applicable date, location and substitution arrangements."
       ],
       "exclusions": [
-        "The configured scope is limited to the rules shown under ‘Show ruleset’ and described above. Rules outside that scope include the examples below.",
+        "The calculator only applies the configured rules shown under ‘Show ruleset’ and described above. It does not cover the examples below.",
         "The 1.5-hour minimum engagement for qualifying full-time secondary-school-student casuals.",
         "Baking-production shiftworker provisions and the special newsagency and video-shop ordinary-hour spans.",
         "Three-week, four-week and longer full-time averaging arrangements, the 19-day four-week limit and associated rostered-day-off arrangements.",
@@ -163,7 +163,7 @@
         "Meal-break compliance and payments, allowances, reimbursements, uniforms, meals, travel, vehicle use and other expenses, apart from the entered break deduction described above.",
         "Recall payments, time off instead of overtime and minimum-payment rules not expressly configured.",
         "Leave, leave loading, superannuation, tax, deductions, termination payments, interest and back-pay calculations.",
-        "Enterprise agreements, annualised salaries, individual flexibility arrangements, employment-contract terms and other arrangements that may apply instead of, or alongside, the Award."
+        "Enterprise agreements, annualised salaries, individual flexibility arrangements, employment-contract terms and other arrangements that may apply instead of or alongside the Award."
       ],
       "closing_paragraphs": [
         "These assumptions, limitations and exclusions must be checked against the employee’s actual employment arrangements, roster and payroll records."

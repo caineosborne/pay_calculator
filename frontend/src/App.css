@@ -102,6 +102,7 @@
 .penalty-row b { padding: 5px 7px; border-radius: 5px; color: #146c5a; background: #d9f0e5; font: 500 11px 'DM Mono', monospace; white-space: nowrap; }
 .no-penalties { margin: 0; padding: 14px; color: #517064; background: #fcfffd; font: 13px/1.4 'DM Sans', sans-serif; }
 .rule-details { margin-top: 14px; }
+.rule-details.rules-section-first { margin-top: 0; }
 .rule-details .section-kicker { margin: 0 0 8px; }
 .full-rule-config { margin-top: 14px; border: 1px solid #dce7e1; border-radius: 9px; background: #fbfdfc; }
 .full-rule-config summary { cursor: pointer; padding: 11px 13px; color: #146c5a; font: 600 12px 'DM Sans', sans-serif; }
