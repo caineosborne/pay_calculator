@@ -776,6 +776,7 @@ export function RuleConfigurationEditor({
     allowSaving = false,
     onConfigurationSaved,
     onDirtyChange,
+    onTemporaryConfigurationChange,
     onSignInRequested,
 }) {
     const [configuration, setConfiguration] = useState(null);
@@ -817,6 +818,7 @@ export function RuleConfigurationEditor({
                         loaded.kind === 'builtin' ? `${loaded.name} Custom` : ''
                     );
                     setDirtyLayer(null);
+                    onTemporaryConfigurationChange?.(null);
                 }
             } catch (error) {
                 if (isMounted && error.name !== 'AbortError') {
@@ -833,11 +835,22 @@ export function RuleConfigurationEditor({
             isMounted = false;
             controller.abort();
         };
-    }, [configurationId]);
+    }, [configurationId, onTemporaryConfigurationChange]);
 
     useEffect(() => {
         onDirtyChange?.(Boolean(dirtyLayer));
     }, [dirtyLayer, onDirtyChange]);
+
+    useEffect(() => {
+        if (!dirtyLayer || !configuration) {
+            onTemporaryConfigurationChange?.(null);
+            return;
+        }
+        onTemporaryConfigurationChange?.({
+            source,
+            questionnaire: dirtyLayer === 'guided' ? questionnaire : null,
+        });
+    }, [configuration, dirtyLayer, onTemporaryConfigurationChange, questionnaire, source]);
 
     const hasErrors = issues.some((issue) => issue.severity === 'error');
 
@@ -870,6 +883,7 @@ export function RuleConfigurationEditor({
         setQuestionnaire(clone(initialQuestionnaire));
         setIssues(configuration?.structural_issues || []);
         setDirtyLayer(null);
+        onTemporaryConfigurationChange?.(null);
         setMessage('Unsaved changes discarded.');
     };
 
@@ -944,6 +958,7 @@ export function RuleConfigurationEditor({
             setInitialQuestionnaire(clone(saved.questionnaire));
             setIssues(saved.structural_issues || []);
             setDirtyLayer(null);
+            onTemporaryConfigurationChange?.(null);
             setMessage('Custom configuration saved and selected.');
             await onConfigurationSaved?.(saved);
         } catch (error) {
@@ -1013,7 +1028,7 @@ export function RuleConfigurationEditor({
                         </p>
                     </div>
                 )
-            ) : <p className="temporary-rules-note">These rule edits are temporary. Sign in with a testing account to save a private copy.</p>}
+            ) : <p className="temporary-rules-note"><strong>Temporary preview mode:</strong> changes apply to the pay total immediately for this session, but are not saved. Sign in with a testing account to keep a private copy.</p>}
 
             <div
                 className="sticky top-2 z-10 mt-4 rounded-lg border border-gray-200 bg-white/95 p-3 shadow-sm backdrop-blur dark:border-gray-600 dark:bg-gray-800/95"

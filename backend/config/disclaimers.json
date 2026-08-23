@@ -1,6 +1,6 @@
 {
   "generic": {
-    "title": "Important disclaimer",
+    "title": "Before you use this calculator",
     "paragraphs": [
       "This calculator provides an indicative estimate of your pay entitlement for the hours entered. Do not use it to make payroll decisions or to process or approve employee payments. It does not provide legal, industrial relations, payroll, taxation or accounting advice. Do not rely on it to determine an employee’s legal entitlement or an employer’s payroll obligation.",
       "Results depend on the information entered and the rules configured in the calculator. Payment decisions must be based on the applicable industrial instrument, employment contract, roster and payroll records. Seek payroll, legal or industrial relations advice where required.",
@@ -25,11 +25,14 @@
         "The calculator approximates the Award’s five-days-per-week rule by applying a maximum of 10 worked days across the two-week pay period. This includes the exception that permits 6 days in one week when no more than 4 days are worked in the following week.",
         "The calculator supports roster-based overtime through manual classification. The user must manually classify any hours worked outside a full-time employee’s roster. For a part-time employee, the user must manually classify hours worked outside the days, start and finish times, or meal-break arrangements in the employee’s agreed or validly varied regular pattern.",
         "Sunday ordinary-hour penalties default to the Level 1 rate. The higher Sunday ordinary-hour rates for Level 2 and Level 3 employees are not selected automatically.",
-        "The calculator deducts entered unpaid breaks from worked time. If no break duration is entered, it deducts a 30-minute unpaid break. Break entitlements and compliance must be checked separately against the roster and Award.",
+        "For day workers, the calculator deducts the unpaid break duration entered for each shift. Default day-worker shifts start with a 30-minute unpaid break; shiftworker shifts start with no break deduction. Break entitlements and compliance must be checked separately against the roster and Award.",
         "The user selects public holidays and manual classifications and must confirm the applicable date, location and substitution arrangements. If only part of a shift requires manual classification, the user must enter that part as a separate shift segment."
       ],
+      "exclusion_intro": [
+        "The calculator only applies the configured rules shown under ‘Show ruleset’ and described above.",
+        "Specific areas which are not covered include:"
+      ],
       "exclusions": [
-        "The calculator only applies the configured rules shown under ‘Show ruleset’ and described above. It does not cover the examples below.",
         "The 4-hour minimum payment for Sunday overtime that is not continuous with ordinary hours.",
         "Junior, apprentice, trainee, supported-wage and school-based trainee rates.",
         "Classification progression, higher duties, future annual wage changes and minimum-wage compliance.",
@@ -58,13 +61,17 @@
         "Any manual ordinary-time or overtime selection applies to the whole entered shift. The user must ensure that the selected classification is appropriate."
       ],
       "limitations": [
-        "For the two-week pay period, the calculator applies a 76-hour full-time threshold and a maximum of 10 worked days. Four-week roster requirements must be checked separately against the employee’s roster.",
+        "All calculations occur over a fortnight. Calculations that require a longer time period are not included, including regularly worked Sunday rules. The calculator applies a 76-hour full-time threshold and a maximum of 10 worked days; four-week roster requirements must be checked separately against the employee’s roster.",
         "The calculator treats the first entered shift above 9 ordinary hours in a week as the permitted shift of up to 11 ordinary hours. The user must confirm that this is the employee’s rostered long day.",
         "The calculator treats part-time hours above contracted hours as agreed flex-up hours. The user must manually classify any hours that were not validly accepted as flex-up as overtime (clause 8.4).",
         "The calculator treats hours outside the ordinary span as overtime. If the employee has agreed to work those hours under a different arrangement, the user must apply the appropriate manual classification (clause 6.1(b)).",
         "For an insufficient break, the calculator adds an amount equal to 100% of the base hourly rate to the affected hours. The Agreement describes the entitlement as double the rate the employee would otherwise receive. The result must therefore be reviewed if another penalty or loading would otherwise apply (clause 7.3).",
-        "Meal and rest breaks for shiftworkers are paid. The calculator treats any entered break as unpaid and deducts it from worked hours. Do not enter paid shiftworker breaks as unpaid breaks (clause 11.5).",
+        "For day workers, the calculator deducts the unpaid break duration entered for each shift. Default day-worker shifts start with a 30-minute unpaid break. Shiftworker shifts start with no break deduction because meal and rest breaks for shiftworkers are paid; do not enter paid shiftworker breaks as unpaid breaks (clause 11.5).",
         "The user selects public holidays and must confirm the applicable date, location, substitution arrangements and shift-start treatment against the employee’s records and the Agreement."
+      ],
+      "exclusion_intro": [
+        "The calculator only applies the configured rules shown under ‘Show ruleset’ and described above.",
+        "Specific areas which are not covered include:"
       ],
       "exclusion_groups": [
         {
@@ -105,16 +112,19 @@
         "Any manual ordinary-time or overtime selection applies to the whole entered shift. The user must ensure that the selected classification is appropriate."
       ],
       "limitations": [
-        "For the two-week pay period, the calculator approximates the fortnightly rules using a 76-hour full-time threshold and a maximum of 10 worked days. The complete four-week roster tests and exact 5-day and 6-day/4-day pattern must be checked separately against the roster.",
+        "All calculations occur over a fortnight. Calculations that require a longer time period are not included, including regularly worked Sunday rules. The calculator approximates the fortnightly rules using a 76-hour full-time threshold and a maximum of 10 worked days; the complete four-week roster tests and exact 5-day and 6-day/4-day pattern must be checked separately against the roster.",
         "The calculator treats the first entered shift exceeding 9 ordinary hours in a week as the permitted shift of up to 11 ordinary hours. The user must confirm that this is the rostered long day.",
         "The calculator only partially accounts for part-time overtime outside the agreed or validly varied pattern. It applies weekly and daily thresholds, but the user must manually mark any other hours outside the pattern as overtime.",
         "The calculator classifies work outside the ordinary span as overtime by default. Clause 4.9.5 may allow this work to count as ordinary hours while retaining the applicable overtime rate. The result must be reviewed because a manual ordinary-time selection changes both the classification and payment treatment.",
         "The break-between-work-periods calculation uses the standard 12-hour threshold. If the employee has selected the 10-hour Roster Choice, the result must be reviewed separately.",
-        "Shiftworker meal and rest breaks are paid under the Agreement. The calculator treats any entered break as unpaid and deducts it from worked hours. Do not enter paid shiftworker breaks as unpaid breaks.",
+        "For day workers, the calculator deducts the unpaid break duration entered for each shift. Default day-worker shifts start with a 30-minute unpaid break. Shiftworker shifts start with no break deduction because meal and rest breaks for shiftworkers are paid; do not enter paid shiftworker breaks as unpaid breaks.",
         "The user selects public holidays and must confirm the applicable date, location, store-level substitution arrangements and shift-start treatment under the Agreement."
       ],
+      "exclusion_intro": [
+        "The calculator only applies the configured rules shown under ‘Show ruleset’ and described above.",
+        "Specific areas which are not covered include:"
+      ],
       "exclusions": [
-        "The calculator only applies the configured rules shown under ‘Show ruleset’ and described above. It does not cover the examples below.",
         "Voluntary Additional Shifts, including consent requirements, separate minimum engagements, break treatment and recall treatment.",
         "The 152-hour and 19-day or agreed 20-day four-week roster tests, maximum consecutive days, consecutive days off and regularly-worked-Sunday arrangements.",
         "Baking-production shiftworker provisions and employee-specific saved provisions.",
@@ -144,17 +154,20 @@
         "Any manual ordinary-time or overtime selection applies to the whole entered shift. The user must ensure that the selected classification is appropriate."
       ],
       "limitations": [
-        "For the two-week pay period, the calculator approximates the fortnightly rules using a 76-hour full-time threshold and a maximum of 10 worked days. Other averaging arrangements and the Award’s exact weekly and four-week roster tests must be checked separately against the roster.",
+        "All calculations occur over a fortnight. Calculations that require a longer time period are not included, including regularly worked Sunday rules. The calculator approximates the fortnightly rules using a 76-hour full-time threshold and a maximum of 10 worked days; other averaging arrangements and the Award’s exact weekly and four-week roster tests must be checked separately against the roster.",
         "The calculator treats the first entered shift exceeding 9 ordinary hours in a week as the permitted shift of up to 11 ordinary hours. The user must confirm that this is the rostered long day.",
         "The configured 11:00 pm span assumes the retailer satisfies clause 15.2(c). If the retailer has different trading hours, the applicable ordinary-hour span must be checked separately.",
         "The calculator only partially accounts for part-time overtime outside guaranteed hours or a valid variation. It applies weekly and daily thresholds, but the user must manually mark any other hours outside the arrangement as overtime.",
         "Shiftworker mode applies the weekday shiftwork loading to all submitted Monday-to-Friday hours. The user confirms that the employee and each entered shift satisfy the Award’s shiftwork definitions.",
         "The break-between-work-periods calculation uses the standard 12-hour threshold. An agreed reduction to 10 hours requires separate review.",
-        "Shiftworker meal and rest breaks are paid under the Award. The calculator treats any entered break as unpaid and deducts it from worked hours. Do not enter paid shiftworker breaks as unpaid breaks.",
+        "For day workers, the calculator deducts the unpaid break duration entered for each shift. Default day-worker shifts start with a 30-minute unpaid break. Shiftworker shifts start with no break deduction because meal and rest breaks for shiftworkers are paid; do not enter paid shiftworker breaks as unpaid breaks.",
         "The user selects public holidays and must confirm the applicable date, location and substitution arrangements."
       ],
+      "exclusion_intro": [
+        "The calculator only applies the configured rules shown under ‘Show ruleset’ and described above.",
+        "Specific areas which are not covered include:"
+      ],
       "exclusions": [
-        "The calculator only applies the configured rules shown under ‘Show ruleset’ and described above. It does not cover the examples below.",
         "The 1.5-hour minimum engagement for qualifying full-time secondary-school-student casuals.",
         "Baking-production shiftworker provisions and the special newsagency and video-shop ordinary-hour spans.",
         "Three-week, four-week and longer full-time averaging arrangements, the 19-day four-week limit and associated rostered-day-off arrangements.",

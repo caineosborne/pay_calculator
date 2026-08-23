@@ -90,6 +90,10 @@ export function ShiftCalculator({ children }) {
                     // Customize can select a saved override; standard award
                     // tabs continue to hold the matching built-in identifier.
                     rule_configuration: state.config.ruleConfiguration,
+                    ...(state.temporaryRuleConfiguration ? {
+                        rule_source: state.temporaryRuleConfiguration.source,
+                        rule_questionnaire: state.temporaryRuleConfiguration.questionnaire,
+                    } : {}),
                     employment_type: state.config.employmentType,
                     contracted_hours: state.config.contractedHours,
                     public_holidays: state.publicHolidays,
@@ -178,6 +182,7 @@ export function ShiftCalculator({ children }) {
         state.config.employmentType,
         state.config.contractedHours,
         state.calculationRevision,
+        state.temporaryRuleConfiguration,
         dispatch
     ]);
 

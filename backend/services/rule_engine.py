@@ -39,14 +39,23 @@ class PayRules:
         award: str,
         configuration_identifier: str = None,
         owner_id: uuid.UUID | None = None,
+        temporary_source: str | None = None,
+        temporary_questionnaire: dict | None = None,
     ):
         if not award:
             raise ValueError("An award must be selected.")
         # Store the selected class on this adapter instance. A class-level value
         # would allow one request to replace the rules used by another request.
-        self.active_rules = get_rules_for_award(
-            award, configuration_identifier, owner_id
-        )
+        if temporary_source is not None:
+            from .rule_configurations import load_temporary_rule_class
+
+            self.active_rules = load_temporary_rule_class(
+                award, temporary_source, temporary_questionnaire
+            )
+        else:
+            self.active_rules = get_rules_for_award(
+                award, configuration_identifier, owner_id
+            )
         self.config = {
             "shift": deepcopy(self.active_rules.SHIFT_RULES),
             "ordinary_time": deepcopy(self.active_rules.ORDINARY_TIME_RULES),

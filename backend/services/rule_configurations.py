@@ -458,3 +458,19 @@ def load_custom_rule_class(
         stored["updated_at"].isoformat(),
         json.dumps(stored["rules_json"], sort_keys=True),
     )
+
+
+def load_temporary_rule_class(
+    award_key: str, source: str, questionnaire: dict | None = None
+) -> type:
+    """Build a request-scoped rules class from validated, unsaved editor data."""
+    validation = validate_rule_payload(award_key, source, questionnaire)
+    values = _rule_values_from_source(award_key, validation["source"])
+    award = _award_definition(award_key)
+    module = import_module(f"services.rules.{award['module']}")
+    base_class = getattr(module, award["class_name"])
+    return type(
+        f"Temporary{award['class_name']}",
+        (base_class,),
+        {attribute: copy.deepcopy(value) for attribute, value in values.items()},
+    )

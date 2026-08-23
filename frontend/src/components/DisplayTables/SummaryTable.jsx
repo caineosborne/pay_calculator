@@ -60,7 +60,7 @@ const SummaryTable = () => {
                 <div className="gross-pay">
                     <p className="eyebrow">Gross pay</p>
                     <div className="gross-pay-value" data-testid="gross-pay">{formatCurrency(totalPay)}</div>
-                    <p>Before tax and other deductions</p>
+                    <p>Before tax and other deductions. All calculations are based on the assumptions and limitations specified below.</p>
                 </div>
                 <div className="summary-grid">
                     <div className="summary-item" data-testid="ordinary-summary"><div className="summary-item-label">Ordinary</div><div className="summary-item-value">{formatCurrency(payments?.ordinaryPay || 0)}</div><div className="summary-item-hours">{calculations?.ordinaryHours || '0.00'} hrs</div></div>

@@ -162,6 +162,30 @@ describe('ShiftCalculator', () => {
         );
     });
 
+    it('sends unsaved rules as a session-only calculation preview', async () => {
+        const dispatch = vi.fn();
+        fetch.mockResolvedValue(responseForPay(160));
+        payContext = {
+            state: {
+                ...stateForRate(20),
+                temporaryRuleConfiguration: {
+                    source: 'class FastFoodAward2026Rules: pass',
+                    questionnaire: { overtime: { daily: { answer: 4 } } },
+                },
+            },
+            dispatch,
+        };
+
+        render(<ShiftCalculator><div>Calculator</div></ShiftCalculator>);
+        await act(async () => {
+            await vi.advanceTimersByTimeAsync(150);
+        });
+
+        const payload = JSON.parse(fetch.mock.calls[0][1].body);
+        expect(payload.rule_source).toContain('FastFoodAward2026Rules');
+        expect(payload.rule_questionnaire).toEqual({ overtime: { daily: { answer: 4 } } });
+    });
+
     it('sends the worked periods around a manually specified lunch', async () => {
         const dispatch = vi.fn();
         fetch.mockResolvedValue(responseForPay(160));

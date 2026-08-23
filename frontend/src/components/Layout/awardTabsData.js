@@ -6,7 +6,7 @@ export const PUBLIC_AWARD_DEFAULT_RATES = {
 };
 
 export const TAB_ORDER = [
-    { key: 'woolies_2024_demo', label: 'Woolies' },
+    { key: 'woolies_2024_demo', label: 'Woolworths' },
     { key: 'coles_2024', label: 'Coles' },
     { key: 'fast_food', label: 'Fast Food' },
     { key: 'gria_2026', label: 'GRIA' },

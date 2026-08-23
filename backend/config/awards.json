@@ -15,7 +15,7 @@
   },
   {
     "key": "coles_2024",
-    "label": "Coles EA 2024",
+    "label": "Coles Retail Enterprise Agreement 2024",
     "module": "coles_2024_rules",
     "class_name": "Coles2024Rules",
     "public_tab": "Coles",
@@ -48,10 +48,10 @@
   },
   {
     "key": "woolies_2024_demo",
-    "label": "Woolies EA 2024",
+    "label": "Woolworths Australian Food Group Agreement 2024",
     "module": "woolies_2024_demo",
     "class_name": "Woolies2024Rules",
-    "public_tab": "Woolies",
+    "public_tab": "Woolworths",
     "hourly_rates_as_at": "2026-07-01",
     "hourly_rate_options": [
       { "key": "store_team_member_level_1", "label": "Store Team Member Level 1", "hourly_rate": 28.26 },

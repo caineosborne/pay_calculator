@@ -76,7 +76,7 @@ class RuleConfigurationTests(unittest.TestCase):
     def test_public_disclaimers_use_the_four_part_structure_for_every_instrument(self):
         disclaimers = public_disclaimers()
 
-        self.assertEqual(disclaimers["generic"]["title"], "Important disclaimer")
+        self.assertEqual(disclaimers["generic"]["title"], "Before you use this calculator")
         self.assertIn(
             "fairwork.gov.au",
             " ".join(disclaimers["generic"]["paragraphs"]),
@@ -217,6 +217,57 @@ class RuleConfigurationTests(unittest.TestCase):
             self.assertEqual(result.overtime_hours, 4)
         finally:
             delete_user(username)
+
+
+class TemporaryRulePreviewTests(unittest.TestCase):
+    def test_every_instrument_has_the_shared_two_line_exclusions_intro(self):
+        disclaimers = public_disclaimers()
+        expected = [
+            "The calculator only applies the configured rules shown under ‘Show ruleset’ and described above.",
+            "Specific areas which are not covered include:",
+        ]
+        for award in (
+            "fast_food",
+            "coles_2024",
+            "gria_2026",
+            "woolies_2024_demo",
+        ):
+            self.assertEqual(disclaimers["awards"][award]["exclusion_intro"], expected)
+
+    def test_retail_instruments_explicitly_exclude_longer_period_sunday_rules(self):
+        disclaimers = public_disclaimers()
+        for award in ("coles_2024", "gria_2026", "woolies_2024_demo"):
+            limitations = " ".join(disclaimers["awards"][award]["limitations"])
+            self.assertIn("All calculations occur over a fortnight", limitations)
+            self.assertIn("regularly worked Sunday rules", limitations)
+
+    def test_unsaved_guided_rule_changes_affect_calculation_without_storage(self):
+        builtin = get_rule_configuration("builtin:fast_food")
+        questionnaire = copy.deepcopy(builtin["questionnaire"])
+        questionnaire["overtime"]["daily_overtime_configuration"]["answer"] = {
+            "variation": "default",
+            "default": 4,
+        }
+
+        result = PayCalculator(
+            PayRequest(
+                hourly_rate=20,
+                worker_type="shift",
+                award="fast_food",
+                employment_type="full_time",
+                rule_configuration="builtin:fast_food",
+                rule_source=builtin["source"],
+                rule_questionnaire=questionnaire,
+                shifts=[{
+                    "day": "Monday",
+                    "start": 9,
+                    "end": 17,
+                    "break_duration": 0,
+                }],
+            )
+        ).calculate_pay()
+
+        self.assertEqual(result.overtime_hours, 4)
 
 
 if __name__ == "__main__":

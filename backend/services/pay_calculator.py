@@ -39,7 +39,13 @@ class PayCalculator:
         
         # Keep this calculation's rules isolated from every other request.
         award = data.award.value if hasattr(data.award, 'value') else data.award
-        self.rules = PayRules(award, data.rule_configuration, owner_id)
+        self.rules = PayRules(
+            award,
+            data.rule_configuration,
+            owner_id,
+            data.rule_source,
+            data.rule_questionnaire,
+        )
         
         # Get employment type and contracted hours
         self.employment_type = data.employment_type.value if hasattr(data.employment_type, 'value') else data.employment_type

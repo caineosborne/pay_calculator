@@ -7,8 +7,8 @@ import { PUBLIC_AWARD_DEFAULT_RATES } from '../Layout/awardTabsData';
 import { useAuth } from '../../context/AuthContext';
 
 const FALLBACK_AWARD_DETAILS = {
-    woolies_2024_demo: { label: 'Woolies EA 2024' },
-    coles_2024: { label: 'Coles EA 2024' },
+    woolies_2024_demo: { label: 'Woolworths Australian Food Group Agreement 2024' },
+    coles_2024: { label: 'Coles Retail Enterprise Agreement 2024' },
     fast_food: { label: 'Fast Food Award 2026' },
     gria_2026: { label: 'General Retail Industry Award 2026 (GRIA)' },
 };
@@ -106,9 +106,6 @@ export function InputDetails() {
     };
 
     const toggleConfigurationEditor = () => {
-        if (showConfigurationEditor && !confirmDiscardRuleEdits()) {
-            return;
-        }
         if (showConfigurationEditor) {
             dispatch({ type: 'SET_RULE_EDITOR_DIRTY', payload: false });
         }
@@ -126,6 +123,13 @@ export function InputDetails() {
 
     const handleEditorDirtyChange = useCallback((isDirty) => {
         dispatch({ type: 'SET_RULE_EDITOR_DIRTY', payload: isDirty });
+    }, [dispatch]);
+
+    const handleTemporaryConfigurationChange = useCallback((temporaryConfiguration) => {
+        dispatch({
+            type: 'UPDATE_TEMPORARY_RULE_CONFIGURATION',
+            payload: temporaryConfiguration,
+        });
     }, [dispatch]);
 
     const handleEmploymentTypeChange = (type) => {
@@ -600,6 +604,7 @@ export function InputDetails() {
                     onSignInRequested={openLogin}
                     onConfigurationSaved={handleConfigurationSaved}
                     onDirtyChange={handleEditorDirtyChange}
+                    onTemporaryConfigurationChange={handleTemporaryConfigurationChange}
                 />
             )}
             <DisplayRules showRules={showRules} />

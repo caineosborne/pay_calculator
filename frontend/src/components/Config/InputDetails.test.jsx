@@ -132,13 +132,13 @@ describe('InputDetails Fast Food classifications', () => {
         });
     });
 
-    it('keeps the ruleset-specific edit action and confirms before closing dirty edits', async () => {
+    it('closes temporary rule edits without a redundant warning', async () => {
         payContext.state = {
             ...baseState(),
             view: 'customize',
             ruleEditorDirty: true,
         };
-        const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+        const confirm = vi.spyOn(window, 'confirm');
         render(<InputDetails />);
 
         await screen.findByLabelText('Rule Configuration');
@@ -149,9 +149,9 @@ describe('InputDetails Fast Food classifications', () => {
         );
         fireEvent.click(screen.getByRole('button', { name: 'Close editor' }));
 
-        expect(confirm).toHaveBeenCalledWith('Discard unsaved rule changes?');
+        expect(confirm).not.toHaveBeenCalled();
         expect(
-            screen.getByRole('button', { name: 'Close editor' })
+            screen.getByRole('button', { name: 'Edit rule configuration' })
         ).toBeInTheDocument();
     });
 });

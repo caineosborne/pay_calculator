@@ -9,7 +9,7 @@ These models use Pydantic for automatic validation and type checking.
 """
 
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import Any, List, Optional
 from enum import Enum
 
 from services.award_registry import award_keys
@@ -98,5 +98,9 @@ class PayRequest(BaseModel):
     employment_type: EmploymentType = Field(default=EmploymentType.FULL_TIME)
     contracted_hours: Optional[float] = None
     rule_configuration: Optional[str] = Field(default=None, max_length=200)
+    # Unsaved editor values may be evaluated for this request only. They are
+    # validated and converted to literal rule dictionaries; nothing is stored.
+    rule_source: Optional[str] = Field(default=None, max_length=500_000)
+    rule_questionnaire: Optional[dict[str, Any]] = None
     shifts: List[Shift]
     public_holidays: List[WorkdayReference] = Field(default_factory=list)

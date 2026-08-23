@@ -117,11 +117,25 @@
 .award-limitations { margin-top: 22px; padding-top: 21px; border-top: 1px solid #d5e0da; }
 .award-limitations ul { margin: 0 0 14px; padding-left: 22px; }
 .award-limitations li { margin-bottom: 7px; }
+.total-review-callout { display: grid; gap: 5px; margin: 0 0 22px; padding: 15px 16px; border: 1px solid #dfbd77; border-left: 5px solid #b77816; border-radius: 9px; color: #50380f; background: #fff8e8; }
+.total-review-callout strong { font: 700 15px/1.25 'DM Sans', sans-serif; }
+.total-review-callout span { font: 13px/1.5 'DM Sans', sans-serif; }
+.disclaimer-section { margin: 16px 0; padding: 14px 16px 4px; border-radius: 10px; }
+.disclaimer-section h4 { margin: 0 0 12px; color: #253c32; font: 700 15px/1.25 'DM Sans', sans-serif; }
+.exclusion-intro { margin-bottom: 5px !important; }
+.exclusion-intro + .exclusion-intro { margin-bottom: 14px !important; font-weight: 700 !important; }
+.disclaimer-assumptions { border: 1px solid #b9ddd0; background: #f2faf6; }
+.disclaimer-limitations, .disclaimer-exclusions { border: 1px solid #e4c98e; background: #fffaf0; }
+.disclaimer-closing { margin-top: 18px !important; font-weight: 700 !important; }
 .award-limitations h5 { margin: 2px 0 8px; color: #30463d; font: 650 13px/1.4 'DM Sans', sans-serif; }
 .exclusion-group + .exclusion-group { margin-top: 18px; }
 .disclaimer-error { color: #9b2c2c !important; }
 .disclaimer-close { margin-top: 6px; color: #fff; border-color: #146c5a; background: #146c5a; }
 .disclaimer-close:hover { background: #0d5646; }
+.disclaimer-footer { box-sizing: border-box; margin-top: 4px; padding: 26px 28px; border: 1px solid #cbd8d0; border-radius: 14px; color: #3e554b; background: #f8fbf9; }
+.disclaimer-footer > h2 { margin: 0 0 14px; color: #17231f; font: 700 25px/1 Fraunces, Georgia, serif; letter-spacing: -.035em; }
+.disclaimer-footer p, .disclaimer-footer li { font: 13px/1.55 'DM Sans', sans-serif; }
+.disclaimer-footer .award-limitations { margin-top: 18px; }
 .auth-dialog { width: min(460px, 100%); padding: 28px; border: 1px solid #cbd8d0; border-radius: 16px; background: #fff; box-shadow: 0 24px 70px rgba(14, 32, 24, .32); }
 .auth-dialog h2 { margin: 5px 0 16px; color: #17231f; font: 700 30px/1 Fraunces, Georgia, serif; letter-spacing: -.04em; }
 .auth-testing-notice { margin: 0 0 18px; padding: 12px; border-left: 3px solid #d0a24c; color: #6a542c; background: #fff9ec; font: 13px/1.5 'DM Sans', sans-serif; }
@@ -209,6 +223,7 @@
   .summary-grid { grid-template-columns: repeat(2, 1fr); }
   .net-pay { padding: 24px; }
   .disclaimer-dialog { padding: 22px 18px; }
+  .disclaimer-footer { padding: 22px 18px; }
   .rules-heading { align-items: start; flex-direction: column; }
   .rule-grid { grid-template-columns: 1fr; }
   .rule-row:nth-child(odd) { border-right: 0; }

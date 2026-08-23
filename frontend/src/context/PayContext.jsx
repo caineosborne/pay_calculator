@@ -10,6 +10,7 @@ const initialState = {
     // UI-only state used to prevent losing unsaved ruleset edits when moving
     // between calculators or leaving Customize.
     ruleEditorDirty: false,
+    temporaryRuleConfiguration: null,
     config: {
         // Fast Food Award Level 1 hourly rate. The classification selector can
         // set the other published rates or allow a manually entered rate.
@@ -81,6 +82,7 @@ function payReducer(state, action) {
                         : {}),
                 },
                 calculationError: null,
+                temporaryRuleConfiguration: null,
             };
         case 'OPEN_CUSTOMIZE':
             return {
@@ -91,6 +93,7 @@ function payReducer(state, action) {
                     ruleConfiguration: `builtin:${state.config.award}`,
                 },
                 calculationError: null,
+                temporaryRuleConfiguration: null,
             };
         case 'SET_RULE_EDITOR_DIRTY':
             return {
@@ -103,7 +106,14 @@ function payReducer(state, action) {
                 config: {
                     ...state.config,
                     ruleConfiguration: action.payload
-                }
+                },
+                temporaryRuleConfiguration: null,
+            };
+        case 'UPDATE_TEMPORARY_RULE_CONFIGURATION':
+            return {
+                ...state,
+                temporaryRuleConfiguration: action.payload,
+                calculationError: null,
             };
         case 'UPDATE_EMPLOYMENT_TYPE':
             return {
