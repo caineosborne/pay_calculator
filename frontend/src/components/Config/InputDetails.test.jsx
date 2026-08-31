@@ -65,7 +65,7 @@ describe('InputDetails Fast Food classifications', () => {
         render(<InputDetails />);
 
         const classification = await screen.findByLabelText(
-            'Classification and hourly rate'
+            'Classification and hourly rate (rates calculated as at August 2026)'
         );
         payContext.dispatch.mockClear();
         fireEvent.change(classification, { target: { value: 'level_3_two_or_more' } });
@@ -80,7 +80,7 @@ describe('InputDetails Fast Food classifications', () => {
         render(<InputDetails />);
 
         const classification = await screen.findByLabelText(
-            'Classification and hourly rate'
+            'Classification and hourly rate (rates calculated as at August 2026)'
         );
         fireEvent.change(classification, { target: { value: 'custom' } });
 

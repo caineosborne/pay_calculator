@@ -40,6 +40,7 @@ describe('DisclaimerDialog', () => {
 
         expect(await screen.findByText('Indicative estimate only.')).toBeInTheDocument();
         expect(screen.queryByText('Before you use this calculator')).not.toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Specific commentary on this award/EA' })).toBeInTheDocument();
         expect(screen.getByText('Scope and assumptions')).toBeInTheDocument();
         expect(screen.getByText('Assumptions')).toBeInTheDocument();
         expect(screen.getByText('The selected classification is correct.')).toBeInTheDocument();

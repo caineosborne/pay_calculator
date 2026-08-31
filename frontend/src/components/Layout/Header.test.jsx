@@ -71,7 +71,6 @@ describe('Header', () => {
         };
 
         render(<Header onOpenLimitations={onOpenLimitations} />);
-        expect(screen.getByRole('heading', { name: 'payguide.au' })).toBeInTheDocument();
         fireEvent.click(screen.getByRole('button', { name: 'Assumptions & limitations' }));
 
         expect(onOpenLimitations).toHaveBeenCalledTimes(1);

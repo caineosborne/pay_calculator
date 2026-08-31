@@ -304,7 +304,7 @@ export function InputDetails() {
                         {hourlyRateOptions.length > 0 ? (
                             <>
                                 <label htmlFor="award-classification" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                                    Classification and hourly rate
+                                    Classification and hourly rate (rates calculated as at August 2026 and exclude casual loading)
                                 </label>
                                 <select
                                     id="award-classification"
@@ -317,7 +317,7 @@ export function InputDetails() {
                                             {option.label} — ${option.hourly_rate.toFixed(2)}/hr
                                         </option>
                                     ))}
-                                    <option value="custom">Enter your own rate</option>
+                                    <option value="custom">Enter your own rate (exclude casual loading)</option>
                                 </select>
                                 {rateOption === 'custom' && (
                                     <div className="mt-2">
@@ -420,9 +420,9 @@ export function InputDetails() {
                                     onClick={() => setShowRules(!showRules)}
                                     className={`px-3 py-1 rounded-md text-xs font-medium transition-colors border-2
                                     ${showRules
-                                        ? 'bg-green-500 text-white border-green-600'
-                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border-transparent'
-                                    }`}
+                                            ? 'bg-green-500 text-white border-green-600'
+                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border-transparent'
+                                        }`}
                                 >
                                     {showRules ? 'Hide Rules' : 'Show Rules'}
                                 </button>

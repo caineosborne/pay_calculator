@@ -2,8 +2,8 @@ To start:
 
 Backend:
 
-cd Backend
-uvicorn main:app --reload
+cd /Users/caineosborne/Projects/pay-checker-mvp/backend
+  .venv/bin/uvicorn main:app --reload
 
 
 127.0.0.1:8000

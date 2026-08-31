@@ -1,0 +1,127 @@
+@import './index.css';
+
+.about-app {
+  min-height: 100vh;
+  padding: 0 24px 24px;
+  color: #17231f;
+  background: #edf2ef;
+}
+
+.about-global-header {
+  margin: 0 -24px;
+  border-bottom: 1px solid #0d5646;
+  background: #146c5a;
+  box-shadow: 0 8px 18px rgba(20, 108, 90, .14);
+}
+
+.about-main {
+  width: min(800px, 100%);
+  margin: 40px auto 56px;
+}
+
+.about-report {
+  border: 1px solid #d5e0da;
+  background: #fff;
+}
+
+.report-header,
+.report-section {
+  padding: 32px 40px;
+}
+
+.report-header {
+  border-top: 5px solid #146c5a;
+  border-bottom: 1px solid #d5e0da;
+}
+
+.report-header h1 {
+  margin: 0 0 10px;
+  color: #17231f;
+  font: 700 34px/1.15 Fraunces, Georgia, serif;
+  letter-spacing: -.025em;
+}
+
+.report-header p,
+.report-section p,
+.report-section li {
+  color: #3e554b;
+  font: 15px/1.65 'DM Sans', sans-serif;
+}
+
+.report-header p {
+  margin: 0;
+}
+
+.report-section + .report-section {
+  border-top: 1px solid #d5e0da;
+}
+
+.report-section h2 {
+  margin: 0 0 18px;
+  color: #17231f;
+  font: 700 22px/1.25 'DM Sans', sans-serif;
+}
+
+.report-section h3 {
+  margin: 26px 0 8px;
+  color: #284338;
+  font: 700 16px/1.35 'DM Sans', sans-serif;
+}
+
+.report-section p {
+  margin: 0 0 14px;
+}
+
+.report-section p:last-child {
+  margin-bottom: 0;
+}
+
+.report-section ol {
+  margin: 0;
+  padding-left: 24px;
+}
+
+.report-section li {
+  margin: 7px 0;
+  padding-left: 4px;
+}
+
+.report-section a {
+  color: #146c5a;
+  font-weight: 700;
+  text-underline-offset: 3px;
+}
+
+.report-limitation {
+  background: #fffaf0;
+}
+
+.report-limitation strong {
+  color: #50380f;
+}
+
+.about-footer {
+  display: flex;
+  width: min(960px, 100%);
+  justify-content: space-between;
+  gap: 20px;
+  margin: 0 auto;
+  padding-top: 20px;
+  border-top: 1px solid #cbd8d0;
+  color: #517064;
+  font: 500 11px/1.4 'DM Mono', monospace;
+}
+
+.about-footer a {
+  color: #146c5a;
+  text-underline-offset: 3px;
+}
+
+@media (max-width: 600px) {
+  .about-app { padding-inline: 14px; }
+  .about-global-header { margin-inline: -14px; }
+  .about-main { margin-top: 24px; }
+  .report-header, .report-section { padding: 25px 22px; }
+  .report-header h1 { font-size: 29px; }
+  .about-footer { flex-direction: column; }
+}

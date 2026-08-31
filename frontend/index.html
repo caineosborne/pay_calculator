@@ -10,6 +10,12 @@
 </head>
 
 <body>
+  <script>
+    const landingParams = new URLSearchParams(window.location.search);
+    if (!landingParams.has('award') && landingParams.get('customize') !== '1') {
+      window.location.replace('/about.html');
+    }
+  </script>
   <div id="root"></div>
   <script type="module" src="/src/main.jsx"></script>
 </body>

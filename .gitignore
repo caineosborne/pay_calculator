@@ -20,3 +20,6 @@ venv/
 # Env variables
 .env
 .env.local
+
+# Local sample rulesets
+Sample_Rulesets/

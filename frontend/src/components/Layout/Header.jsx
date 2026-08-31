@@ -158,20 +158,6 @@ export default function Header({ onOpenLimitations }) {
 
     return (
         <header className="pay-header pay-shell">
-            <div className="pay-brand">
-                {/* Title and subtitle section */}
-                <span className="brand-mark" aria-hidden="true">$</span>
-                <div>
-                    <p className="eyebrow">Pay period estimate</p>
-                    <h1>
-                        payguide.au
-                    </h1>
-                    <p className="sr-only">
-                        Calculate your pay-period earnings
-                    </p>
-                </div>
-            </div>
-
             {/* Control buttons section */}
             <div className="header-actions">
                 {user ? (

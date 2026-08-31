@@ -31,6 +31,9 @@ function DisclaimerContent({ disclaimers, awardKey, showAwardDetails = true, tit
 
             {showAwardDetails && awardDisclaimer && (
                 <div className="award-limitations">
+                    <h3 className="award-specific-heading">
+                        Specific commentary on this award/EA
+                    </h3>
                     <div className="total-review-callout" role="note">
                         <strong>How the total is calculated</strong>
                         <span>All calculations are based on the assumptions and limitations specified below. Exclusions may mean additional amounts are payable.</span>

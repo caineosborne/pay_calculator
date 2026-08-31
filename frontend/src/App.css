@@ -4,16 +4,18 @@
 
 .pay-app { min-height: 100vh; padding: 24px; background: #edf2ef; color: #17231f; }
 .pay-shell { width: 100%; max-width: none; margin: 0; }
-.pay-header { display: flex; justify-content: space-between; gap: 28px; align-items: end; padding: 14px 0 17px; border-bottom: 1px solid #cbd8d0; }
+.pay-header { display: flex; justify-content: flex-end; gap: 28px; align-items: end; padding: 14px 0 17px; border-bottom: 1px solid #cbd8d0; }
 .pay-brand { display: flex; align-items: center; gap: 14px; }
 .brand-mark { display: grid; place-items: center; width: 42px; height: 42px; color: #e9f7f1; background: #146c5a; border-radius: 12px 12px 12px 3px; font-size: 21px; }
 .eyebrow, .section-kicker { color: #517064; font: 500 11px/1.2 'DM Mono', monospace; letter-spacing: .1em; text-transform: uppercase; }
 .pay-header h1 { margin: 3px 0 0; font: 700 clamp(28px, 4vw, 40px)/.95 Fraunces, Georgia, serif; letter-spacing: -.045em; }
 .award-tabs { margin: -24px -24px 16px; border-bottom: 1px solid #0d5646; background: #146c5a; box-shadow: 0 8px 18px rgba(20, 108, 90, .14); }
-.award-tabs-inner { display: flex; align-items: stretch; gap: 20px; padding: 8px 24px 9px; }
-.award-tabs-heading { display: grid; align-content: center; min-width: 150px; }
-.award-tabs-heading .section-kicker { color: #b8dbcd; }
-.award-tabs-intro { margin: 3px 0 0; color: #fff; font: 700 15px/1 'DM Sans', sans-serif; }
+.site-notice { padding: 11px 24px; color: #fff; border-bottom: 1px solid rgba(255,255,255,.2); background: #0d5646; font: 700 15px/1.35 'DM Sans', sans-serif; letter-spacing: .005em; text-align: left; }
+.award-tabs-inner { display: flex; align-items: stretch; gap: 8px; padding: 8px 24px 9px; }
+.award-tabs-heading { display: grid; flex: 0 0 210px; align-content: center; padding-right: 14px; }
+.award-tabs-heading .section-kicker { margin: 0; color: #b8dbcd; }
+.award-tabs-intro { margin: 5px 0 0; color: #fff; font: 700 18px/1 'DM Sans', sans-serif; }
+.topbar-about { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
 .award-tab-list { display: flex; flex: 1; min-width: 0; gap: 8px; }
 .award-tab { flex: 1; min-height: 38px; border: 1px solid rgba(255,255,255,.3); border-radius: 7px; padding: 8px 10px; color: #e9f7f1; background: rgba(255,255,255,.08); font: 700 13px/1 'DM Sans', sans-serif; cursor: pointer; }
 .award-tab:hover, .award-tab.is-active { color: #fff; border-color: #146c5a; background: #146c5a; }
@@ -25,6 +27,7 @@
 .auth-user { display: inline-flex; align-items: center; padding: 0 4px; color: #517064; font: 500 11px/1.2 'DM Mono', monospace; }
 .pay-button { border: 1px solid #b9c9c0; border-radius: 8px; padding: 9px 12px; color: #284338; background: rgba(255,255,255,.58); font: 500 12px/1 'DM Sans', sans-serif; cursor: pointer; }
 .pay-button:hover { color: #fff; border-color: #146c5a; background: #146c5a; }
+.header-link { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
 .workspace { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 14px 0 30px; }
 .panel { border: 1px solid #d5e0da; border-radius: 14px; background: #fff; box-shadow: 0 8px 24px rgba(38, 63, 51, .055); }
 .config-panel { padding: 16px; }
@@ -115,6 +118,7 @@
 .disclaimer-dialog p, .disclaimer-dialog li { color: #3e554b; font: 14px/1.55 'DM Sans', sans-serif; }
 .disclaimer-dialog p { margin: 0 0 14px; }
 .award-limitations { margin-top: 22px; padding-top: 21px; border-top: 1px solid #d5e0da; }
+.award-limitations .award-specific-heading { margin: 0 0 16px; color: #17231f; font: 700 21px/1.2 Fraunces, Georgia, serif; letter-spacing: -.03em; }
 .award-limitations ul { margin: 0 0 14px; padding-left: 22px; }
 .award-limitations li { margin-bottom: 7px; }
 .total-review-callout { display: grid; gap: 5px; margin: 0 0 22px; padding: 15px 16px; border: 1px solid #dfbd77; border-left: 5px solid #b77816; border-radius: 9px; color: #50380f; background: #fff8e8; }
@@ -151,8 +155,10 @@
   .pay-app { padding: 14px; }
   .pay-header { align-items: start; flex-direction: column; }
   .award-tabs { margin: -14px -14px 14px; }
-  .award-tabs-inner { flex-direction: column; padding: 10px 14px; }
+  .award-tabs-inner { flex-wrap: wrap; padding: 10px 14px; }
+  .award-tabs-heading { flex-basis: 100%; padding: 2px 0 8px; }
   .award-tab-list { flex-wrap: wrap; }
+  .award-tab-list { flex-basis: 100%; }
   .award-tab { flex: 1 1 calc(50% - 8px); }
   .header-actions { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); width: 100%; gap: 6px; }
   .header-actions .pay-button { min-height: 34px; padding: 7px 6px; font-size: 11px; line-height: 1.15; }
